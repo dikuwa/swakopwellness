@@ -1,0 +1,28 @@
+# Package Manifest
+
+- `CHANGELOG.md`
+- `CODER-RULES.md`
+- `MASTER-CODER-PROMPT.md`
+- `PROJECT-STATUS.md`
+- `README-FIRST.md`
+- `architecture.md`
+- `component-plan.md`
+- `design-style-guide.md`
+- `env-setup.md`
+- `optional/ai-guide.md`
+- `optional/api-specification.md`
+- `optional/business-workflow.md`
+- `optional/database-design.md`
+- `optional/deployment-guide.md`
+- `optional/handover-guide.md`
+- `optional/security-and-permissions.md`
+- `pre-deployment.md`
+- `project-description.md`
+- `project-phases.md`
+- `references/vibekit/README.md`
+- `references/vibekit/REFERENCES-MANIFEST.md`
+- `references/vibekit/agent-tooling.md`
+- `references/vibekit/design-style-guide-template.md`
+- `references/vibekit/jb-components.md`
+- `references/vibekit/vibekit-primitives.md`
+- `testing-plan.md`
