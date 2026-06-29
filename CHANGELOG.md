@@ -1,6 +1,30 @@
 # Changelog
 
 ## 2026-06-29
+### Phase 2 added
+- Business settings, communication settings and booking rules tables
+- Service categories, services, service galleries, service FAQs and suitability question tables
+- Media asset metadata, public FAQs and policies tables
+- Generated and applied `drizzle/0001_dark_slyde.sql`
+- Idempotent `npm run db:seed:phase2` seed for editable business details, communication defaults, booking rules, default services, safety questions, FAQ and policy starter data
+- Communication feature-flag helper and tests for WhatsApp visibility
+
+### Phase 2 verified
+- `npm run db:generate`
+- Reviewed generated SQL migration
+- `npm run db:migrate`
+- `npm run db:seed:phase2`
+- `npm run lint`
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
+- `npm run env:check` with local `.env`
+
+### Phase 1 completed
+- Applied `drizzle/0000_fast_glorian.sql`
+- Bootstrapped owner account from local `.env`
+- Fixed owner bootstrap script exit behaviour after successful creation
+
 ### Phase 1 added
 - Drizzle PostgreSQL schema for users, sessions, roles, permissions, role permissions and user roles
 - Generated initial migration `drizzle/0000_fast_glorian.sql`
@@ -10,9 +34,6 @@
 - Owner bootstrap script for first account creation, without public registration
 - Login page, protected dashboard page and permission-denied page
 - Tests for password verification, permission defaults, session token hashing and environment validation
-
-### Phase 1 blocked
-- `npm run db:migrate` could not run because no reachable `DIRECT_URL` or `DATABASE_URL` is configured in this environment.
 
 ### Phase 1 verified
 - `npm run db:generate`

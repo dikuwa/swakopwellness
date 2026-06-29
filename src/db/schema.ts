@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm";
-import { boolean, index, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import { boolean, integer, index, jsonb, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 export const users = pgTable(
   "users",
@@ -94,4 +94,171 @@ export const rolePermissionsRelations = relations(rolePermissions, ({ one }) => 
 export const userRolesRelations = relations(userRoles, ({ one }) => ({
   user: one(users, { fields: [userRoles.userId], references: [users.id] }),
   role: one(roles, { fields: [userRoles.roleId], references: [roles.id] }),
+}));
+
+export const businessSettings = pgTable("business_settings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  businessName: text("business_name").notNull(),
+  address: text("address").notNull(),
+  telephone: text("telephone").notNull(),
+  email: text("email").notNull(),
+  operatingHours: text("operating_hours").notNull(),
+  appointmentModel: text("appointment_model").notNull(),
+  currencyCode: text("currency_code").notNull().default("NAD"),
+  currencySymbol: text("currency_symbol").notNull().default("N$"),
+  medicalDisclaimer: text("medical_disclaimer").notNull(),
+  documentDetails: jsonb("document_details").$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const communicationSettings = pgTable("communication_settings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  enableCalls: boolean("enable_calls").notNull().default(true),
+  mainPhone: text("main_phone").notNull(),
+  enableEmailContact: boolean("enable_email_contact").notNull().default(true),
+  businessEmail: text("business_email").notNull(),
+  bookingNotificationEmail: text("booking_notification_email"),
+  acknowledgementEmail: text("acknowledgement_email"),
+  replyToEmail: text("reply_to_email"),
+  enableWhatsapp: boolean("enable_whatsapp").notNull().default(false),
+  whatsappNumber: text("whatsapp_number"),
+  whatsappDefaultMessage: text("whatsapp_default_message"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const bookingRules = pgTable("booking_rules", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  openingTime: text("opening_time").notNull().default("08:00"),
+  closingTime: text("closing_time").notNull().default("17:00"),
+  timezone: text("timezone").notNull().default("Africa/Windhoek"),
+  requestMode: text("request_mode").notNull().default("manual_confirmation"),
+  duplicateWindowMinutes: integer("duplicate_window_minutes").notNull().default(30),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const serviceCategories = pgTable(
+  "service_categories",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    description: text("description"),
+    sortOrder: integer("sort_order").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("service_categories_slug_unique").on(table.slug)],
+);
+
+export const mediaAssets = pgTable("media_assets", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  storageKey: text("storage_key").notNull(),
+  publicUrl: text("public_url"),
+  altText: text("alt_text"),
+  mimeType: text("mime_type").notNull(),
+  byteSize: integer("byte_size").notNull(),
+  width: integer("width"),
+  height: integer("height"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const services = pgTable(
+  "services",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    categoryId: uuid("category_id").references(() => serviceCategories.id, { onDelete: "set null" }),
+    featuredImageId: uuid("featured_image_id").references(() => mediaAssets.id, { onDelete: "set null" }),
+    name: text("name").notNull(),
+    slug: text("slug").notNull(),
+    shortDescription: text("short_description").notNull(),
+    fullDescription: text("full_description").notNull(),
+    priceCents: integer("price_cents").notNull(),
+    durationMinutes: integer("duration_minutes"),
+    benefits: jsonb("benefits").$type<string[]>().notNull().default([]),
+    whatToExpect: text("what_to_expect"),
+    preparation: text("preparation"),
+    safetyInformation: text("safety_information"),
+    publicVisible: boolean("public_visible").notNull().default(true),
+    bookingEnabled: boolean("booking_enabled").notNull().default(true),
+    featured: boolean("featured").notNull().default(false),
+    sortOrder: integer("sort_order").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("services_slug_unique").on(table.slug), index("services_public_idx").on(table.publicVisible, table.active, table.sortOrder)],
+);
+
+export const serviceImages = pgTable(
+  "service_images",
+  {
+    serviceId: uuid("service_id").notNull().references(() => services.id, { onDelete: "cascade" }),
+    mediaAssetId: uuid("media_asset_id").notNull().references(() => mediaAssets.id, { onDelete: "cascade" }),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [primaryKey({ columns: [table.serviceId, table.mediaAssetId] })],
+);
+
+export const serviceFaqs = pgTable("service_faqs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  serviceId: uuid("service_id").notNull().references(() => services.id, { onDelete: "cascade" }),
+  question: text("question").notNull(),
+  answer: text("answer").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const serviceQuestions = pgTable("service_questions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  serviceId: uuid("service_id").references(() => services.id, { onDelete: "cascade" }),
+  question: text("question").notNull(),
+  flaggedAnswer: text("flagged_answer").notNull().default("yes"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const faqs = pgTable("faqs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  question: text("question").notNull(),
+  answer: text("answer").notNull(),
+  sortOrder: integer("sort_order").notNull().default(0),
+  publicVisible: boolean("public_visible").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const policies = pgTable(
+  "policies",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    title: text("title").notNull(),
+    slug: text("slug").notNull(),
+    body: text("body").notNull(),
+    publicVisible: boolean("public_visible").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("policies_slug_unique").on(table.slug)],
+);
+
+export const serviceCategoriesRelations = relations(serviceCategories, ({ many }) => ({
+  services: many(services),
+}));
+
+export const servicesRelations = relations(services, ({ one, many }) => ({
+  category: one(serviceCategories, { fields: [services.categoryId], references: [serviceCategories.id] }),
+  featuredImage: one(mediaAssets, { fields: [services.featuredImageId], references: [mediaAssets.id] }),
+  images: many(serviceImages),
+  faqs: many(serviceFaqs),
+  questions: many(serviceQuestions),
 }));
