@@ -262,3 +262,84 @@ export const servicesRelations = relations(services, ({ one, many }) => ({
   faqs: many(serviceFaqs),
   questions: many(serviceQuestions),
 }));
+
+export const clients = pgTable(
+  "clients",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    fullName: text("full_name").notNull(),
+    phone: text("phone"),
+    normalizedPhone: text("normalized_phone"),
+    email: text("email"),
+    normalizedEmail: text("normalized_email"),
+    whatsappNumber: text("whatsapp_number"),
+    normalizedWhatsapp: text("normalized_whatsapp"),
+    preferredContactMethod: text("preferred_contact_method").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    lastBookingAt: timestamp("last_booking_at", { withTimezone: true }),
+  },
+  (table) => [
+    index("clients_normalized_phone_idx").on(table.normalizedPhone),
+    index("clients_normalized_email_idx").on(table.normalizedEmail),
+    index("clients_normalized_whatsapp_idx").on(table.normalizedWhatsapp),
+  ],
+);
+
+export const bookings = pgTable(
+  "bookings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    reference: text("reference").notNull().unique(),
+    clientId: uuid("client_id").notNull().references(() => clients.id, { onDelete: "restrict" }),
+    serviceId: uuid("service_id").references(() => services.id, { onDelete: "set null" }),
+    serviceName: text("service_name").notNull(),
+    servicePriceCents: integer("service_price_cents").notNull(),
+    serviceDurationMinutes: integer("service_duration_minutes"),
+    preferredAt: timestamp("preferred_at", { withTimezone: true }).notNull(),
+    alternativeAt: timestamp("alternative_at", { withTimezone: true }),
+    status: text("status").notNull(),
+    source: text("source").notNull(),
+    preferredContactMethod: text("preferred_contact_method").notNull(),
+    clientType: text("client_type").notNull(),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("bookings_status_preferred_idx").on(table.status, table.preferredAt),
+    index("bookings_client_id_idx").on(table.clientId),
+    index("bookings_created_at_idx").on(table.createdAt),
+  ],
+);
+
+export const bookingStatusHistory = pgTable("booking_status_history", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  bookingId: uuid("booking_id").notNull().references(() => bookings.id, { onDelete: "cascade" }),
+  fromStatus: text("from_status"),
+  toStatus: text("to_status").notNull(),
+  actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+  note: text("note"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const bookingAnswers = pgTable("booking_answers", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  bookingId: uuid("booking_id").notNull().references(() => bookings.id, { onDelete: "cascade" }),
+  questionId: uuid("question_id").references(() => serviceQuestions.id, { onDelete: "set null" }),
+  questionText: text("question_text").notNull(),
+  answer: text("answer").notNull(),
+  flagged: boolean("flagged").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const clientsRelations = relations(clients, ({ many }) => ({
+  bookings: many(bookings),
+}));
+
+export const bookingsRelations = relations(bookings, ({ one, many }) => ({
+  client: one(clients, { fields: [bookings.clientId], references: [clients.id] }),
+  service: one(services, { fields: [bookings.serviceId], references: [services.id] }),
+  statusHistory: many(bookingStatusHistory),
+  answers: many(bookingAnswers),
+}));

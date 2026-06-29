@@ -1,7 +1,7 @@
 import { and, asc, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getDb } from "@/db/client";
-import { businessSettings, communicationSettings, faqs, policies, services } from "@/db/schema";
+import { bookingRules, businessSettings, communicationSettings, faqs, policies, serviceQuestions, services } from "@/db/schema";
 
 export function formatMoney(cents: number, symbol = "N$") {
   return `${symbol}${(cents / 100).toLocaleString("en-NA", { maximumFractionDigits: 0 })}`;
@@ -54,6 +54,18 @@ export async function getPublicFaqs() {
 export async function getPublicPolicies() {
   const db = getDb();
   return db.select().from(policies).where(eq(policies.publicVisible, true)).orderBy(asc(policies.title));
+}
+
+export async function getBookingRules() {
+  const db = getDb();
+  const [rules] = await db.select().from(bookingRules).limit(1);
+  if (!rules) notFound();
+  return rules;
+}
+
+export async function getActiveSuitabilityQuestions() {
+  const db = getDb();
+  return db.select().from(serviceQuestions).where(eq(serviceQuestions.active, true)).orderBy(asc(serviceQuestions.sortOrder));
 }
 
 export async function getPolicyBySlug(slug: string) {

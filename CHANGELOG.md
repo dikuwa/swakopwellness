@@ -1,6 +1,26 @@
 # Changelog
 
 ## 2026-06-29
+### Phase 4 added
+- Clients, bookings, booking answers and booking status history schema
+- Generated and applied `drizzle/0002_cool_moira_mactaggert.sql`
+- Server-side booking request workflow with service validation, service snapshots, client matching, duplicate-window handling, suitability answer storage and status history creation
+- Human-readable booking reference generation with database uniqueness
+- Public `/book` form using dynamic services, booking rules, communication settings and suitability questions
+- Success and error states for booking request submission
+- Tests for booking references, contact normalization, suitability status and booking validation
+
+### Phase 4 verified
+- `npm run db:generate`
+- Reviewed generated SQL migration
+- `npm run db:migrate`
+- `npm run lint`
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
+- `npm run env:check` with local `.env`
+- Browser smoke test submitted a booking request and returned a reference
+
 ### Phase 3 added
 - Dynamic Home page using database-backed business settings, communication settings, services and FAQs
 - Dynamic Services and Service Detail pages using editable service records and prices
