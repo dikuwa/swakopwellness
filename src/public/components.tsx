@@ -31,6 +31,7 @@ export function PublicHeader({ business, communication }: { business: Business; 
           <Link href="/services" className="hover:text-foreground">Services</Link>
           <Link href="/about" className="hover:text-foreground">About</Link>
           <Link href="/faqs" className="hover:text-foreground">FAQs</Link>
+          <Link href="/chat" className="hover:text-foreground">Chat to Book</Link>
           <Link href="/contact" className="hover:text-foreground">Contact</Link>
           <Link href="/policies" className="hover:text-foreground">Policies</Link>
         </nav>
@@ -65,8 +66,8 @@ export function MobileActionBar({ communication }: { communication: Communicatio
             WhatsApp
           </a>
         ) : (
-          <Link href="/faqs" className="flex h-11 items-center justify-center rounded-xl border border-border text-sm font-semibold">
-            FAQs
+          <Link href="/chat" className="flex h-11 items-center justify-center rounded-xl border border-border text-sm font-semibold">
+            Chat
           </Link>
         )}
         <Link href="/book" className="flex h-11 items-center justify-center rounded-xl bg-primary text-sm font-semibold text-primary-foreground">

@@ -28,6 +28,9 @@ export default async function Home() {
               <Link href="/book" className="flex h-12 items-center justify-center rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
                 Book an appointment
               </Link>
+              <Link href="/chat" className="flex h-12 items-center justify-center rounded-xl border border-border px-5 text-sm font-semibold hover:bg-surface-muted">
+                Chat to book
+              </Link>
               {communication.enableCalls ? (
                 <a href={`tel:${communication.mainPhone.replaceAll(" ", "")}`} className="flex h-12 items-center justify-center rounded-xl border border-border px-5 text-sm font-semibold hover:bg-surface-muted">
                   Call now

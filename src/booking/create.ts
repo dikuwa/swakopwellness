@@ -7,7 +7,7 @@ import { getInitialBookingStatus } from "./status";
 import { bookingRequestSchema, hasAtLeastOneContact, isContactMethodAvailable, parseDateTime, type BookingRequestInput } from "./validation";
 
 export type CreateBookingResult =
-  | { ok: true; reference: string; status: string }
+  | { ok: true; reference: string; status: string; bookingId?: string; clientId?: string }
   | { ok: false; message: string };
 
 export async function createBookingRequest(input: unknown, source: "website_form" | "manual_admin" = "website_form"): Promise<CreateBookingResult> {
@@ -141,7 +141,7 @@ export async function createBookingRequest(input: unknown, source: "website_form
     await tx.insert(bookingStatusHistory).values({ bookingId: booking.id, toStatus: status, note: "Booking request created." });
     await tx.update(clients).set({ lastBookingAt: new Date(), updatedAt: new Date() }).where(eq(clients.id, client.id));
 
-    return { ok: true, reference: booking.reference, status } satisfies CreateBookingResult;
+    return { ok: true, reference: booking.reference, status, bookingId: booking.id, clientId: client.id } satisfies CreateBookingResult;
   });
 }
 

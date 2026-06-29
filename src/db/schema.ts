@@ -343,3 +343,40 @@ export const bookingsRelations = relations(bookings, ({ one, many }) => ({
   statusHistory: many(bookingStatusHistory),
   answers: many(bookingAnswers),
 }));
+
+export const chatConversations = pgTable("chat_conversations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  bookingId: uuid("booking_id").references(() => bookings.id, { onDelete: "set null" }),
+  clientId: uuid("client_id").references(() => clients.id, { onDelete: "set null" }),
+  status: text("status").notNull().default("open"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const chatMessages = pgTable(
+  "chat_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    conversationId: uuid("conversation_id").notNull().references(() => chatConversations.id, { onDelete: "cascade" }),
+    role: text("role").notNull(),
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("chat_messages_conversation_idx").on(table.conversationId, table.createdAt)],
+);
+
+export const chatToolEvents = pgTable("chat_tool_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  conversationId: uuid("conversation_id").notNull().references(() => chatConversations.id, { onDelete: "cascade" }),
+  toolName: text("tool_name").notNull(),
+  status: text("status").notNull(),
+  summary: text("summary"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const chatConversationsRelations = relations(chatConversations, ({ one, many }) => ({
+  booking: one(bookings, { fields: [chatConversations.bookingId], references: [bookings.id] }),
+  client: one(clients, { fields: [chatConversations.clientId], references: [clients.id] }),
+  messages: many(chatMessages),
+  toolEvents: many(chatToolEvents),
+}));

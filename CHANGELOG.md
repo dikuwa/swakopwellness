@@ -1,6 +1,26 @@
 # Changelog
 
 ## 2026-06-29
+### Phase 5 added
+- Chat conversation, chat message and chat tool-event persistence tables
+- Generated and applied `drizzle/0003_plain_the_santerians.sql`
+- Public `/chat` route for constrained chat-to-book flow
+- Chat booking server action using the same booking creation workflow as the standard booking form
+- Public navigation and mobile action links for Chat to Book
+- Chatbot safety helpers that refuse diagnosis/treatment requests and avoid claiming confirmed availability
+- Tests for chatbot refusal wording and booking confirmation wording
+
+### Phase 5 verified
+- `npm run db:generate`
+- Reviewed generated SQL migration
+- `npm run db:migrate`
+- `npm run lint`
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
+- `npm run env:check` with local `.env`
+- Browser smoke test submitted a chat booking request and returned a reference
+
 ### Phase 4 added
 - Clients, bookings, booking answers and booking status history schema
 - Generated and applied `drizzle/0002_cool_moira_mactaggert.sql`
