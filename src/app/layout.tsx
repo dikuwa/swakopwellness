@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Implementation Scaffold",
-  description: "Phase 0 application scaffold for the wellness centre platform.",
+  title: "Swakop Wellness Centre",
+  description: "Complementary wellness services and appointment requests in Swakopmund.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

@@ -1,6 +1,22 @@
 # Changelog
 
 ## 2026-06-29
+### Phase 3 added
+- Dynamic Home page using database-backed business settings, communication settings, services and FAQs
+- Dynamic Services and Service Detail pages using editable service records and prices
+- Dynamic About, FAQs, Contact, Policies and Policy Detail pages
+- Booking placeholder route that lists database-backed booking-enabled services for Phase 4 handoff
+- Shared public data loaders, public header, footer and mobile action bar
+- Updated app metadata for Swakop Wellness Centre
+
+### Phase 3 verified
+- `npm run lint`
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
+- `npm run env:check` with local `.env`
+- Browser smoke test for Home and Services rendering seeded database content
+
 ### Phase 2 added
 - Business settings, communication settings and booking rules tables
 - Service categories, services, service galleries, service FAQs and suitability question tables
