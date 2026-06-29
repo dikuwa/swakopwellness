@@ -1,6 +1,28 @@
 # Changelog
 
 ## 2026-06-29
+### Phase 1 added
+- Drizzle PostgreSQL schema for users, sessions, roles, permissions, role permissions and user roles
+- Generated initial migration `drizzle/0000_fast_glorian.sql`
+- Email/password password hashing and validation helpers
+- Database-backed session helpers with secure HTTP-only cookie settings
+- Server-side `requireAuth` and `requirePermission` primitives
+- Owner bootstrap script for first account creation, without public registration
+- Login page, protected dashboard page and permission-denied page
+- Tests for password verification, permission defaults, session token hashing and environment validation
+
+### Phase 1 blocked
+- `npm run db:migrate` could not run because no reachable `DIRECT_URL` or `DATABASE_URL` is configured in this environment.
+
+### Phase 1 verified
+- `npm run db:generate`
+- Reviewed generated SQL migration
+- `npm run lint`
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
+- `npm run env:check` with placeholder-safe development values
+
 ### Phase 0 added
 - Phase 0 Next.js App Router scaffold with TypeScript, Tailwind CSS v4 tokens, ESLint, Node test runner and Webpack production build script
 - Impeccable `PRODUCT.md` and `DESIGN.md` context derived from the approved package docs

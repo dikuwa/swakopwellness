@@ -100,6 +100,9 @@ At implementation time verify stable compatible versions, document them here and
 - Tailwind CSS / PostCSS plugin: 4.3.2
 - ESLint / eslint-config-next: 9.39.4 / 16.2.9
 - Zod: 4.4.3
+- Drizzle ORM / Kit: 0.45.2 / 0.31.10
+- PostgreSQL driver: postgres 3.4.9
+- Password hashing: bcryptjs 3.0.3
 - Test runner: Node.js native test runner with `tsx` 4.21.0
 
 `next build` is configured as `next build --webpack` because Turbopack required native bindings that were not available on the local darwin/x64 verification environment.

@@ -5,6 +5,9 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build --webpack",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:bootstrap-owner": "tsx scripts/bootstrap-owner.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "node --import tsx --test \"src/**/*.test.ts\"",
@@ -12,7 +15,10 @@
   },
   "dependencies": {
     "@tailwindcss/postcss": "4.3.2",
+    "bcryptjs": "^3.0.3",
+    "drizzle-orm": "^0.45.2",
     "next": "16.2.9",
+    "postgres": "^3.4.9",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "zod": "4.4.3"
@@ -23,6 +29,7 @@
     "@types/node": "26.0.1",
     "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
+    "drizzle-kit": "^0.31.10",
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.9",
     "tailwindcss": "4.3.2",
