@@ -16,6 +16,7 @@ const links = [
   { href: "/dashboard/activity-log", label: "Activity Log" },
   { href: "/dashboard/notifications", label: "Notifications" },
   { href: "/dashboard/users", label: "Users" },
+  { href: "/dashboard/media", label: "Media" },
   { href: "/dashboard/faqs", label: "FAQs" },
   { href: "/dashboard/policies", label: "Policies" },
 ];

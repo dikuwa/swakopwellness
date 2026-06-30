@@ -1,7 +1,7 @@
 import { and, asc, eq, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getDb } from "@/db/client";
-import { bookingRules, businessSettings, communicationSettings, faqs, policies, serviceFaqs, serviceQuestions, services } from "@/db/schema";
+import { bookingRules, businessSettings, communicationSettings, faqs, mediaAssets, policies, serviceFaqs, serviceImages, serviceQuestions, services } from "@/db/schema";
 
 export function formatMoney(cents: number, symbol = "N$") {
   return `${symbol}${(cents / 100).toLocaleString("en-NA", { maximumFractionDigits: 0 })}`;
@@ -23,11 +23,23 @@ export async function getCommunicationSettings() {
 
 export async function getPublicServices() {
   const db = getDb();
-  return db
-    .select()
+  const rows = await db
+    .select({
+      service: services,
+      featuredImage: {
+        id: mediaAssets.id,
+        publicUrl: mediaAssets.publicUrl,
+        altText: mediaAssets.altText,
+        width: mediaAssets.width,
+        height: mediaAssets.height,
+      },
+    })
     .from(services)
+    .leftJoin(mediaAssets, eq(services.featuredImageId, mediaAssets.id))
     .where(and(eq(services.active, true), eq(services.publicVisible, true)))
     .orderBy(asc(services.sortOrder), asc(services.name));
+
+  return rows.map((r) => ({ ...r.service, featuredImage: r.featuredImage }));
 }
 
 export async function getFeaturedServices() {
@@ -37,18 +49,44 @@ export async function getFeaturedServices() {
 
 export async function getServiceBySlug(slug: string) {
   const db = getDb();
-  const [service] = await db
-    .select()
+  const [row] = await db
+    .select({
+      service: services,
+      featuredImage: {
+        id: mediaAssets.id,
+        publicUrl: mediaAssets.publicUrl,
+        altText: mediaAssets.altText,
+        width: mediaAssets.width,
+        height: mediaAssets.height,
+      },
+    })
     .from(services)
+    .leftJoin(mediaAssets, eq(services.featuredImageId, mediaAssets.id))
     .where(and(eq(services.slug, slug), eq(services.active, true), eq(services.publicVisible, true)))
     .limit(1);
-  if (!service) notFound();
+
+  if (!row) notFound();
+
   const serviceSpecificFaqs = await db
     .select()
     .from(serviceFaqs)
-    .where(and(eq(serviceFaqs.serviceId, service.id), eq(serviceFaqs.active, true)))
+    .where(and(eq(serviceFaqs.serviceId, row.service.id), eq(serviceFaqs.active, true)))
     .orderBy(asc(serviceFaqs.sortOrder));
-  return { ...service, faqs: serviceSpecificFaqs };
+
+  const galleryEntries = await db
+    .select({
+      id: mediaAssets.id,
+      publicUrl: mediaAssets.publicUrl,
+      altText: mediaAssets.altText,
+      width: mediaAssets.width,
+      height: mediaAssets.height,
+    })
+    .from(serviceImages)
+    .innerJoin(mediaAssets, eq(serviceImages.mediaAssetId, mediaAssets.id))
+    .where(eq(serviceImages.serviceId, row.service.id))
+    .orderBy(asc(serviceImages.sortOrder));
+
+  return { ...row.service, featuredImage: row.featuredImage, faqs: serviceSpecificFaqs, gallery: galleryEntries };
 }
 
 export async function getPublicFaqs() {

@@ -11,6 +11,7 @@ export const envSchema = z.object({
   R2_ACCESS_KEY_ID: optionalString,
   R2_SECRET_ACCESS_KEY: optionalString,
   R2_BUCKET_NAME: optionalString,
+  R2_ENDPOINT: optionalString,
   R2_PUBLIC_BASE_URL: optionalString,
   RESEND_API_KEY: optionalString,
   RESEND_FROM_EMAIL: optionalString,
@@ -37,5 +38,23 @@ export const env = {
   },
   get NEXT_PUBLIC_APP_URL() {
     return process.env.NEXT_PUBLIC_APP_URL || "";
+  },
+  get R2_ACCOUNT_ID() {
+    return process.env.R2_ACCOUNT_ID || "";
+  },
+  get R2_ACCESS_KEY_ID() {
+    return process.env.R2_ACCESS_KEY_ID || "";
+  },
+  get R2_SECRET_ACCESS_KEY() {
+    return process.env.R2_SECRET_ACCESS_KEY || "";
+  },
+  get R2_BUCKET_NAME() {
+    return process.env.R2_BUCKET_NAME || "";
+  },
+  get R2_ENDPOINT() {
+    return process.env.R2_ENDPOINT || "";
+  },
+  get R2_PUBLIC_BASE_URL() {
+    return process.env.R2_PUBLIC_BASE_URL || "";
   },
 };

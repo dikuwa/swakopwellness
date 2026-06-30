@@ -26,6 +26,18 @@ interface ServiceFormData {
   bookingEnabled: boolean;
   featured: boolean;
   sortOrder: number;
+  featuredImageId: string | null;
+}
+
+interface MediaAsset {
+  id: string;
+  publicUrl: string | null;
+  altText: string | null;
+  mimeType: string;
+  byteSize: number;
+  width: number | null;
+  height: number | null;
+  createdAt: Date;
 }
 
 interface Props {
@@ -34,10 +46,11 @@ interface Props {
     data: FormData,
   ) => Promise<{ ok: boolean; error?: string; serviceId?: string }>;
   initialData?: ServiceFormData;
+  mediaAssets?: MediaAsset[];
   children?: ReactNode;
 }
 
-export function ServiceForm({ categories, action, initialData, children }: Props) {
+export function ServiceForm({ categories, action, initialData, mediaAssets, children }: Props) {
   const router = useRouter();
   const isEdit = !!initialData;
 
@@ -293,6 +306,50 @@ export function ServiceForm({ categories, action, initialData, children }: Props
                 className="w-full resize-y rounded-xl border border-border bg-surface p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
+          </div>
+
+          <div className="space-y-6 rounded-xl border border-border bg-background p-6">
+            <h2 className="text-lg font-semibold">Featured Image</h2>
+            <input type="hidden" name="featuredImageId" value={initialData?.featuredImageId ?? ""} id="featuredImageId" />
+            {mediaAssets && mediaAssets.length > 0 ? (
+              <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    (document.getElementById("featuredImageId") as HTMLInputElement).value = "";
+                    document.querySelectorAll("[data-img-picker]").forEach((el) => el.classList.remove("ring-2", "ring-primary"));
+                  }}
+                  className={`aspect-square overflow-hidden rounded-xl border-2 ${!initialData?.featuredImageId ? "border-primary" : "border-border"} bg-surface-muted transition-colors hover:border-primary`}
+                >
+                  <div className="flex h-full items-center justify-center text-xs text-muted-foreground">None</div>
+                </button>
+                {mediaAssets.map((asset) => (
+                  <button
+                    key={asset.id}
+                    type="button"
+                    data-img-picker
+                    data-id={asset.id}
+                    onClick={() => {
+                      (document.getElementById("featuredImageId") as HTMLInputElement).value = asset.id;
+                      document.querySelectorAll("[data-img-picker]").forEach((el) => el.classList.remove("ring-2", "ring-primary"));
+                      document.querySelector(`[data-img-picker][data-id="${asset.id}"]`)?.classList.add("ring-2", "ring-primary");
+                    }}
+                    className={`aspect-square overflow-hidden rounded-xl border-2 ${initialData?.featuredImageId === asset.id ? "border-primary ring-2 ring-primary" : "border-border"} bg-surface transition-colors hover:border-primary`}
+                  >
+                    {asset.publicUrl ? (
+                      <img src={asset.publicUrl} alt={asset.altText ?? ""} className="h-full w-full object-cover" loading="lazy" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-xs text-muted-foreground">No URL</div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No media assets available.{" "}
+                <a href="/dashboard/media" className="text-primary underline">Upload images</a> first.
+              </p>
+            )}
           </div>
 
           <div className="space-y-4 rounded-xl border border-border bg-background p-6">

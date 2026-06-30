@@ -4,14 +4,24 @@ import { formatMoney, getBusinessSettings, getCommunicationSettings, getServiceB
 
 export const dynamic = "force-dynamic";
 
+type GalleryImage = { id: string; publicUrl: string | null; altText: string | null; width: number | null; height: number | null };
+
 export default async function ServiceDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const [business, communication, service] = await Promise.all([getBusinessSettings(), getCommunicationSettings(), getServiceBySlug(slug)]);
+  const gallery = "gallery" in service ? (service as { gallery: GalleryImage[] }).gallery : [];
 
   return (
     <PageShell business={business} communication={communication}>
       <main className="mx-auto max-w-5xl px-5 py-12 sm:px-8">
         <Link href="/services" className="text-sm font-semibold text-primary underline underline-offset-4">All services</Link>
+
+        {service.featuredImage?.publicUrl ? (
+          <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-border bg-surface">
+            <img src={service.featuredImage.publicUrl} alt={service.featuredImage.altText ?? service.name} className="w-full object-cover" loading="lazy" />
+          </div>
+        ) : null}
+
         <div className="mt-6 rounded-[1.5rem] border border-border bg-surface p-6 shadow-[0_20px_80px_oklch(0.235_0.025_158_/_0.08)] sm:p-8">
           <p className="text-sm font-semibold text-primary">{formatMoney(service.priceCents, business.currencySymbol)}{service.durationMinutes ? `, about ${service.durationMinutes} minutes` : ""}</p>
           <h1 className="mt-4 text-5xl font-semibold tracking-[-0.05em]">{service.name}</h1>
@@ -22,6 +32,19 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             {communication.enableCalls ? <a href={`tel:${communication.mainPhone.replaceAll(" ", "")}`} className="flex h-12 items-center justify-center rounded-xl border border-border px-5 text-sm font-semibold">Call centre</a> : null}
           </div>
         </div>
+        {gallery.length > 0 ? (
+          <section className="mt-8 rounded-[1.5rem] border border-border bg-surface p-6 sm:p-8">
+            <h2 className="text-2xl font-semibold tracking-[-0.035em]">Gallery</h2>
+            <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3">
+              {gallery.map((img) => (
+                <div key={img.id} className="overflow-hidden rounded-2xl border border-border bg-surface">
+                  <img src={img.publicUrl ?? ""} alt={img.altText ?? ""} className="aspect-square w-full object-cover" loading="lazy" />
+                </div>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         {service.faqs.length > 0 ? (
           <section className="mt-8 rounded-[1.5rem] border border-border bg-surface p-6 sm:p-8">
             <h2 className="text-2xl font-semibold tracking-[-0.035em]">Service FAQs</h2>

@@ -1,10 +1,10 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
-import { serviceCategories, serviceFaqs, serviceQuestions, services } from "@/db/schema";
+import { serviceCategories, serviceFaqs, serviceImages, serviceQuestions, services } from "@/db/schema";
 import { recordActivity } from "@/activity-log/record";
 
 function generateSlug(name: string): string {
@@ -48,6 +48,7 @@ export async function createService(data: FormData) {
   const bookingEnabled = data.get("bookingEnabled") === "on";
   const featured = data.get("featured") === "on";
   const sortOrder = parseInt(data.get("sortOrder") as string) || 0;
+  const featuredImageId = (data.get("featuredImageId") as string) || null;
 
   try {
     const [service] = await db
@@ -68,6 +69,7 @@ export async function createService(data: FormData) {
         bookingEnabled,
         featured,
         sortOrder,
+        featuredImageId,
         active: true,
       })
       .returning({ id: services.id });
@@ -114,6 +116,7 @@ export async function updateService(id: string, data: FormData) {
   const bookingEnabled = data.get("bookingEnabled") === "on";
   const featured = data.get("featured") === "on";
   const sortOrder = parseInt(data.get("sortOrder") as string) || 0;
+  const featuredImageId = (data.get("featuredImageId") as string) || null;
 
   try {
     await db
@@ -134,6 +137,7 @@ export async function updateService(id: string, data: FormData) {
         bookingEnabled,
         featured,
         sortOrder,
+        featuredImageId,
         updatedAt: new Date(),
       })
       .where(eq(services.id, id));
@@ -602,4 +606,53 @@ export async function deleteServiceFaq(id: string) {
   }
 
   revalidateServiceManagement();
+}
+
+export async function addServiceGalleryImage(serviceId: string, mediaAssetId: string) {
+  await requirePermission("services:manage");
+  const db = getDb();
+
+  const existing = await db
+    .select({ sortOrder: serviceImages.sortOrder })
+    .from(serviceImages)
+    .where(eq(serviceImages.serviceId, serviceId))
+    .orderBy(desc(serviceImages.sortOrder))
+    .limit(1);
+
+  const sortOrder = existing.length > 0 ? existing[0].sortOrder + 1 : 0;
+
+  await db
+    .insert(serviceImages)
+    .values({ serviceId, mediaAssetId, sortOrder })
+    .onConflictDoNothing();
+
+  revalidateServiceManagement();
+  revalidatePath(`/dashboard/services/${serviceId}/edit`);
+}
+
+export async function removeServiceGalleryImage(serviceId: string, mediaAssetId: string) {
+  await requirePermission("services:manage");
+  const db = getDb();
+
+  await db
+    .delete(serviceImages)
+    .where(and(eq(serviceImages.serviceId, serviceId), eq(serviceImages.mediaAssetId, mediaAssetId)));
+
+  revalidateServiceManagement();
+  revalidatePath(`/dashboard/services/${serviceId}/edit`);
+}
+
+export async function reorderServiceGalleryImages(items: { serviceId: string; mediaAssetId: string; sortOrder: number }[]) {
+  await requirePermission("services:manage");
+  const db = getDb();
+
+  for (const item of items) {
+    await db
+      .update(serviceImages)
+      .set({ sortOrder: item.sortOrder })
+      .where(and(eq(serviceImages.serviceId, item.serviceId), eq(serviceImages.mediaAssetId, item.mediaAssetId)));
+  }
+
+  revalidateServiceManagement();
+  revalidatePath(`/dashboard/services/${items[0]?.serviceId}/edit`);
 }

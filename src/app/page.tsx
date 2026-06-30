@@ -57,12 +57,19 @@ export default async function Home() {
           </div>
           <div className="mt-8 grid gap-4 md:grid-cols-2">
             {services.map((service) => (
-              <Link key={service.id} href={`/services/${service.slug}`} className="rounded-2xl border border-border bg-surface p-5 transition-colors hover:bg-surface-muted">
-                <div className="flex items-start justify-between gap-4">
-                  <h3 className="text-xl font-semibold tracking-[-0.025em]">{service.name}</h3>
-                  <p className="shrink-0 text-sm font-semibold text-primary">{formatMoney(service.priceCents, business.currencySymbol)}</p>
+              <Link key={service.id} href={`/services/${service.slug}`} className="group rounded-2xl border border-border bg-surface transition-colors hover:bg-surface-muted">
+                {service.featuredImage?.publicUrl ? (
+                  <div className="aspect-[16/9] overflow-hidden rounded-t-2xl bg-surface">
+                    <img src={service.featuredImage.publicUrl} alt={service.featuredImage.altText ?? service.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
+                  </div>
+                ) : null}
+                <div className="p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <h3 className="text-xl font-semibold tracking-[-0.025em]">{service.name}</h3>
+                    <p className="shrink-0 text-sm font-semibold text-primary">{formatMoney(service.priceCents, business.currencySymbol)}</p>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground">{service.shortDescription}</p>
                 </div>
-                <p className="mt-3 text-sm leading-6 text-muted-foreground">{service.shortDescription}</p>
               </Link>
             ))}
           </div>

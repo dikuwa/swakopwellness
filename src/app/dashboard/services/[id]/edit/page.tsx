@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
-import { services, serviceCategories, serviceFaqs } from "@/db/schema";
+import { mediaAssets, services, serviceCategories, serviceFaqs, serviceImages } from "@/db/schema";
 import { createServiceFaq, deleteServiceFaq, toggleServiceFaqActive, updateService, updateServiceFaq } from "@/services/actions";
 import { ServiceForm } from "../../service-form";
+import { GalleryManager } from "./gallery-manager";
 
 export const dynamic = "force-dynamic";
 
@@ -40,10 +41,38 @@ export default async function EditServicePage({ params }: PageProps) {
     .where(eq(serviceFaqs.serviceId, id))
     .orderBy(serviceFaqs.sortOrder);
 
+  const allMedia = await db
+    .select({
+      id: mediaAssets.id,
+      publicUrl: mediaAssets.publicUrl,
+      altText: mediaAssets.altText,
+      mimeType: mediaAssets.mimeType,
+      byteSize: mediaAssets.byteSize,
+      width: mediaAssets.width,
+      height: mediaAssets.height,
+      createdAt: mediaAssets.createdAt,
+    })
+    .from(mediaAssets)
+    .orderBy(desc(mediaAssets.createdAt));
+
+  const galleryEntries = await db
+    .select({
+      mediaAssetId: serviceImages.mediaAssetId,
+      sortOrder: serviceImages.sortOrder,
+    })
+    .from(serviceImages)
+    .where(eq(serviceImages.serviceId, id))
+    .orderBy(asc(serviceImages.sortOrder));
+
+  const galleryImages = galleryEntries
+    .map((g) => allMedia.find((m) => m.id === g.mediaAssetId))
+    .filter(Boolean);
+
   return (
     <ServiceForm
       categories={categories}
       action={async (data) => updateService(id, data)}
+      mediaAssets={allMedia}
       initialData={{
         name: service.name,
         slug: service.slug,
@@ -60,8 +89,11 @@ export default async function EditServicePage({ params }: PageProps) {
         bookingEnabled: service.bookingEnabled,
         featured: service.featured,
         sortOrder: service.sortOrder,
+        featuredImageId: service.featuredImageId,
       }}
     >
+      <GalleryManager serviceId={id} galleryImages={galleryImages} allMedia={allMedia} />
+
       <section className="mt-8 rounded-xl border border-border bg-background p-6">
         <h2 className="text-lg font-semibold">Service FAQs</h2>
         <p className="mt-2 text-sm text-muted-foreground">These appear on this service detail page.</p>
