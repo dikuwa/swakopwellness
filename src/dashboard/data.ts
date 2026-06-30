@@ -1,6 +1,6 @@
 import { and, asc, count, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { bookingAnswers, bookingStatusHistory, bookings, chatConversations, chatMessages, chatToolEvents, clients, followUps, invoiceLineItems, invoices, payments, receipts, serviceQuestions, services, users } from "@/db/schema";
+import { bookingAnswers, bookingStatusHistory, bookings, chatConversations, chatMessages, chatToolEvents, clients, followUps, invoiceLineItems, invoices, payments, quotationLineItems, quotations, receipts, serviceQuestions, services, users } from "@/db/schema";
 
 export async function getDashboardBookings() {
   const db = getDb();
@@ -322,6 +322,37 @@ export async function getInvoiceById(id: string) {
   if (!invoice) return null;
   const items = await db.select().from(invoiceLineItems).where(eq(invoiceLineItems.invoiceId, id)).orderBy(asc(invoiceLineItems.sortOrder));
   return { ...invoice, lineItems: items };
+}
+
+export async function getQuotations() {
+  const db = getDb();
+  return db
+    .select({
+      id: quotations.id,
+      quotationNumber: quotations.quotationNumber,
+      clientName: clients.fullName,
+      issueDate: quotations.issueDate,
+      validUntil: quotations.validUntil,
+      totalCents: quotations.totalCents,
+      status: quotations.status,
+      convertedToInvoiceId: quotations.convertedToInvoiceId,
+    })
+    .from(quotations)
+    .innerJoin(clients, eq(quotations.clientId, clients.id))
+    .orderBy(desc(quotations.createdAt))
+    .limit(100);
+}
+
+export async function getQuotationById(id: string) {
+  const db = getDb();
+  const [quotation] = await db
+    .select()
+    .from(quotations)
+    .where(eq(quotations.id, id))
+    .limit(1);
+  if (!quotation) return null;
+  const items = await db.select().from(quotationLineItems).where(eq(quotationLineItems.quotationId, id)).orderBy(asc(quotationLineItems.sortOrder));
+  return { ...quotation, lineItems: items };
 }
 
 export async function getReceipts() {

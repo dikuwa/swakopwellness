@@ -486,6 +486,56 @@ export const invoiceLineItems = pgTable(
   (table) => [index("line_items_invoice_idx").on(table.invoiceId)],
 );
 
+export const quotations = pgTable(
+  "quotations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    quotationNumber: text("quotation_number").notNull().unique(),
+    clientId: uuid("client_id").notNull().references(() => clients.id, { onDelete: "restrict" }),
+    bookingId: uuid("booking_id").references(() => bookings.id, { onDelete: "set null" }),
+    issueDate: timestamp("issue_date", { withTimezone: true }).notNull(),
+    validUntil: timestamp("valid_until", { withTimezone: true }),
+    subtotalCents: integer("subtotal_cents").notNull(),
+    discountType: text("discount_type"),
+    discountValue: integer("discount_value"),
+    discountCents: integer("discount_cents").notNull().default(0),
+    totalCents: integer("total_cents").notNull(),
+    status: text("status").notNull().default("draft"),
+    convertedToInvoiceId: uuid("converted_to_invoice_id").references(() => invoices.id, { onDelete: "set null" }),
+    notes: text("notes"),
+    terms: text("terms"),
+    createdByUserId: uuid("created_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    issuedAt: timestamp("issued_at", { withTimezone: true }),
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    rejectedAt: timestamp("rejected_at", { withTimezone: true }),
+    rejectedReason: text("rejected_reason"),
+    voidedAt: timestamp("voided_at", { withTimezone: true }),
+    voidReason: text("void_reason"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("quotations_client_idx").on(table.clientId),
+    index("quotations_status_idx").on(table.status),
+  ],
+);
+
+export const quotationLineItems = pgTable(
+  "quotation_line_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    quotationId: uuid("quotation_id").notNull().references(() => quotations.id, { onDelete: "cascade" }),
+    serviceId: uuid("service_id").references(() => services.id, { onDelete: "set null" }),
+    description: text("description").notNull(),
+    quantity: integer("quantity").notNull().default(1),
+    unitPriceCents: integer("unit_price_cents").notNull(),
+    discountCents: integer("discount_cents").notNull().default(0),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("line_items_quotation_idx").on(table.quotationId)],
+);
+
 export const payments = pgTable(
   "payments",
   {
@@ -548,11 +598,25 @@ export const invoicesRelations = relations(invoices, ({ one, many }) => ({
   lineItems: many(invoiceLineItems),
   payments: many(payments),
   createdBy: one(users, { fields: [invoices.createdByUserId], references: [users.id] }),
+  quotations: many(quotations),
 }));
 
 export const invoiceLineItemsRelations = relations(invoiceLineItems, ({ one }) => ({
   invoice: one(invoices, { fields: [invoiceLineItems.invoiceId], references: [invoices.id] }),
   service: one(services, { fields: [invoiceLineItems.serviceId], references: [services.id] }),
+}));
+
+export const quotationsRelations = relations(quotations, ({ one, many }) => ({
+  client: one(clients, { fields: [quotations.clientId], references: [clients.id] }),
+  booking: one(bookings, { fields: [quotations.bookingId], references: [bookings.id] }),
+  lineItems: many(quotationLineItems),
+  createdBy: one(users, { fields: [quotations.createdByUserId], references: [users.id] }),
+  convertedToInvoice: one(invoices, { fields: [quotations.convertedToInvoiceId], references: [invoices.id] }),
+}));
+
+export const quotationLineItemsRelations = relations(quotationLineItems, ({ one }) => ({
+  quotation: one(quotations, { fields: [quotationLineItems.quotationId], references: [quotations.id] }),
+  service: one(services, { fields: [quotationLineItems.serviceId], references: [services.id] }),
 }));
 
 export const paymentsRelations = relations(payments, ({ one, many }) => ({

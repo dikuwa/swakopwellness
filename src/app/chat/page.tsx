@@ -1,9 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/public/components";
 import { getActiveSuitabilityQuestions, getBookingRules, getBusinessSettings, getCommunicationSettings, getPublicServices } from "@/public/data";
 import { submitChatBookingRequest } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Chat to Book",
+  description: "Use our booking assistant to request an appointment at Swakop Wellness Centre. Choose a service and submit your details.",
+};
 
 export default async function ChatPage({ searchParams }: { searchParams: Promise<{ reference?: string; status?: string; error?: string }> }) {
   const params = await searchParams;

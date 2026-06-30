@@ -38,6 +38,27 @@ export interface ReceiptData {
   notes: string;
 }
 
+export interface QuotationData {
+  quotationNumber: string;
+  issueDate: Date;
+  validUntil?: Date;
+  clientName: string;
+  clientPhone: string;
+  clientEmail: string;
+  lineItems: Array<{
+    description: string;
+    quantity: number;
+    unitPriceCents: number;
+    discountCents: number;
+    totalCents: number;
+  }>;
+  subtotalCents: number;
+  discountCents: number;
+  totalCents: number;
+  notes: string;
+  terms: string;
+}
+
 export interface BusinessData {
   businessName: string;
   address: string;
@@ -297,6 +318,98 @@ export async function generateReceiptPdf(receipt: ReceiptData, business: Busines
   if (receipt.notes) {
     doc.font("Helvetica-Bold").fontSize(10).fillColor("#333").text("Notes");
     doc.font("Helvetica").fontSize(9).fillColor("#666").text(receipt.notes);
+    doc.moveDown(1);
+  }
+
+  if (business.footerMessage) {
+    const footerY = doc.page.height - 80;
+    doc.font("Helvetica").fontSize(8).fillColor("#999").text(business.footerMessage, 50, footerY, { align: "center", width: doc.page.width - 100 });
+  }
+
+  doc.end();
+
+  return done;
+}
+
+export async function generateQuotationPdf(quotation: QuotationData, business: BusinessData): Promise<Buffer> {
+  const doc = new PDFDocument({ margin: 50, size: "A4" });
+  const chunks: Buffer[] = [];
+  doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+  const done = collectPdf(doc, chunks);
+
+  addBusinessHeader(doc, business);
+
+  doc.font("Helvetica-Bold").fontSize(16).fillColor("#333").text("QUOTATION", { align: "right" });
+  doc.font("Helvetica").fontSize(10).fillColor("#666").text(quotation.quotationNumber, { align: "right" });
+  doc.moveDown(0.5);
+
+  const hr = doc.y;
+  doc.fillColor("#ccc").rect(50, hr, doc.page.width - 100, 1).fill();
+  doc.y = hr + 12;
+
+  doc.font("Helvetica-Bold").fontSize(10).fillColor("#333");
+  doc.text(`Issue Date:  `, { continued: true });
+  doc.font("Helvetica").text(fmtDate(quotation.issueDate), { continued: false });
+  if (quotation.validUntil) {
+    doc.font("Helvetica-Bold").text(`Valid Until: `, { continued: true });
+    doc.font("Helvetica").text(fmtDate(quotation.validUntil), { continued: false });
+  }
+  doc.moveDown(1);
+
+  doc.font("Helvetica-Bold").fontSize(10).fillColor("#333").text("Bill To:");
+  doc.font("Helvetica").fontSize(10).fillColor("#333").text(quotation.clientName);
+  if (quotation.clientPhone) doc.font("Helvetica").fontSize(10).fillColor("#666").text(quotation.clientPhone);
+  if (quotation.clientEmail) doc.font("Helvetica").fontSize(10).fillColor("#666").text(quotation.clientEmail);
+  doc.moveDown(1.5);
+
+  addLineItemTable(doc, quotation.lineItems);
+
+  const totalsX = doc.page.width - 200;
+  const totalStartY = doc.y;
+
+  doc.font("Helvetica").fontSize(10).fillColor("#666");
+  doc.text("Subtotal", totalsX, totalStartY, { width: 150, align: "left" });
+  doc.text(fmt(quotation.subtotalCents), totalsX + 100, totalStartY, { width: 100, align: "right" });
+
+  let y = totalStartY + 16;
+
+  if (quotation.discountCents > 0) {
+    doc.fillColor("#666").text("Discount", totalsX, y, { width: 150, align: "left" });
+    doc.fillColor("#d32f2f").text(`-${fmt(quotation.discountCents)}`, totalsX + 100, y, { width: 100, align: "right" });
+    y += 16;
+  }
+
+  doc.fillColor("#ccc").rect(totalsX, y, 200, 1).fill();
+  y += 8;
+
+  doc.font("Helvetica-Bold").fontSize(11).fillColor("#333");
+  doc.text("Total", totalsX, y, { width: 150, align: "left" });
+  doc.text(fmt(quotation.totalCents), totalsX + 100, y, { width: 100, align: "right" });
+  y += 24;
+
+  doc.y = y;
+
+  if (quotation.notes || quotation.terms || business.bankingDetails) {
+    const sectionY = doc.y;
+    doc.fillColor("#ccc").rect(50, sectionY, doc.page.width - 100, 1).fill();
+    doc.y = sectionY + 16;
+  }
+
+  if (quotation.notes) {
+    doc.font("Helvetica-Bold").fontSize(10).fillColor("#333").text("Notes");
+    doc.font("Helvetica").fontSize(9).fillColor("#666").text(quotation.notes);
+    doc.moveDown(1);
+  }
+
+  if (quotation.terms) {
+    doc.font("Helvetica-Bold").fontSize(10).fillColor("#333").text("Terms & Conditions");
+    doc.font("Helvetica").fontSize(9).fillColor("#666").text(quotation.terms);
+    doc.moveDown(1);
+  }
+
+  if (business.bankingDetails) {
+    doc.font("Helvetica-Bold").fontSize(10).fillColor("#333").text("Banking Details");
+    doc.font("Helvetica").fontSize(9).fillColor("#666").text(business.bankingDetails);
     doc.moveDown(1);
   }
 

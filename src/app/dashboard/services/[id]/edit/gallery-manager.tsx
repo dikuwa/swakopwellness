@@ -23,7 +23,7 @@ export function GalleryManager({
   const [images, setImages] = useState(galleryImages.filter(Boolean) as MediaAsset[]);
   const unusedMedia = allMedia.filter((m) => !images.some((i) => i.id === m.id));
 
-  const [_addResult, addAction, addPending] = useActionState(
+  const [, addAction, addPending] = useActionState(
     async (_prev: unknown, formData: FormData) => {
       const assetId = formData.get("assetId") as string;
       if (!assetId) return null;

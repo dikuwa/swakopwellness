@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/public/components";
 import { getBusinessSettings, getCommunicationSettings, getPublicPolicies } from "@/public/data";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Policies",
+  description: "Read Swakop Wellness Centre's policies on privacy, cancellations, and terms of service.",
+};
 
 export default async function PoliciesPage() {
   const [business, communication, policies] = await Promise.all([getBusinessSettings(), getCommunicationSettings(), getPublicPolicies()]);

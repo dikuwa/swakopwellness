@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { PageShell } from "@/public/components";
 import { getBusinessSettings, getCommunicationSettings } from "@/public/data";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Contact",
+  description: "Contact Swakop Wellness Centre by phone or email. Located in Swakopmund, Namibia.",
+};
 
 export default async function ContactPage() {
   const [business, communication] = await Promise.all([getBusinessSettings(), getCommunicationSettings()]);
@@ -22,7 +28,7 @@ export default async function ContactPage() {
           </section>
           <section className="rounded-[1.5rem] bg-surface-muted p-6 sm:p-8">
             <h2 className="text-2xl font-semibold tracking-[-0.035em]">Appointments</h2>
-            <p className="mt-4 text-sm leading-6 text-muted-foreground">{business.appointmentModel}. Online booking requests are implemented in the next phase; for now, use the enabled contact options.</p>
+            <p className="mt-4 text-sm leading-6 text-muted-foreground">{business.appointmentModel}. Book online or use the contact options above.</p>
           </section>
         </div>
       </main>

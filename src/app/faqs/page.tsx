@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { PageShell } from "@/public/components";
 import { getBusinessSettings, getCommunicationSettings, getPublicFaqs } from "@/public/data";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "FAQs",
+  description: "Frequently asked questions about Swakop Wellness Centre's services, booking process, and complementary wellness support.",
+};
 
 export default async function FaqsPage() {
   const [business, communication, faqs] = await Promise.all([getBusinessSettings(), getCommunicationSettings(), getPublicFaqs()]);

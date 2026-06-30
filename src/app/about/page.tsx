@@ -1,7 +1,13 @@
+import type { Metadata } from "next";
 import { PageShell } from "@/public/components";
 import { getBusinessSettings, getCommunicationSettings } from "@/public/data";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "About",
+  description: "Learn about Swakop Wellness Centre in Swakopmund, Namibia — our approach, practice details, and commitment to complementary wellness support.",
+};
 
 export default async function AboutPage() {
   const [business, communication] = await Promise.all([getBusinessSettings(), getCommunicationSettings()]);

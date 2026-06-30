@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/public/components";
 import { formatMoney, getBusinessSettings, getCommunicationSettings, getServiceBySlug } from "@/public/data";
@@ -5,6 +6,15 @@ import { formatMoney, getBusinessSettings, getCommunicationSettings, getServiceB
 export const dynamic = "force-dynamic";
 
 type GalleryImage = { id: string; publicUrl: string | null; altText: string | null; width: number | null; height: number | null };
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const service = await getServiceBySlug(slug);
+  return {
+    title: service.name,
+    description: service.shortDescription || `${service.name} — ${service.fullDescription?.slice(0, 160) || "View service details and pricing."}`,
+  };
+}
 
 export default async function ServiceDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

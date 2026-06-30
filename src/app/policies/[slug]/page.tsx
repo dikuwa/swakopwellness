@@ -1,8 +1,18 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/public/components";
 import { getBusinessSettings, getCommunicationSettings, getPolicyBySlug } from "@/public/data";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const policy = await getPolicyBySlug(slug);
+  return {
+    title: policy.title,
+    description: `${policy.title} — Swakop Wellness Centre policy.`,
+  };
+}
 
 export default async function PolicyDetailPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;

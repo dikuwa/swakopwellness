@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import { PageShell } from "@/public/components";
 import { getActiveSuitabilityQuestions, getBookingRules, getBusinessSettings, getCommunicationSettings, getPublicServices } from "@/public/data";
 import { submitBookingRequest } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Book an Appointment",
+  description: "Request an appointment at Swakop Wellness Centre. Choose a service, preferred time, and submit your details for staff review.",
+};
 
 export default async function BookPage({ searchParams }: { searchParams: Promise<{ reference?: string; status?: string; error?: string }> }) {
   const params = await searchParams;

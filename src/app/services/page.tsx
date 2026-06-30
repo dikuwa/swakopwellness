@@ -1,8 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/public/components";
 import { formatMoney, getBusinessSettings, getCommunicationSettings, getPublicServices } from "@/public/data";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Services",
+  description: "Explore our wellness services, prices and descriptions. Book an appointment or chat with our booking assistant.",
+};
 
 export default async function ServicesPage() {
   const [business, communication, services] = await Promise.all([getBusinessSettings(), getCommunicationSettings(), getPublicServices()]);

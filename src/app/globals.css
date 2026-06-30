@@ -9,8 +9,8 @@
   --primary-foreground: oklch(0.972 0.012 85);
   --secondary: oklch(0.79 0.05 122);
   --secondary-foreground: oklch(0.315 0.064 159);
-  --accent: oklch(0.84 0.038 72);
-  --accent-foreground: oklch(0.235 0.025 158);
+  --accent: oklch(0.60 0.09 45);
+  --accent-foreground: oklch(0.972 0.012 85);
   --muted: oklch(0.91 0.016 82);
   --muted-foreground: oklch(0.495 0.018 152);
   --border: oklch(0.84 0.019 103);
@@ -38,6 +38,8 @@
   --color-warning: var(--warning);
   --color-success: var(--success);
   --radius-md: var(--radius);
+  --font-heading: var(--font-heading);
+  --font-body: var(--font-body);
 }
 
 * {
@@ -46,6 +48,7 @@
 
 html {
   background: var(--background);
+  scroll-behavior: smooth;
 }
 
 body {
@@ -53,12 +56,26 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading), Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
 }
 
 :focus-visible {
   outline: 3px solid var(--primary);
   outline-offset: 3px;
+  border-radius: var(--radius);
+}
+
+::selection {
+  background: oklch(0.79 0.05 122 / 0.4);
+  color: var(--foreground);
 }
 
 @media (prefers-reduced-motion: reduce) {
