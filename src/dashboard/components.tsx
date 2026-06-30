@@ -10,9 +10,12 @@ const links = [
   { href: "/dashboard/settings", label: "Settings" },
   { href: "/dashboard/invoices", label: "Invoices" },
   { href: "/dashboard/receipts", label: "Receipts" },
+  { href: "/dashboard/payments", label: "Payments" },
   { href: "/dashboard/activity-log", label: "Activity Log" },
   { href: "/dashboard/notifications", label: "Notifications" },
   { href: "/dashboard/users", label: "Users" },
+  { href: "/dashboard/faqs", label: "FAQs" },
+  { href: "/dashboard/policies", label: "Policies" },
 ];
 
 export function DashboardNav() {
