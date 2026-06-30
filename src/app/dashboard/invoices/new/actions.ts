@@ -1,11 +1,11 @@
 "use server";
 
-import { requireAuth } from "@/auth/session";
+import { requirePermission } from "@/auth/session";
 import { createInvoice } from "@/invoices/create";
 import { redirect } from "next/navigation";
 
 export async function createInvoiceAction(formData: FormData) {
-  const user = await requireAuth();
+  const user = await requirePermission("documents:create");
 
   const clientId = formData.get("client_id") as string;
   const issueDateStr = formData.get("issue_date") as string;

@@ -2,8 +2,8 @@ import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
-import { services, serviceCategories } from "@/db/schema";
-import { updateService } from "@/services/actions";
+import { services, serviceCategories, serviceFaqs } from "@/db/schema";
+import { createServiceFaq, deleteServiceFaq, toggleServiceFaqActive, updateService, updateServiceFaq } from "@/services/actions";
 import { ServiceForm } from "../../service-form";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +34,12 @@ export default async function EditServicePage({ params }: PageProps) {
     .where(eq(serviceCategories.active, true))
     .orderBy(serviceCategories.sortOrder);
 
+  const faqs = await db
+    .select()
+    .from(serviceFaqs)
+    .where(eq(serviceFaqs.serviceId, id))
+    .orderBy(serviceFaqs.sortOrder);
+
   return (
     <ServiceForm
       categories={categories}
@@ -55,6 +61,59 @@ export default async function EditServicePage({ params }: PageProps) {
         featured: service.featured,
         sortOrder: service.sortOrder,
       }}
-    />
+    >
+      <section className="mt-8 rounded-xl border border-border bg-background p-6">
+        <h2 className="text-lg font-semibold">Service FAQs</h2>
+        <p className="mt-2 text-sm text-muted-foreground">These appear on this service detail page.</p>
+
+        <form action={async (formData) => { "use server"; await createServiceFaq(id, formData); }} className="mt-5 grid gap-4 rounded-2xl bg-surface-muted p-4 md:grid-cols-[1fr_1fr_6rem_auto]">
+          <label className="text-sm font-medium">
+            Question
+            <input name="question" required className="mt-2 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
+          </label>
+          <label className="text-sm font-medium">
+            Answer
+            <input name="answer" required className="mt-2 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
+          </label>
+          <label className="text-sm font-medium">
+            Sort
+            <input name="sortOrder" type="number" defaultValue={faqs.length} className="mt-2 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
+          </label>
+          <button type="submit" className="mt-7 h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Add FAQ</button>
+        </form>
+
+        <div className="mt-5 space-y-4">
+          {faqs.length === 0 ? <p className="rounded-2xl bg-surface-muted p-4 text-sm text-muted-foreground">No service FAQs yet.</p> : null}
+          {faqs.map((faq) => (
+            <article key={faq.id} className="rounded-2xl border border-border p-4">
+              <form action={async (formData) => { "use server"; await updateServiceFaq(faq.id, formData); }} className="grid gap-4 md:grid-cols-[1fr_1fr_6rem_auto]">
+                <label className="text-sm font-medium">
+                  Question
+                  <input name="question" required defaultValue={faq.question} className="mt-2 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
+                </label>
+                <label className="text-sm font-medium">
+                  Answer
+                  <input name="answer" required defaultValue={faq.answer} className="mt-2 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
+                </label>
+                <label className="text-sm font-medium">
+                  Sort
+                  <input name="sortOrder" type="number" defaultValue={faq.sortOrder} className="mt-2 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
+                </label>
+                <button type="submit" className="mt-7 h-11 rounded-xl border border-border px-4 text-sm font-semibold hover:bg-surface-muted">Save</button>
+              </form>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <form action={async () => { "use server"; await toggleServiceFaqActive(faq.id); }}>
+                  <button type="submit" className="h-9 rounded-xl border border-border px-3 text-xs font-semibold hover:bg-surface-muted">{faq.active ? "Deactivate" : "Activate"}</button>
+                </form>
+                <form action={async () => { "use server"; await deleteServiceFaq(faq.id); }}>
+                  <button type="submit" className="h-9 rounded-xl border border-destructive/30 px-3 text-xs font-semibold text-destructive hover:bg-destructive/10">Delete</button>
+                </form>
+                <span className={`inline-flex h-9 items-center rounded-xl px-3 text-xs font-semibold ${faq.active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>{faq.active ? "Active" : "Inactive"}</span>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+    </ServiceForm>
   );
 }

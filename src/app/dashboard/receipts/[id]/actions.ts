@@ -4,11 +4,11 @@ import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { receipts } from "@/db/schema";
-import { requireAuth } from "@/auth/session";
+import { requirePermission } from "@/auth/session";
 import { recordActivity } from "@/activity-log/record";
 
 export async function voidReceiptAction(receiptId: string, formData: FormData) {
-  const user = await requireAuth();
+  const user = await requirePermission("documents:void");
   const reason = formData.get("reason") as string;
 
   if (!reason || reason.trim().length === 0) {

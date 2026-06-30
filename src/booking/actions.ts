@@ -1,6 +1,6 @@
 "use server";
 
-import { requireAuth } from "@/auth/session";
+import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { bookings, bookingStatusHistory } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -17,7 +17,7 @@ async function transitionBookingStatus(
   newStatus: string,
   note?: string,
 ): Promise<TransitionResult> {
-  const user = await requireAuth();
+  const user = await requirePermission("bookings:update");
   const db = getDb();
 
   let fromStatus: string | undefined;
@@ -79,6 +79,7 @@ async function transitionBookingStatus(
     );
 
     revalidatePath("/dashboard/bookings");
+    revalidatePath(`/dashboard/bookings/${bookingId}`);
   }
 
   return { ok: true as const, reference: reference! };

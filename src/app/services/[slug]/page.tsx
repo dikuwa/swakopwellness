@@ -22,6 +22,19 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             {communication.enableCalls ? <a href={`tel:${communication.mainPhone.replaceAll(" ", "")}`} className="flex h-12 items-center justify-center rounded-xl border border-border px-5 text-sm font-semibold">Call centre</a> : null}
           </div>
         </div>
+        {service.faqs.length > 0 ? (
+          <section className="mt-8 rounded-[1.5rem] border border-border bg-surface p-6 sm:p-8">
+            <h2 className="text-2xl font-semibold tracking-[-0.035em]">Service FAQs</h2>
+            <div className="mt-5 space-y-4">
+              {service.faqs.map((faq) => (
+                <article key={faq.id} className="rounded-2xl bg-surface-muted p-5">
+                  <h3 className="font-semibold">{faq.question}</h3>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{faq.answer}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+        ) : null}
       </main>
     </PageShell>
   );

@@ -1,7 +1,7 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getDb } from "@/db/client";
-import { bookingRules, businessSettings, communicationSettings, faqs, policies, serviceQuestions, services } from "@/db/schema";
+import { bookingRules, businessSettings, communicationSettings, faqs, policies, serviceFaqs, serviceQuestions, services } from "@/db/schema";
 
 export function formatMoney(cents: number, symbol = "N$") {
   return `${symbol}${(cents / 100).toLocaleString("en-NA", { maximumFractionDigits: 0 })}`;
@@ -43,7 +43,12 @@ export async function getServiceBySlug(slug: string) {
     .where(and(eq(services.slug, slug), eq(services.active, true), eq(services.publicVisible, true)))
     .limit(1);
   if (!service) notFound();
-  return service;
+  const serviceSpecificFaqs = await db
+    .select()
+    .from(serviceFaqs)
+    .where(and(eq(serviceFaqs.serviceId, service.id), eq(serviceFaqs.active, true)))
+    .orderBy(asc(serviceFaqs.sortOrder));
+  return { ...service, faqs: serviceSpecificFaqs };
 }
 
 export async function getPublicFaqs() {
@@ -65,7 +70,7 @@ export async function getBookingRules() {
 
 export async function getActiveSuitabilityQuestions() {
   const db = getDb();
-  return db.select().from(serviceQuestions).where(eq(serviceQuestions.active, true)).orderBy(asc(serviceQuestions.sortOrder));
+  return db.select().from(serviceQuestions).where(and(eq(serviceQuestions.active, true), isNull(serviceQuestions.serviceId))).orderBy(asc(serviceQuestions.sortOrder));
 }
 
 export async function getPolicyBySlug(slug: string) {

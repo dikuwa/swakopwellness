@@ -123,6 +123,16 @@ export default async function ReceiptDetailPage(props: { params: Promise<{ id: s
           </div>
         )}
 
+        <div className="mt-8 flex flex-wrap gap-3 border-t border-border pt-6">
+          <a
+            href={`/api/receipts/${id}/pdf`}
+            target="_blank"
+            className="h-11 rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted inline-flex items-center"
+          >
+            Download PDF
+          </a>
+        </div>
+
         {!receipt.voidedAt && canVoid && (
           <div className="mt-10 border-t border-border pt-6">
             <h2 className="text-sm font-semibold">Void Receipt</h2>

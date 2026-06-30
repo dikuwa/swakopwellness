@@ -125,7 +125,14 @@ export async function voidPayment(paymentId: string, reason: string, userId: str
     const [payment] = await tx.select().from(payments).where(eq(payments.id, paymentId)).limit(1);
     if (!payment) return { ok: false, message: "Payment not found." } as PaymentResult;
 
-    await tx.delete(payments).where(eq(payments.id, paymentId));
+    if (payment.voidedAt) {
+      return { ok: false, message: "Payment is already voided." } as PaymentResult;
+    }
+
+    await tx
+      .update(payments)
+      .set({ voidedAt: new Date(), voidReason: reason, voidedByUserId: userId })
+      .where(eq(payments.id, paymentId));
 
     if (payment.invoiceId) {
       const [inv] = await tx.select().from(invoices).where(eq(invoices.id, payment.invoiceId)).limit(1);

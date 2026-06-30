@@ -24,3 +24,18 @@ export type AppEnv = z.infer<typeof envSchema>;
 export function validateEnv(input: Record<string, string | undefined>) {
   return envSchema.safeParse(input);
 }
+
+export const env = {
+  get RESEND_API_KEY() {
+    return process.env.RESEND_API_KEY || "";
+  },
+  get RESEND_FROM_EMAIL() {
+    return process.env.RESEND_FROM_EMAIL || "";
+  },
+  get DATABASE_URL() {
+    return process.env.DATABASE_URL || "";
+  },
+  get NEXT_PUBLIC_APP_URL() {
+    return process.env.NEXT_PUBLIC_APP_URL || "";
+  },
+};

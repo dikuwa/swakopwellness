@@ -1,11 +1,11 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { requireAuth } from "@/auth/session";
+import { requirePermission } from "@/auth/session";
 import { recordPayment } from "@/payments/record";
 
 export async function createReceiptAction(formData: FormData) {
-  const user = await requireAuth();
+  const user = await requirePermission("payments:record");
 
   const clientId = formData.get("clientId") as string;
   const amountDollars = formData.get("amount") as string;

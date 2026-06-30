@@ -1,13 +1,13 @@
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { requireAuth } from "@/auth/session";
+import { requirePermission } from "@/auth/session";
 import { DashboardNav } from "@/dashboard/components";
 import { activityLog, users } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
 
 export default async function ActivityLogPage() {
-  await requireAuth();
+  await requirePermission("activity:view");
   const db = getDb();
 
   const entries = await db

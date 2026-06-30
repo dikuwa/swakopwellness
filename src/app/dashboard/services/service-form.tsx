@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, type ReactNode } from "react";
 import { DashboardNav } from "@/dashboard/components";
 
 interface Category {
@@ -34,9 +34,10 @@ interface Props {
     data: FormData,
   ) => Promise<{ ok: boolean; error?: string; serviceId?: string }>;
   initialData?: ServiceFormData;
+  children?: ReactNode;
 }
 
-export function ServiceForm({ categories, action, initialData }: Props) {
+export function ServiceForm({ categories, action, initialData, children }: Props) {
   const router = useRouter();
   const isEdit = !!initialData;
 
@@ -348,6 +349,7 @@ export function ServiceForm({ categories, action, initialData }: Props) {
             </Link>
           </div>
         </form>
+        {children}
       </section>
     </main>
   );

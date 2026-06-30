@@ -4,6 +4,8 @@ import { getDb } from "@/db/client";
 import { chatConversations, chatMessages, chatToolEvents } from "@/db/schema";
 import { approvedBookingSummary } from "./safety";
 
+export const chatbotBookingSource = "chatbot" as const;
+
 export async function createChatBookingRequest(formData: FormData) {
   const db = getDb();
   const [conversation] = await db.insert(chatConversations).values({ status: "booking_started" }).returning({ id: chatConversations.id });
@@ -13,7 +15,7 @@ export async function createChatBookingRequest(formData: FormData) {
     { conversationId: conversation.id, role: "user", content: "Submitted chatbot booking request form." },
   ]);
 
-  const result = await createBookingRequest(formDataToBookingInput(formData), "website_form");
+  const result = await createBookingRequest(formDataToBookingInput(formData), chatbotBookingSource);
 
   await db.insert(chatToolEvents).values({
     conversationId: conversation.id,

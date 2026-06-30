@@ -22,6 +22,7 @@ export default async function PaymentsPage() {
       method: payments.method,
       reference: payments.reference,
       notes: payments.notes,
+      voidedAt: payments.voidedAt,
       createdAt: payments.createdAt,
       clientName: clients.fullName,
       invoiceNumber: invoices.invoiceNumber,
@@ -50,6 +51,7 @@ export default async function PaymentsPage() {
                 <th>Invoice</th>
                 <th>Booking Ref</th>
                 <th>Amount</th>
+                <th>Status</th>
                 <th>Method</th>
                 <th>Reference</th>
                 <th>Recorded By</th>
@@ -85,6 +87,13 @@ export default async function PaymentsPage() {
                   <td className="whitespace-nowrap font-medium">
                     N${(p.amountCents / 100).toFixed(2)}
                   </td>
+                  <td className="whitespace-nowrap">
+                    {p.voidedAt ? (
+                      <span className="rounded-full bg-destructive/10 px-2 py-1 text-xs font-semibold text-destructive">Voided</span>
+                    ) : (
+                      <span className="rounded-full bg-success/10 px-2 py-1 text-xs font-semibold text-success">Recorded</span>
+                    )}
+                  </td>
                   <td className="whitespace-nowrap capitalize">
                     {p.method.replaceAll("_", " ")}
                   </td>
@@ -94,7 +103,7 @@ export default async function PaymentsPage() {
               ))}
               {allPayments.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
+                  <td colSpan={9} className="py-8 text-center text-sm text-muted-foreground">
                     No payments recorded yet.
                   </td>
                 </tr>

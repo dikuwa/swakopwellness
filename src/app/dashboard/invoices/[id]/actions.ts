@@ -1,11 +1,13 @@
 "use server";
 
-import { requireAuth } from "@/auth/session";
+import { requirePermission } from "@/auth/session";
 import { issueInvoice, voidInvoice } from "@/invoices/create";
+import { sendInvoiceEmail } from "@/email/send";
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 export async function issueInvoiceAction(formData: FormData) {
-  const user = await requireAuth();
+  const user = await requirePermission("documents:create");
   const invoiceId = formData.get("invoice_id") as string;
 
   if (!invoiceId) throw new Error("Invoice ID is required.");
@@ -17,7 +19,7 @@ export async function issueInvoiceAction(formData: FormData) {
 }
 
 export async function voidInvoiceAction(formData: FormData) {
-  const user = await requireAuth();
+  const user = await requirePermission("documents:void");
   const invoiceId = formData.get("invoice_id") as string;
   const reason = (formData.get("reason") as string) || "No reason provided";
 
@@ -27,4 +29,16 @@ export async function voidInvoiceAction(formData: FormData) {
   if (!result.ok) throw new Error(result.message);
 
   redirect(`/dashboard/invoices/${invoiceId}`);
+}
+
+export async function emailInvoiceAction(formData: FormData) {
+  await requirePermission("financials:view");
+  const invoiceId = formData.get("invoice_id") as string;
+
+  if (!invoiceId) throw new Error("Invoice ID is required.");
+
+  const result = await sendInvoiceEmail(invoiceId);
+  if (!result.ok) throw new Error(result.error);
+
+  revalidatePath(`/dashboard/invoices/${invoiceId}`);
 }

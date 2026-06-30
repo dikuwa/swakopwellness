@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, or } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, or } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { bookingAnswers, bookingRules, bookings, bookingStatusHistory, clients, communicationSettings, serviceQuestions, services } from "@/db/schema";
 import { normalizeEmail, normalizePhone } from "./contact";
@@ -6,12 +6,15 @@ import { createBookingReference } from "./reference";
 import { getInitialBookingStatus } from "./status";
 import { bookingRequestSchema, hasAtLeastOneContact, isContactMethodAvailable, parseDateTime, type BookingRequestInput } from "./validation";
 import { notifyStaff } from "@/notifications/create";
+import { sendBookingNotificationToStaff } from "@/email/send";
 
 export type CreateBookingResult =
   | { ok: true; reference: string; status: string; bookingId?: string; clientId?: string }
   | { ok: false; message: string };
 
-export async function createBookingRequest(input: unknown, source: "website_form" | "manual_admin" = "website_form"): Promise<CreateBookingResult> {
+type BookingSource = "website_form" | "chatbot" | "manual_admin";
+
+export async function createBookingRequest(input: unknown, source: BookingSource = "website_form"): Promise<CreateBookingResult> {
   const parsed = bookingRequestSchema.safeParse(input);
   if (!parsed.success) return { ok: false, message: "Check the form fields and try again." };
 
@@ -35,10 +38,13 @@ export async function createBookingRequest(input: unknown, source: "website_form
     const [service] = await tx
       .select()
       .from(services)
-      .where(and(eq(services.id, data.serviceId), eq(services.active, true), eq(services.publicVisible, true), eq(services.bookingEnabled, true)))
+      .where(and(eq(services.id, data.serviceId), eq(services.active, true)))
       .limit(1);
 
     if (!service) return { ok: false, message: "Choose an available service." } satisfies CreateBookingResult;
+    if (source !== "manual_admin" && (!service.publicVisible || !service.bookingEnabled)) {
+      return { ok: false, message: "Choose an available service." } satisfies CreateBookingResult;
+    }
 
     const normalizedPhone = normalizePhone(data.phone);
     const normalizedEmail = normalizeEmail(data.email);
@@ -97,7 +103,10 @@ export async function createBookingRequest(input: unknown, source: "website_form
           })
           .returning({ id: clients.id });
 
-    const questions = await tx.select().from(serviceQuestions).where(eq(serviceQuestions.active, true));
+    const questions = await tx
+      .select()
+      .from(serviceQuestions)
+      .where(and(eq(serviceQuestions.active, true), or(isNull(serviceQuestions.serviceId), eq(serviceQuestions.serviceId, service.id))));
     const answers = questions.map((question) => {
       const answer = data.answers[question.id] ?? "no";
       return {
@@ -146,9 +155,12 @@ export async function createBookingRequest(input: unknown, source: "website_form
   });
 
   if (result.ok && result.status !== "duplicate_returned") {
-    const sourceLabel = source === "manual_admin" ? "Admin" : "Website";
+    const sourceLabel = source === "manual_admin" ? "Admin" : source === "chatbot" ? "Chatbot" : "Website";
     const needsReview = result.status === "requires_review";
     await notifyStaff("booking.created", `New booking ${result.reference}`, `${sourceLabel} booking request for ${data.fullName} (${result.reference})${needsReview ? " — requires review" : ""}`, "booking", result.bookingId);
+    if (result.bookingId) {
+      sendBookingNotificationToStaff(result.bookingId).catch(console.error);
+    }
   }
   return result;
 }

@@ -1,6 +1,75 @@
 # Changelog
 
 ## 2026-06-30
+### Phase 8D chat dashboard added
+- Added `/dashboard/chat-conversations` protected chatbot conversation list
+- Added `/dashboard/chat-conversations/[id]` detail page with linked client, booking, messages and tool events
+- Added close/reopen conversation action protected by `bookings:update`
+- Added activity logging for chat conversation status changes
+- Added Chat Conversations link to dashboard navigation
+- Started local dev server for testing
+
+### Phase 8D verified
+- `npm run lint`
+- `npm run typecheck`
+- `npm run test` — 37/37 pass
+- `npm run build`
+- `npm run env:check`
+- Dev smoke: `/chat` and `/services` return 200; protected dashboard chat/service management routes redirect to `/login`
+- Browser snapshot confirmed `/chat` renders the booking assistant form
+
+### Phase 8C service management added
+- Added service category management at `/dashboard/services/categories`
+- Added suitability question management at `/dashboard/services/suitability`
+- Added links from the Services dashboard to category and suitability management
+- Added service-specific FAQ create/update/activate/delete controls to the service edit page
+- Added public service-specific FAQ display on service detail pages
+- Updated booking creation to evaluate only global suitability questions plus questions assigned to the selected service
+- Kept current public/manual booking forms to global questions only; dynamic service-specific question display remains a later UI enhancement
+- Deferred media/gallery upload workflow because storage/provider behaviour is not yet finalised
+
+### Phase 8C verified
+- `npm run lint`
+- `npm run typecheck`
+- `npm run test` — 37/37 pass
+- `npm run build`
+- `npm run env:check`
+
+### Phase 8B operational workflows added
+- Added `/dashboard/bookings/new` manual admin booking form using the shared booking request workflow
+- Added `/dashboard/bookings/[id]` booking detail view with client contact details, service snapshot, status actions, status history and permission-filtered suitability answers
+- Linked booking references in the bookings table to the new detail route
+- Updated manual booking service validation to allow active internal services while preserving public online-booking restrictions for website/chatbot submissions
+- Added follow-up server actions for create, update, complete and cancel with `bookings:update` permission checks and activity logging
+- Updated `/dashboard/follow-ups` with create form and complete/cancel actions for users with update permission
+
+### Phase 8B verified
+- `npm run lint`
+- `npm run typecheck`
+- `npm run test` — 37/37 pass
+- `npm run build`
+- `npm run env:check`
+
+### Phase 8A hardening added
+- Hardened sensitive permission checks for activity log, booking status transitions, invoice/receipt PDF routes and financial document actions
+- Fixed chat-to-book persistence so chatbot submissions use the `chatbot` booking source
+- Added payment void metadata (`voided_at`, `void_reason`, `voided_by_user_id`) and generated/applied `drizzle/0007_outstanding_toxin.sql`
+- Updated payment voiding to preserve payment records instead of deleting financial history
+- Updated payment list/detail UI to clearly show voided payments
+- Fixed PDF generation to wait for PDFKit stream completion before returning invoice/receipt buffers
+- Added regression tests for chatbot booking source and complete PDF buffers
+- Fixed `npm run env:check` to load local `.env` before validation
+
+### Phase 8A verified
+- `npm run db:generate`
+- Reviewed generated SQL migration
+- `npm run db:migrate`
+- `npm run lint`
+- `npm run typecheck`
+- `npm run test` — 37/37 pass
+- `npm run build`
+- `npm run env:check`
+
 ### Phase 7 added
 - Activity log table for recording user actions with entity references and metadata
 - Document number sequences table for configurable invoice/receipt/quotation numbering (prefix, padding, next number)

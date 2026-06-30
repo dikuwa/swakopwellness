@@ -38,16 +38,30 @@ export default async function ServicesPage() {
     <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8">
       <section className="mx-auto max-w-6xl rounded-[1.5rem] border border-border bg-surface p-6 sm:p-8">
         <DashboardNav />
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-3xl font-semibold tracking-[-0.035em]">
             Services
           </h1>
-          <Link
-            href="/dashboard/services/new"
-            className="flex h-11 items-center rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted"
-          >
-            New Service
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link
+              href="/dashboard/services/categories"
+              className="flex h-11 items-center rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted"
+            >
+              Categories
+            </Link>
+            <Link
+              href="/dashboard/services/suitability"
+              className="flex h-11 items-center rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted"
+            >
+              Suitability
+            </Link>
+            <Link
+              href="/dashboard/services/new"
+              className="flex h-11 items-center rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted"
+            >
+              New Service
+            </Link>
+          </div>
         </div>
         <div className="mt-6 overflow-x-auto">
           <table className="w-full min-w-[900px] text-left text-sm">

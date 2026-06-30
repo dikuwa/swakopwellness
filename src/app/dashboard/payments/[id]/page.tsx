@@ -23,6 +23,8 @@ export default async function PaymentDetailPage(props: { params: Promise<{ id: s
       method: payments.method,
       reference: payments.reference,
       notes: payments.notes,
+      voidedAt: payments.voidedAt,
+      voidReason: payments.voidReason,
       createdAt: payments.createdAt,
       clientName: clients.fullName,
       invoiceNumber: invoices.invoiceNumber,
@@ -65,6 +67,13 @@ export default async function PaymentDetailPage(props: { params: Promise<{ id: s
           &larr; Payments
         </Link>
         <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">Payment Details</h1>
+
+        {payment.voidedAt && (
+          <div className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+            <p className="font-semibold">This payment was voided on {payment.voidedAt.toLocaleString("en-NA")}.</p>
+            {payment.voidReason && <p className="mt-1">Reason: {payment.voidReason}</p>}
+          </div>
+        )}
 
         <div className="mt-6 grid gap-6 sm:grid-cols-2">
           <div>

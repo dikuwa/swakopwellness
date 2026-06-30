@@ -499,6 +499,9 @@ export const payments = pgTable(
     reference: text("reference"),
     notes: text("notes"),
     recordedByUserId: uuid("recorded_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    voidedAt: timestamp("voided_at", { withTimezone: true }),
+    voidReason: text("void_reason"),
+    voidedByUserId: uuid("voided_by_user_id").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
@@ -557,6 +560,7 @@ export const paymentsRelations = relations(payments, ({ one, many }) => ({
   invoice: one(invoices, { fields: [payments.invoiceId], references: [invoices.id] }),
   booking: one(bookings, { fields: [payments.bookingId], references: [bookings.id] }),
   recordedBy: one(users, { fields: [payments.recordedByUserId], references: [users.id] }),
+  voidedBy: one(users, { fields: [payments.voidedByUserId], references: [users.id] }),
   receipts: many(receipts),
 }));
 

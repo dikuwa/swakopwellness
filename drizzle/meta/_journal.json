@@ -50,6 +50,13 @@
       "when": 1782796840025,
       "tag": "0006_brown_wilson_fisk",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1782820652395,
+      "tag": "0007_outstanding_toxin",
+      "breakpoints": true
     }
   ]
 }

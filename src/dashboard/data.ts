@@ -1,6 +1,6 @@
-import { asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { bookings, clients, followUps, invoiceLineItems, invoices, payments, receipts, services } from "@/db/schema";
+import { bookingAnswers, bookingStatusHistory, bookings, chatConversations, chatMessages, chatToolEvents, clients, followUps, invoiceLineItems, invoices, payments, receipts, serviceQuestions, services, users } from "@/db/schema";
 
 export async function getDashboardBookings() {
   const db = getDb();
@@ -19,6 +19,139 @@ export async function getDashboardBookings() {
     .innerJoin(clients, eq(bookings.clientId, clients.id))
     .orderBy(desc(bookings.createdAt))
     .limit(50);
+}
+
+export async function getDashboardChatConversations() {
+  const db = getDb();
+  return db
+    .select({
+      id: chatConversations.id,
+      status: chatConversations.status,
+      createdAt: chatConversations.createdAt,
+      updatedAt: chatConversations.updatedAt,
+      bookingId: bookings.id,
+      bookingReference: bookings.reference,
+      clientId: clients.id,
+      clientName: clients.fullName,
+    })
+    .from(chatConversations)
+    .leftJoin(bookings, eq(chatConversations.bookingId, bookings.id))
+    .leftJoin(clients, eq(chatConversations.clientId, clients.id))
+    .orderBy(desc(chatConversations.updatedAt))
+    .limit(100);
+}
+
+export async function getDashboardChatConversationById(id: string) {
+  const db = getDb();
+  const [conversation] = await db
+    .select({
+      id: chatConversations.id,
+      status: chatConversations.status,
+      createdAt: chatConversations.createdAt,
+      updatedAt: chatConversations.updatedAt,
+      bookingId: bookings.id,
+      bookingReference: bookings.reference,
+      bookingStatus: bookings.status,
+      clientId: clients.id,
+      clientName: clients.fullName,
+      clientPhone: clients.phone,
+      clientEmail: clients.email,
+    })
+    .from(chatConversations)
+    .leftJoin(bookings, eq(chatConversations.bookingId, bookings.id))
+    .leftJoin(clients, eq(chatConversations.clientId, clients.id))
+    .where(eq(chatConversations.id, id))
+    .limit(1);
+
+  if (!conversation) return null;
+
+  const messages = await db
+    .select({
+      id: chatMessages.id,
+      role: chatMessages.role,
+      content: chatMessages.content,
+      createdAt: chatMessages.createdAt,
+    })
+    .from(chatMessages)
+    .where(eq(chatMessages.conversationId, id))
+    .orderBy(asc(chatMessages.createdAt));
+
+  const toolEvents = await db
+    .select({
+      id: chatToolEvents.id,
+      toolName: chatToolEvents.toolName,
+      status: chatToolEvents.status,
+      summary: chatToolEvents.summary,
+      createdAt: chatToolEvents.createdAt,
+    })
+    .from(chatToolEvents)
+    .where(eq(chatToolEvents.conversationId, id))
+    .orderBy(asc(chatToolEvents.createdAt));
+
+  return { ...conversation, messages, toolEvents };
+}
+
+export async function getDashboardBookingById(id: string, includeSuitability: boolean) {
+  const db = getDb();
+  const [booking] = await db
+    .select({
+      id: bookings.id,
+      reference: bookings.reference,
+      serviceId: bookings.serviceId,
+      serviceName: bookings.serviceName,
+      servicePriceCents: bookings.servicePriceCents,
+      serviceDurationMinutes: bookings.serviceDurationMinutes,
+      preferredAt: bookings.preferredAt,
+      alternativeAt: bookings.alternativeAt,
+      status: bookings.status,
+      source: bookings.source,
+      preferredContactMethod: bookings.preferredContactMethod,
+      clientType: bookings.clientType,
+      note: bookings.note,
+      createdAt: bookings.createdAt,
+      updatedAt: bookings.updatedAt,
+      clientId: clients.id,
+      clientName: clients.fullName,
+      clientPhone: clients.phone,
+      clientEmail: clients.email,
+      clientWhatsapp: clients.whatsappNumber,
+    })
+    .from(bookings)
+    .innerJoin(clients, eq(bookings.clientId, clients.id))
+    .where(eq(bookings.id, id))
+    .limit(1);
+
+  if (!booking) return null;
+
+  const history = await db
+    .select({
+      id: bookingStatusHistory.id,
+      fromStatus: bookingStatusHistory.fromStatus,
+      toStatus: bookingStatusHistory.toStatus,
+      note: bookingStatusHistory.note,
+      createdAt: bookingStatusHistory.createdAt,
+      actorName: users.name,
+    })
+    .from(bookingStatusHistory)
+    .leftJoin(users, eq(bookingStatusHistory.actorUserId, users.id))
+    .where(eq(bookingStatusHistory.bookingId, id))
+    .orderBy(desc(bookingStatusHistory.createdAt));
+
+  const answers = includeSuitability
+    ? await db
+        .select({
+          id: bookingAnswers.id,
+          questionText: bookingAnswers.questionText,
+          answer: bookingAnswers.answer,
+          flagged: bookingAnswers.flagged,
+          createdAt: bookingAnswers.createdAt,
+        })
+        .from(bookingAnswers)
+        .where(eq(bookingAnswers.bookingId, id))
+        .orderBy(asc(bookingAnswers.createdAt))
+    : [];
+
+  return { ...booking, history, answers };
 }
 
 export async function getUpcomingCalendarBookings() {
@@ -58,9 +191,31 @@ export async function getFollowUps() {
     .limit(80);
 }
 
+export async function getFollowUpBookingOptions() {
+  const db = getDb();
+  return db
+    .select({
+      id: bookings.id,
+      reference: bookings.reference,
+      clientId: bookings.clientId,
+      clientName: clients.fullName,
+      serviceName: bookings.serviceName,
+      preferredAt: bookings.preferredAt,
+    })
+    .from(bookings)
+    .innerJoin(clients, eq(bookings.clientId, clients.id))
+    .orderBy(desc(bookings.createdAt))
+    .limit(100);
+}
+
 export async function getBookableServicesForManualUse() {
   const db = getDb();
-  return db.select({ id: services.id, name: services.name }).from(services).where(eq(services.active, true)).orderBy(asc(services.sortOrder));
+  return db.select({ id: services.id, name: services.name, priceCents: services.priceCents }).from(services).where(eq(services.active, true)).orderBy(asc(services.sortOrder));
+}
+
+export async function getActiveSuitabilityQuestionsForDashboard() {
+  const db = getDb();
+  return db.select({ id: serviceQuestions.id, question: serviceQuestions.question }).from(serviceQuestions).where(and(eq(serviceQuestions.active, true), isNull(serviceQuestions.serviceId))).orderBy(asc(serviceQuestions.sortOrder));
 }
 
 export async function getClients() {
@@ -140,4 +295,3 @@ export async function getPayments() {
     .orderBy(desc(payments.createdAt))
     .limit(100);
 }
-

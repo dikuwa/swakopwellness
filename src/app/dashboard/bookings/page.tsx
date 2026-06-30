@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requirePermission } from "@/auth/session";
 import { DashboardNav } from "@/dashboard/components";
 import { getDashboardBookings } from "@/dashboard/data";
@@ -133,7 +134,15 @@ export default async function DashboardBookingsPage() {
     <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8">
       <section className="mx-auto max-w-6xl rounded-[1.5rem] border border-border bg-surface p-6 sm:p-8">
         <DashboardNav />
-        <h1 className="text-3xl font-semibold tracking-[-0.035em]">Bookings</h1>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-[-0.035em]">Bookings</h1>
+            <p className="mt-2 text-sm text-muted-foreground">Review requests, update statuses and add manual bookings.</p>
+          </div>
+          <Link href="/dashboard/bookings/new" className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+            Add manual booking
+          </Link>
+        </div>
         <div className="mt-6 overflow-x-auto">
           <table className="w-full min-w-[760px] text-left text-sm">
             <thead className="text-muted-foreground">
@@ -150,7 +159,9 @@ export default async function DashboardBookingsPage() {
             <tbody>
               {bookings.map((booking) => (
                 <tr key={booking.id} className="border-t border-border">
-                  <td className="whitespace-nowrap py-3 font-medium">{booking.reference}</td>
+                  <td className="whitespace-nowrap py-3 font-medium">
+                    <Link href={`/dashboard/bookings/${booking.id}`} className="hover:text-primary">{booking.reference}</Link>
+                  </td>
                   <td className="whitespace-nowrap">{booking.clientName}</td>
                   <td className="whitespace-nowrap">{booking.serviceName}</td>
                   <td className="whitespace-nowrap">{booking.preferredAt.toLocaleString("en-NA")}</td>

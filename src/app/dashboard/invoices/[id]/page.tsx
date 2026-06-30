@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { requirePermission } from "@/auth/session";
 import { DashboardNav } from "@/dashboard/components";
 import { getInvoiceById, getClientById } from "@/dashboard/data";
-import { issueInvoiceAction, voidInvoiceAction } from "./actions";
+import { emailInvoiceAction, issueInvoiceAction, voidInvoiceAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +36,7 @@ export default async function InvoiceDetailPage(props: { params: Promise<{ id: s
   const canIssue = invoice.status === "draft";
   const canVoid = !["voided", "paid"].includes(invoice.status);
   const canRecordPayment = ["issued", "partially_paid", "overdue"].includes(invoice.status);
+  const canEmail = !["draft", "voided"].includes(invoice.status);
 
   return (
     <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8">
@@ -174,6 +175,17 @@ export default async function InvoiceDetailPage(props: { params: Promise<{ id: s
               </button>
             </form>
           )}
+          {canEmail && (
+            <form action={emailInvoiceAction}>
+              <input type="hidden" name="invoice_id" value={invoice.id} />
+              <button
+                type="submit"
+                className="h-11 rounded-xl border border-border px-5 text-sm font-semibold transition-colors hover:bg-surface-muted"
+              >
+                Email Invoice
+              </button>
+            </form>
+          )}
           {canRecordPayment && (
             <Link
               href={`/dashboard/payments/new?invoice_id=${invoice.id}`}
@@ -182,6 +194,13 @@ export default async function InvoiceDetailPage(props: { params: Promise<{ id: s
               Record Payment
             </Link>
           )}
+          <a
+            href={`/api/invoices/${invoice.id}/pdf`}
+            target="_blank"
+            className="h-11 rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted inline-flex items-center"
+          >
+            Download PDF
+          </a>
           {canVoid && (
             <form action={voidInvoiceAction} onSubmit={(e) => {
               const reason = prompt("Reason for voiding this invoice:");
