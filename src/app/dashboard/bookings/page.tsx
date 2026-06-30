@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { requirePermission } from "@/auth/session";
-import { DashboardNav } from "@/dashboard/components";
+import { DashboardLayout } from "@/dashboard/components";
 import { getDashboardBookings } from "@/dashboard/data";
 import { confirmBooking, cancelBooking, markCompleted, markNoShow, changeBookingStatus } from "@/booking/actions";
 import { getAvailableActions } from "@/booking/status";
+import { logoutAction } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -131,53 +132,51 @@ export default async function DashboardBookingsPage() {
   const bookings = await getDashboardBookings();
 
   return (
-    <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8">
-      <section className="mx-auto max-w-6xl rounded-[1.5rem] border border-border bg-surface p-6 sm:p-8">
-        <DashboardNav />
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-[-0.035em]">Bookings</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Review requests, update statuses and add manual bookings.</p>
-          </div>
-          <Link href="/dashboard/bookings/new" className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
-            Add manual booking
-          </Link>
+    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">Management</p>
+          <h1 className="mt-2 text-2xl sm:text-3xl tracking-[-0.03em]">Bookings</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Review requests, update statuses and add manual bookings.</p>
         </div>
-        <div className="mt-6 overflow-x-auto">
-          <table className="w-full min-w-[760px] text-left text-sm">
-            <thead className="text-muted-foreground">
-              <tr>
-                <th className="py-3">Reference</th>
-                <th>Client</th>
-                <th>Service</th>
-                <th>Preferred</th>
-                <th>Status</th>
-                <th>Source</th>
-                <th>Actions</th>
+        <Link href="/dashboard/bookings/new" className="inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_2px_8px_oklch(0.355_0.074_159_/_0.25)] transition-all duration-200 hover:bg-primary/90">
+          Add manual booking
+        </Link>
+      </div>
+      <div className="mt-6 overflow-x-auto">
+        <table className="w-full min-w-[760px] text-left text-sm">
+          <thead className="text-muted-foreground">
+            <tr>
+              <th className="py-3">Reference</th>
+              <th>Client</th>
+              <th>Service</th>
+              <th>Preferred</th>
+              <th>Status</th>
+              <th>Source</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {bookings.map((booking) => (
+              <tr key={booking.id} className="border-t border-border">
+                <td className="whitespace-nowrap py-3 font-medium">
+                  <Link href={`/dashboard/bookings/${booking.id}`} className="hover:text-primary">{booking.reference}</Link>
+                </td>
+                <td className="whitespace-nowrap">{booking.clientName}</td>
+                <td className="whitespace-nowrap">{booking.serviceName}</td>
+                <td className="whitespace-nowrap">{booking.preferredAt.toLocaleString("en-NA")}</td>
+                <td className="whitespace-nowrap">
+                  <StatusBadge status={booking.status} />
+                </td>
+                <td className="whitespace-nowrap capitalize">{booking.source.replaceAll("_", " ")}</td>
+                <td className="py-3">
+                  <ActionsCell bookingId={booking.id} status={booking.status} />
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {bookings.map((booking) => (
-                <tr key={booking.id} className="border-t border-border">
-                  <td className="whitespace-nowrap py-3 font-medium">
-                    <Link href={`/dashboard/bookings/${booking.id}`} className="hover:text-primary">{booking.reference}</Link>
-                  </td>
-                  <td className="whitespace-nowrap">{booking.clientName}</td>
-                  <td className="whitespace-nowrap">{booking.serviceName}</td>
-                  <td className="whitespace-nowrap">{booking.preferredAt.toLocaleString("en-NA")}</td>
-                  <td className="whitespace-nowrap">
-                    <StatusBadge status={booking.status} />
-                  </td>
-                  <td className="whitespace-nowrap capitalize">{booking.source.replaceAll("_", " ")}</td>
-                  <td className="py-3">
-                    <ActionsCell bookingId={booking.id} status={booking.status} />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-    </main>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </DashboardLayout>
   );
 }

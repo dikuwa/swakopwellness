@@ -1,14 +1,22 @@
+import Link from "next/link";
 import { loginAction } from "./actions";
+import { Card, Input, Label } from "@/ui/components";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const params = await searchParams;
   const hasError = params.error === "invalid";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-background px-5 py-10 text-foreground">
-      <section className="w-full max-w-md rounded-[1.5rem] border border-border bg-surface p-6 shadow-[0_20px_80px_oklch(0.235_0.025_158_/_0.08)] sm:p-8">
+    <main className="flex min-h-screen flex-col items-center justify-center bg-background px-5 py-10 text-foreground">
+      <Link href="/" className="flex items-center gap-3 text-sm font-semibold">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-sm font-bold tracking-wider text-primary-foreground">
+          SW
+        </span>
+        Swakop Wellness Centre
+      </Link>
+      <Card className="mt-8 w-full max-w-md p-6 sm:p-8">
         <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">Staff access</p>
-        <h1 className="mt-3 text-3xl font-semibold tracking-[-0.035em]">Sign in</h1>
+        <h1 className="mt-2 text-2xl tracking-[-0.03em] sm:text-3xl">Sign in</h1>
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
           Use the staff account created by the owner bootstrap script. Public registration is disabled.
         </p>
@@ -19,18 +27,18 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         ) : null}
         <form action={loginAction} className="mt-6 space-y-4">
           <div>
-            <label htmlFor="email" className="text-sm font-medium">Email</label>
-            <input id="email" name="email" type="email" autoComplete="email" required className="mt-2 h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:border-primary" />
+            <Label htmlFor="email">Email</Label>
+            <Input id="email" name="email" type="email" autoComplete="email" required className="mt-2" />
           </div>
           <div>
-            <label htmlFor="password" className="text-sm font-medium">Password</label>
-            <input id="password" name="password" type="password" autoComplete="current-password" required className="mt-2 h-11 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none focus:border-primary" />
+            <Label htmlFor="password">Password</Label>
+            <Input id="password" name="password" type="password" autoComplete="current-password" required className="mt-2" />
           </div>
-          <button type="submit" className="h-11 w-full rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-primary">
+          <button type="submit" className="h-11 w-full cursor-pointer rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_2px_8px_oklch(0.355_0.074_159_/_0.25)] transition-all duration-200 hover:bg-primary/90 hover:shadow-[0_4px_12px_oklch(0.355_0.074_159_/_0.35)]">
             Sign in
           </button>
         </form>
-      </section>
+      </Card>
     </main>
   );
 }

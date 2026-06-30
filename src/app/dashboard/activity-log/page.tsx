@@ -1,7 +1,8 @@
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { requirePermission } from "@/auth/session";
-import { DashboardNav } from "@/dashboard/components";
+import { DashboardLayout } from "@/dashboard/components";
+import { logoutAction } from "../actions";
 import { activityLog, users } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
@@ -25,10 +26,11 @@ export default async function ActivityLogPage() {
     .limit(100);
 
   return (
-    <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8">
-      <section className="mx-auto max-w-5xl rounded-[1.5rem] border border-border bg-surface p-6 shadow-[0_20px_80px_oklch(0.235_0.025_158_/_0.08)] sm:p-8">
-        <DashboardNav />
+    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+      <div>
+        <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">Management</p>
         <h1 className="text-3xl font-semibold tracking-[-0.035em]">Activity Log</h1>
+      </div>
         {entries.length === 0 ? (
           <p className="mt-6 text-sm text-muted-foreground">No activity recorded yet.</p>
         ) : (
@@ -59,7 +61,6 @@ export default async function ActivityLogPage() {
             </table>
           </div>
         )}
-      </section>
-    </main>
+    </DashboardLayout>
   );
 }

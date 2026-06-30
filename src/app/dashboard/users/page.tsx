@@ -3,7 +3,8 @@ import { eq } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { users, userRoles, roles } from "@/db/schema";
-import { DashboardNav } from "@/dashboard/components";
+import { DashboardLayout } from "@/dashboard/components";
+import { logoutAction } from "../actions";
 import { toggleUserActive } from "@/users/actions";
 
 export const dynamic = "force-dynamic";
@@ -27,11 +28,12 @@ export default async function UsersPage() {
     .orderBy(users.createdAt);
 
   return (
-    <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8">
-      <section className="mx-auto max-w-6xl rounded-[1.5rem] border border-border bg-surface p-6 sm:p-8">
-        <DashboardNav />
-        <div className="flex items-center justify-between">
+    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">Management</p>
           <h1 className="text-3xl font-semibold tracking-[-0.035em]">Users</h1>
+        </div>
           <Link
             href="/dashboard/users/new"
             className="flex h-11 items-center rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted"
@@ -99,7 +101,6 @@ export default async function UsersPage() {
             </tbody>
           </table>
         </div>
-      </section>
-    </main>
+    </DashboardLayout>
   );
 }

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { and, asc, eq, gte, lte } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
-import { DashboardNav } from "@/dashboard/components";
+import { DashboardLayout } from "@/dashboard/components";
 import { getDb } from "@/db/client";
+import { logoutAction } from "../actions";
 import { bookings, clients } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
@@ -151,75 +152,75 @@ export default async function DashboardCalendarPage(props: { searchParams: Promi
   }
 
   return (
-    <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8">
-      <section className="mx-auto max-w-5xl rounded-[1.5rem] border border-border bg-surface p-6 sm:p-8">
-        <DashboardNav />
-        <div className="flex items-center justify-between gap-4">
-          <h1 className="text-3xl font-semibold tracking-[-0.035em]">Calendar</h1>
-          <div className="flex flex-wrap gap-2 text-sm">
-            <Link
-              href={todayUrl}
-              className={`rounded-xl border border-border px-3 py-2 text-xs hover:bg-surface-muted ${activeClass(todayUrl)}`}
-            >
-              Today
-            </Link>
-            <Link
-              href={weekUrl}
-              className={`rounded-xl border border-border px-3 py-2 text-xs hover:bg-surface-muted ${activeClass(weekUrl)}`}
-            >
-              This Week
-            </Link>
-            <Link
-              href={monthUrl}
-              className={`rounded-xl border border-border px-3 py-2 text-xs hover:bg-surface-muted ${activeClass(monthUrl)}`}
-            >
-              This Month
-            </Link>
-            <Link
-              href={thirtyDaysUrl}
-              className={`rounded-xl border border-border px-3 py-2 text-xs hover:bg-surface-muted ${activeClass(thirtyDaysUrl)}`}
-            >
-              30 Days
-            </Link>
-          </div>
+    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">Planning</p>
+          <h1 className="mt-2 text-2xl sm:text-3xl tracking-[-0.03em]">Calendar</h1>
         </div>
+        <div className="flex flex-wrap gap-2 text-sm">
+          <Link
+            href={todayUrl}
+            className={`rounded-xl border border-border px-3 py-2 text-xs hover:bg-surface-muted ${activeClass(todayUrl)}`}
+          >
+            Today
+          </Link>
+          <Link
+            href={weekUrl}
+            className={`rounded-xl border border-border px-3 py-2 text-xs hover:bg-surface-muted ${activeClass(weekUrl)}`}
+          >
+            This Week
+          </Link>
+          <Link
+            href={monthUrl}
+            className={`rounded-xl border border-border px-3 py-2 text-xs hover:bg-surface-muted ${activeClass(monthUrl)}`}
+          >
+            This Month
+          </Link>
+          <Link
+            href={thirtyDaysUrl}
+            className={`rounded-xl border border-border px-3 py-2 text-xs hover:bg-surface-muted ${activeClass(thirtyDaysUrl)}`}
+          >
+            30 Days
+          </Link>
+        </div>
+      </div>
 
-        <div className="mt-6 space-y-8">
-          {grouped.size === 0 && (
-            <p className="text-sm text-muted-foreground">No bookings in this date range.</p>
-          )}
-          {Array.from(grouped.entries()).map(([dateKey, dateBookings]) => (
-            <section key={dateKey}>
-              <h2 className="mb-3 text-lg font-semibold tracking-[-0.02em]">
-                {formatDateHeader(new Date(dateKey + "T12:00:00"))}
-              </h2>
-              <div className="space-y-2">
-                {dateBookings.map((b) => (
-                  <Link
-                    key={b.id}
-                    href="/dashboard/bookings"
-                    className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-background p-4 transition-colors hover:bg-surface-muted/50"
-                  >
-                    <div className="flex items-center gap-4">
-                      <span className="min-w-[4.5rem] text-sm font-medium tabular-nums text-primary">
-                        {formatTime(b.preferredAt)}
-                      </span>
-                      <div>
-                        <p className="font-semibold">{b.serviceName}</p>
-                        <p className="text-sm text-muted-foreground">{b.clientName}</p>
-                      </div>
+      <div className="mt-6 space-y-8">
+        {grouped.size === 0 && (
+          <p className="text-sm text-muted-foreground">No bookings in this date range.</p>
+        )}
+        {Array.from(grouped.entries()).map(([dateKey, dateBookings]) => (
+          <section key={dateKey}>
+            <h2 className="mb-3 text-lg font-semibold tracking-[-0.02em]">
+              {formatDateHeader(new Date(dateKey + "T12:00:00"))}
+            </h2>
+            <div className="space-y-2">
+              {dateBookings.map((b) => (
+                <Link
+                  key={b.id}
+                  href="/dashboard/bookings"
+                  className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-background p-4 transition-colors hover:bg-surface-muted/50"
+                >
+                  <div className="flex items-center gap-4">
+                    <span className="min-w-[4.5rem] text-sm font-medium tabular-nums text-primary">
+                      {formatTime(b.preferredAt)}
+                    </span>
+                    <div>
+                      <p className="font-semibold">{b.serviceName}</p>
+                      <p className="text-sm text-muted-foreground">{b.clientName}</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-xs text-muted-foreground">{b.reference}</span>
-                      <StatusBadge status={b.status} />
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
-      </section>
-    </main>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-muted-foreground">{b.reference}</span>
+                    <StatusBadge status={b.status} />
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+    </DashboardLayout>
   );
 }
