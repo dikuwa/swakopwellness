@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { bookingAnswers, bookingStatusHistory, bookings, chatConversations, chatMessages, chatToolEvents, clients, followUps, invoiceLineItems, invoices, payments, receipts, serviceQuestions, services, users } from "@/db/schema";
 
@@ -39,6 +39,69 @@ export async function getDashboardChatConversations() {
     .leftJoin(clients, eq(chatConversations.clientId, clients.id))
     .orderBy(desc(chatConversations.updatedAt))
     .limit(100);
+}
+
+export async function getDashboardReports() {
+  const db = getDb();
+  const now = new Date();
+  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const [bookingCount] = await db.select({ value: count() }).from(bookings);
+  const [clientCount] = await db.select({ value: count() }).from(clients);
+  const [followUpsDue] = await db
+    .select({ value: count() })
+    .from(followUps)
+    .where(and(eq(followUps.status, "pending"), sql`${followUps.dueAt} < ${new Date(todayStart.getTime() + 86400000)}`));
+  const [outstandingInvoices] = await db
+    .select({ value: sql<number>`coalesce(sum(${invoices.balanceCents}), 0)::int` })
+    .from(invoices)
+    .where(inArray(invoices.status, ["issued", "partially_paid", "overdue"]));
+  const [paymentsLast30] = await db
+    .select({ value: sql<number>`coalesce(sum(${payments.amountCents}), 0)::int` })
+    .from(payments)
+    .where(and(gte(payments.paymentDate, thirtyDaysAgo), isNull(payments.voidedAt)));
+  const [receiptsLast30] = await db
+    .select({ value: sql<number>`coalesce(sum(${receipts.amountCents}), 0)::int` })
+    .from(receipts)
+    .where(and(gte(receipts.paymentDate, thirtyDaysAgo), isNull(receipts.voidedAt)));
+
+  const bookingsByStatus = await db
+    .select({ status: bookings.status, value: count() })
+    .from(bookings)
+    .groupBy(bookings.status)
+    .orderBy(bookings.status);
+  const bookingsBySource = await db
+    .select({ source: bookings.source, value: count() })
+    .from(bookings)
+    .groupBy(bookings.source)
+    .orderBy(bookings.source);
+  const invoiceBalancesByStatus = await db
+    .select({ status: invoices.status, count: count(), balanceCents: sql<number>`coalesce(sum(${invoices.balanceCents}), 0)::int` })
+    .from(invoices)
+    .groupBy(invoices.status)
+    .orderBy(invoices.status);
+  const paymentsByMethod = await db
+    .select({ method: payments.method, value: sql<number>`coalesce(sum(${payments.amountCents}), 0)::int`, count: count() })
+    .from(payments)
+    .where(isNull(payments.voidedAt))
+    .groupBy(payments.method)
+    .orderBy(payments.method);
+
+  return {
+    cards: {
+      bookingCount: bookingCount.value,
+      clientCount: clientCount.value,
+      followUpsDue: followUpsDue.value,
+      outstandingInvoiceCents: outstandingInvoices.value,
+      paymentsLast30Cents: paymentsLast30.value,
+      receiptsLast30Cents: receiptsLast30.value,
+    },
+    bookingsByStatus,
+    bookingsBySource,
+    invoiceBalancesByStatus,
+    paymentsByMethod,
+  };
 }
 
 export async function getDashboardChatConversationById(id: string) {

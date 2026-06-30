@@ -1,6 +1,22 @@
 # Changelog
 
 ## 2026-06-30
+### Phase 8E reporting/export added
+- Added `/dashboard/reports` protected operational reports dashboard
+- Added summary cards for bookings, clients, due follow-ups, outstanding invoice balance, recent payments and recent receipts
+- Added grouped report tables for booking status, booking source, invoice balances by status and payments by method
+- Added CSV exports at `/dashboard/reports/export/bookings`, `/clients`, `/invoices` and `/payments`
+- Enforced per-export permissions: `bookings:view`, `clients:view` and `financials:view`
+- Exports intentionally exclude suitability screening answers and other sensitive screening details
+
+### Phase 8E verified
+- `npm run lint`
+- `npm run typecheck`
+- `npm run test` — 37/37 pass
+- `npm run build`
+- `npm run env:check`
+- Dev smoke: `/chat` and `/services` return 200; protected `/dashboard/reports` and report export routes redirect to `/login`
+
 ### Phase 8D chat dashboard added
 - Added `/dashboard/chat-conversations` protected chatbot conversation list
 - Added `/dashboard/chat-conversations/[id]` detail page with linked client, booking, messages and tool events
