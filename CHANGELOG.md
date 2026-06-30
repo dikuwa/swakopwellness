@@ -1,5 +1,42 @@
 # Changelog
 
+## 2026-06-30
+### Phase 7 added
+- Activity log table for recording user actions with entity references and metadata
+- Document number sequences table for configurable invoice/receipt/quotation numbering (prefix, padding, next number)
+- Invoices table with line items, discount (percentage/fixed), tax, payment status tracking and lifecycle (draft, issued, paid, voided)
+- Payments table linked to clients, invoices and bookings
+- Receipts table linked to payments, clients, invoices with void support
+- Generated and applied `drizzle/0005_bent_prowler.sql`
+- `src/activity-log/record.ts` — server-side activity recording helper
+- `src/documents/number.ts` — atomic document number generation with `getNextDocumentNumber()`
+- `src/invoices/create.ts` — create, issue and void invoices with transactional line item persistence; server-side financial calculations (subtotal, discount, total, balance)
+- `src/payments/record.ts` — record payment with automatic invoice balance update and optional receipt generation; payment void with invoice rollback
+- Seeded document number sequences (SWC-INV-, SWC-REC-, SWC-QUO-) with idempotent seed script update
+- Dashboard overview — stats cards for bookings, new requests, today, requires review, clients, follow-ups due, outstanding invoices
+- Dashboard navigation — Clients, Invoices and Receipts links added
+- `/dashboard/clients` — client list table linking to detail
+- `/dashboard/clients/[id]` — client detail with bookings, invoices and payments sections
+- `/dashboard/invoices` — invoice list with status badges and balance
+- `/dashboard/invoices/new` — create invoice form with dynamic line items, service autofill, discount and terms
+- `/dashboard/invoices/[id]` — invoice detail with issue, record payment and void actions
+- `/dashboard/receipts` — receipt list with active/voided status
+- `/dashboard/receipts/new` — create receipt (records payment + generates receipt)
+- `/dashboard/receipts/[id]` — receipt detail with void action
+- Permission enforcement on all new routes (`financials:view`, `documents:create`, `documents:void`)
+- Tests for document number formatting and invoice financial calculations (32 total tests)
+
+### Phase 7 verified
+- `npm run db:generate` reviewed
+- `npm run db:migrate` applied
+- `npm run db:seed:phase2` idempotent (added document sequences)
+- `npm run lint` — clean
+- `npm run typecheck` — clean
+- `npm run test` — 32/32 pass
+- `npm run build` — all 24 routes compiling
+- `npm run env:check` — passed
+- Browser smoke: all public routes 200, dashboard routes 307 (redirect to login)
+
 ## 2026-06-29
 ### Phase 6 added
 - Follow-up schema with client, booking, due date, method, assignee, reminder and status fields

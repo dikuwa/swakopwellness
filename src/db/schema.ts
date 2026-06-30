@@ -406,3 +406,164 @@ export const followUpsRelations = relations(followUps, ({ one }) => ({
   booking: one(bookings, { fields: [followUps.bookingId], references: [bookings.id] }),
   assignedUser: one(users, { fields: [followUps.assignedUserId], references: [users.id] }),
 }));
+
+export const activityLog = pgTable(
+  "activity_log",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+    action: text("action").notNull(),
+    entityType: text("entity_type").notNull(),
+    entityId: uuid("entity_id"),
+    summary: text("summary").notNull(),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("activity_log_entity_idx").on(table.entityType, table.entityId), index("activity_log_created_idx").on(table.createdAt)],
+);
+
+export const documentNumberSequences = pgTable(
+  "document_number_sequences",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    documentType: text("document_type").notNull().unique(),
+    prefix: text("prefix").notNull(),
+    nextNumber: integer("next_number").notNull().default(1),
+    padding: integer("padding").notNull().default(5),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+);
+
+export const invoices = pgTable(
+  "invoices",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    invoiceNumber: text("invoice_number").notNull().unique(),
+    clientId: uuid("client_id").notNull().references(() => clients.id, { onDelete: "restrict" }),
+    bookingId: uuid("booking_id").references(() => bookings.id, { onDelete: "set null" }),
+    issueDate: timestamp("issue_date", { withTimezone: true }).notNull(),
+    dueDate: timestamp("due_date", { withTimezone: true }).notNull(),
+    subtotalCents: integer("subtotal_cents").notNull(),
+    discountType: text("discount_type"),
+    discountValue: integer("discount_value"),
+    discountCents: integer("discount_cents").notNull().default(0),
+    taxCents: integer("tax_cents").notNull().default(0),
+    totalCents: integer("total_cents").notNull(),
+    amountPaidCents: integer("amount_paid_cents").notNull().default(0),
+    balanceCents: integer("balance_cents").notNull(),
+    status: text("status").notNull().default("draft"),
+    notes: text("notes"),
+    terms: text("terms"),
+    createdByUserId: uuid("created_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    issuedAt: timestamp("issued_at", { withTimezone: true }),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    voidedAt: timestamp("voided_at", { withTimezone: true }),
+    voidReason: text("void_reason"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("invoices_client_idx").on(table.clientId),
+    index("invoices_booking_idx").on(table.bookingId),
+    index("invoices_status_idx").on(table.status),
+  ],
+);
+
+export const invoiceLineItems = pgTable(
+  "invoice_line_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    invoiceId: uuid("invoice_id").notNull().references(() => invoices.id, { onDelete: "cascade" }),
+    serviceId: uuid("service_id").references(() => services.id, { onDelete: "set null" }),
+    description: text("description").notNull(),
+    quantity: integer("quantity").notNull().default(1),
+    unitPriceCents: integer("unit_price_cents").notNull(),
+    discountCents: integer("discount_cents").notNull().default(0),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("line_items_invoice_idx").on(table.invoiceId)],
+);
+
+export const payments = pgTable(
+  "payments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    clientId: uuid("client_id").notNull().references(() => clients.id, { onDelete: "restrict" }),
+    invoiceId: uuid("invoice_id").references(() => invoices.id, { onDelete: "set null" }),
+    bookingId: uuid("booking_id").references(() => bookings.id, { onDelete: "set null" }),
+    amountCents: integer("amount_cents").notNull(),
+    paymentDate: timestamp("payment_date", { withTimezone: true }).notNull(),
+    method: text("method").notNull(),
+    reference: text("reference"),
+    notes: text("notes"),
+    recordedByUserId: uuid("recorded_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("payments_client_idx").on(table.clientId),
+    index("payments_invoice_idx").on(table.invoiceId),
+    index("payments_date_idx").on(table.paymentDate),
+  ],
+);
+
+export const receipts = pgTable(
+  "receipts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    receiptNumber: text("receipt_number").notNull().unique(),
+    paymentId: uuid("payment_id").references(() => payments.id, { onDelete: "set null" }),
+    clientId: uuid("client_id").notNull().references(() => clients.id, { onDelete: "restrict" }),
+    bookingId: uuid("booking_id").references(() => bookings.id, { onDelete: "set null" }),
+    invoiceId: uuid("invoice_id").references(() => invoices.id, { onDelete: "set null" }),
+    amountCents: integer("amount_cents").notNull(),
+    paymentDate: timestamp("payment_date", { withTimezone: true }).notNull(),
+    paymentMethod: text("payment_method").notNull(),
+    paymentReference: text("payment_reference"),
+    description: text("description"),
+    notes: text("notes"),
+    receivedByUserId: uuid("received_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    voidedAt: timestamp("voided_at", { withTimezone: true }),
+    voidReason: text("void_reason"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("receipts_client_idx").on(table.clientId),
+    index("receipts_invoice_idx").on(table.invoiceId),
+    index("receipts_payment_idx").on(table.paymentId),
+  ],
+);
+
+export const activityLogRelations = relations(activityLog, ({ one }) => ({
+  user: one(users, { fields: [activityLog.userId], references: [users.id] }),
+}));
+
+export const invoicesRelations = relations(invoices, ({ one, many }) => ({
+  client: one(clients, { fields: [invoices.clientId], references: [clients.id] }),
+  booking: one(bookings, { fields: [invoices.bookingId], references: [bookings.id] }),
+  lineItems: many(invoiceLineItems),
+  payments: many(payments),
+  createdBy: one(users, { fields: [invoices.createdByUserId], references: [users.id] }),
+}));
+
+export const invoiceLineItemsRelations = relations(invoiceLineItems, ({ one }) => ({
+  invoice: one(invoices, { fields: [invoiceLineItems.invoiceId], references: [invoices.id] }),
+  service: one(services, { fields: [invoiceLineItems.serviceId], references: [services.id] }),
+}));
+
+export const paymentsRelations = relations(payments, ({ one, many }) => ({
+  client: one(clients, { fields: [payments.clientId], references: [clients.id] }),
+  invoice: one(invoices, { fields: [payments.invoiceId], references: [invoices.id] }),
+  booking: one(bookings, { fields: [payments.bookingId], references: [bookings.id] }),
+  recordedBy: one(users, { fields: [payments.recordedByUserId], references: [users.id] }),
+  receipts: many(receipts),
+}));
+
+export const receiptsRelations = relations(receipts, ({ one }) => ({
+  payment: one(payments, { fields: [receipts.paymentId], references: [payments.id] }),
+  client: one(clients, { fields: [receipts.clientId], references: [clients.id] }),
+  booking: one(bookings, { fields: [receipts.bookingId], references: [bookings.id] }),
+  invoice: one(invoices, { fields: [receipts.invoiceId], references: [invoices.id] }),
+  receivedBy: one(users, { fields: [receipts.receivedByUserId], references: [users.id] }),
+}));
