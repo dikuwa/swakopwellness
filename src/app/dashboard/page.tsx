@@ -16,7 +16,8 @@ export default async function DashboardPage() {
 
   const [bookingCount] = await db.select({ value: count() }).from(bookings);
   const [newRequests] = await db.select({ value: count() }).from(bookings).where(eq(bookings.status, "new_request"));
-  const [todayBookings] = await db.select({ value: count() }).from(bookings).where(sql`${bookings.preferredAt} >= ${todayStart} AND ${bookings.preferredAt} < ${new Date(todayStart.getTime() + 86400000)}`);
+  const todayEnd = new Date(todayStart.getTime() + 86400000);
+  const [todayBookings] = await db.select({ value: count() }).from(bookings).where(sql`${bookings.preferredAt} >= ${todayStart.toISOString()} AND ${bookings.preferredAt} < ${todayEnd.toISOString()}`);
   const [requiresReview] = await db.select({ value: count() }).from(bookings).where(eq(bookings.status, "requires_review"));
   const [clientCount] = await db.select({ value: count() }).from(clients);
   const [followUpsDue] = await db

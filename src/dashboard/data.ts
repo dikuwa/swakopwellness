@@ -52,7 +52,7 @@ export async function getDashboardReports() {
   const [followUpsDue] = await db
     .select({ value: count() })
     .from(followUps)
-    .where(and(eq(followUps.status, "pending"), sql`${followUps.dueAt} < ${new Date(todayStart.getTime() + 86400000)}`));
+    .where(and(eq(followUps.status, "pending"), sql`${followUps.dueAt} < ${new Date(todayStart.getTime() + 86400000).toISOString()}`));
   const [outstandingInvoices] = await db
     .select({ value: sql<number>`coalesce(sum(${invoices.balanceCents}), 0)::int` })
     .from(invoices)
