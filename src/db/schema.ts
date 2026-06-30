@@ -380,3 +380,29 @@ export const chatConversationsRelations = relations(chatConversations, ({ one, m
   messages: many(chatMessages),
   toolEvents: many(chatToolEvents),
 }));
+
+export const followUps = pgTable(
+  "follow_ups",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    clientId: uuid("client_id").notNull().references(() => clients.id, { onDelete: "restrict" }),
+    bookingId: uuid("booking_id").references(() => bookings.id, { onDelete: "set null" }),
+    dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
+    method: text("method").notNull(),
+    assignedUserId: uuid("assigned_user_id").references(() => users.id, { onDelete: "set null" }),
+    internalNote: text("internal_note"),
+    status: text("status").notNull().default("pending"),
+    reminderAt: timestamp("reminder_at", { withTimezone: true }),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("follow_ups_status_due_idx").on(table.status, table.dueAt), index("follow_ups_assigned_due_idx").on(table.assignedUserId, table.dueAt)],
+);
+
+export const followUpsRelations = relations(followUps, ({ one }) => ({
+  client: one(clients, { fields: [followUps.clientId], references: [clients.id] }),
+  booking: one(bookings, { fields: [followUps.bookingId], references: [bookings.id] }),
+  assignedUser: one(users, { fields: [followUps.assignedUserId], references: [users.id] }),
+}));

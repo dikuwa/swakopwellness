@@ -1,6 +1,25 @@
 # Changelog
 
 ## 2026-06-29
+### Phase 6 added
+- Follow-up schema with client, booking, due date, method, assignee, reminder and status fields
+- Generated and applied `drizzle/0004_slippery_toro.sql`
+- Follow-up due-state helper for pending, due today, overdue, completed and cancelled states
+- Protected dashboard navigation, bookings view, operational calendar view and follow-ups view
+- Dashboard data loaders for bookings, calendar and follow-ups
+- Tests for follow-up due-state calculations
+
+### Phase 6 verified
+- `npm run db:generate`
+- Reviewed generated SQL migration
+- `npm run db:migrate`
+- `npm run lint`
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
+- `npm run env:check` with local `.env`
+- Browser smoke tested authenticated dashboard, calendar and follow-ups routes
+
 ### Phase 5 added
 - Chat conversation, chat message and chat tool-event persistence tables
 - Generated and applied `drizzle/0003_plain_the_santerians.sql`
