@@ -15,7 +15,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${baseUrl}/policies`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.5 },
   ];
 
-  const services = await getPublicServices();
+  let services: Awaited<ReturnType<typeof getPublicServices>> = [];
+  try {
+    services = await getPublicServices();
+  } catch {
+    services = [];
+  }
+
   const servicePages: MetadataRoute.Sitemap = services.map((s) => ({
     url: `${baseUrl}/services/${s.slug}`,
     lastModified: new Date(),

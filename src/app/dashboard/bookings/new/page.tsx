@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requirePermission } from "@/auth/session";
-import { DashboardNav } from "@/dashboard/components";
+import { DashboardLayout } from "@/dashboard/components";
+import { logoutAction } from "../../actions";
 import { getActiveSuitabilityQuestionsForDashboard, getBookableServicesForManualUse } from "@/dashboard/data";
 import { getBookingRules, getCommunicationSettings } from "@/public/data";
 import { createManualBookingAction } from "./actions";
@@ -18,10 +19,8 @@ export default async function NewManualBookingPage({ searchParams }: { searchPar
   ]);
 
   return (
-    <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8">
-      <section className="mx-auto max-w-5xl rounded-[1.5rem] border border-border bg-surface p-6 sm:p-8">
-        <DashboardNav />
-        <Link href="/dashboard/bookings" className="text-sm text-muted-foreground hover:text-foreground">&larr; Bookings</Link>
+    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+      <Link href="/dashboard/bookings" className="text-sm text-muted-foreground hover:text-foreground">&larr; Bookings</Link>
         <div className="mt-3 max-w-2xl">
           <h1 className="text-3xl font-semibold tracking-[-0.035em]">Add Manual Booking</h1>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
@@ -136,7 +135,6 @@ export default async function NewManualBookingPage({ searchParams }: { searchPar
             </ul>
           </aside>
         </form>
-      </section>
-    </main>
+    </DashboardLayout>
   );
 }

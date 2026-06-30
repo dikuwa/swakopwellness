@@ -23,6 +23,7 @@ export default async function ServicesPage() {
             <Link key={service.id} href={`/services/${service.slug}`} className="group rounded-2xl border border-border bg-surface transition-colors hover:bg-surface-muted">
               {service.featuredImage?.publicUrl ? (
                 <div className="aspect-[16/9] overflow-hidden rounded-t-2xl bg-surface">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- media URLs are administrator-managed R2/public URLs. */}
                   <img src={service.featuredImage.publicUrl} alt={service.featuredImage.altText ?? service.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
                 </div>
               ) : null}

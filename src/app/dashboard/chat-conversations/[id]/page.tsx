@@ -3,7 +3,8 @@ import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { hasPermission } from "@/auth/permissions";
 import { requirePermission } from "@/auth/session";
-import { DashboardNav } from "@/dashboard/components";
+import { DashboardLayout } from "@/dashboard/components";
+import { logoutAction } from "../../actions";
 import { getDashboardChatConversationById } from "@/dashboard/data";
 import { updateChatConversationStatus } from "../actions";
 
@@ -39,10 +40,8 @@ export default async function ChatConversationDetailPage(props: { params: Promis
   const canUpdateStatus = hasPermission(user.permissions, "bookings:update");
 
   return (
-    <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8">
-      <section className="mx-auto max-w-6xl rounded-[1.5rem] border border-border bg-surface p-6 sm:p-8">
-        <DashboardNav />
-        <Link href="/dashboard/chat-conversations" className="text-sm text-muted-foreground hover:text-foreground">&larr; Chat conversations</Link>
+    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+      <Link href="/dashboard/chat-conversations" className="text-sm text-muted-foreground hover:text-foreground">&larr; Chat conversations</Link>
 
         <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -117,7 +116,6 @@ export default async function ChatConversationDetailPage(props: { params: Promis
             ))}
           </div>
         </section>
-      </section>
-    </main>
+    </DashboardLayout>
   );
 }

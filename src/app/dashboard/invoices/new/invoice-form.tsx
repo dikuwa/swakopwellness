@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { DashboardNav } from "@/dashboard/components";
+import { DashboardLayout } from "@/dashboard/components";
+import { logoutAction } from "../../actions";
 import { createInvoiceAction } from "./actions";
 
 const today = new Date().toISOString().slice(0, 10);
@@ -59,10 +60,8 @@ export function InvoiceForm({
   }
 
   return (
-    <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8">
-      <section className="mx-auto max-w-4xl rounded-[1.5rem] border border-border bg-surface p-6 sm:p-8">
-        <DashboardNav />
-        <h1 className="text-3xl font-semibold tracking-[-0.035em]">New Invoice</h1>
+    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+      <h1 className="text-3xl font-semibold tracking-[-0.035em]">New Invoice</h1>
         <form action={createInvoiceAction} className="mt-8 space-y-8">
           <div className="grid gap-6 sm:grid-cols-3">
             <div>
@@ -250,7 +249,6 @@ export function InvoiceForm({
             </Link>
           </div>
         </form>
-      </section>
-    </main>
+    </DashboardLayout>
   );
 }

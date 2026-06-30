@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
-import { DashboardNav } from "@/dashboard/components";
+import { DashboardLayout } from "@/dashboard/components";
+import { logoutAction } from "../../actions";
 import { getDb } from "@/db/client";
 import { payments, clients, invoices, bookings, users } from "@/db/schema";
 
@@ -41,25 +42,20 @@ export default async function PaymentDetailPage(props: { params: Promise<{ id: s
 
   if (!payment) {
     return (
-      <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8">
-        <section className="mx-auto max-w-4xl rounded-[1.5rem] border border-border bg-surface p-6 sm:p-8">
-          <DashboardNav />
-          <p className="text-muted-foreground">Payment not found.</p>
-          <Link
-            href="/dashboard/payments"
-            className="mt-4 inline-block rounded-xl border border-border px-3 py-2 text-sm font-semibold hover:bg-surface-muted"
-          >
-            ← Back to Payments
-          </Link>
-        </section>
-      </main>
+      <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+        <p className="text-muted-foreground">Payment not found.</p>
+        <Link
+          href="/dashboard/payments"
+          className="mt-4 inline-block rounded-xl border border-border px-3 py-2 text-sm font-semibold hover:bg-surface-muted"
+        >
+          ← Back to Payments
+        </Link>
+      </DashboardLayout>
     );
   }
 
   return (
-    <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8">
-      <section className="mx-auto max-w-4xl rounded-[1.5rem] border border-border bg-surface p-6 sm:p-8">
-        <DashboardNav />
+    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
         <Link
           href="/dashboard/payments"
           className="text-sm text-muted-foreground hover:text-foreground"
@@ -146,7 +142,6 @@ export default async function PaymentDetailPage(props: { params: Promise<{ id: s
             Recorded at {payment.createdAt.toLocaleString("en-NA")}
           </p>
         </div>
-      </section>
-    </main>
+    </DashboardLayout>
   );
 }

@@ -2,7 +2,8 @@ import { asc, eq, isNull } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { serviceQuestions, services } from "@/db/schema";
-import { DashboardNav } from "@/dashboard/components";
+import { DashboardLayout } from "@/dashboard/components";
+import { logoutAction } from "../../actions";
 import {
   createSuitabilityQuestion,
   deleteSuitabilityQuestion,
@@ -38,10 +39,8 @@ export default async function ServiceSuitabilityPage() {
   ]);
 
   return (
-    <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8">
-      <section className="mx-auto max-w-6xl rounded-[1.5rem] border border-border bg-surface p-6 sm:p-8">
-        <DashboardNav />
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-muted-foreground">
               Services
@@ -218,7 +217,6 @@ export default async function ServiceSuitabilityPage() {
             </div>
           )}
         </div>
-      </section>
-    </main>
+    </DashboardLayout>
   );
 }

@@ -1,5 +1,6 @@
 import { requirePermission } from "@/auth/session";
-import { DashboardNav } from "@/dashboard/components";
+import { DashboardLayout } from "@/dashboard/components";
+import { logoutAction } from "../../actions";
 import { getClients } from "@/dashboard/data";
 import { createReceiptAction } from "./actions";
 
@@ -10,10 +11,8 @@ export default async function NewReceiptPage() {
   const clients = await getClients();
 
   return (
-    <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8">
-      <section className="mx-auto max-w-3xl rounded-[1.5rem] border border-border bg-surface p-6 shadow-[0_20px_80px_oklch(0.235_0.025_158_/_0.08)] sm:p-8">
-        <DashboardNav />
-        <h1 className="text-3xl font-semibold tracking-[-0.035em]">New Receipt</h1>
+    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+      <h1 className="text-3xl font-semibold tracking-[-0.035em]">New Receipt</h1>
         <p className="mt-3 text-sm text-muted-foreground">Record a payment and generate a receipt.</p>
         <form action={createReceiptAction} className="mt-6 space-y-5">
           <div>
@@ -115,7 +114,6 @@ export default async function NewReceiptPage() {
             Create Receipt
           </button>
         </form>
-      </section>
-    </main>
+    </DashboardLayout>
   );
 }

@@ -60,6 +60,7 @@ export function MediaGrid({ assets }: { assets: MediaAsset[] }) {
         <div key={asset.id} className="group relative overflow-hidden rounded-2xl border border-border bg-surface-muted">
           <div className="aspect-square overflow-hidden bg-surface">
             {asset.publicUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- media URLs are administrator-managed R2/public URLs.
               <img
                 src={asset.publicUrl}
                 alt={asset.altText ?? ""}

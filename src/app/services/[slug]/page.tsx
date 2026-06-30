@@ -28,6 +28,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
 
         {service.featuredImage?.publicUrl ? (
           <div className="mt-6 overflow-hidden rounded-[1.5rem] border border-border bg-surface">
+            {/* eslint-disable-next-line @next/next/no-img-element -- media URLs are administrator-managed R2/public URLs. */}
             <img src={service.featuredImage.publicUrl} alt={service.featuredImage.altText ?? service.name} className="w-full object-cover" loading="lazy" />
           </div>
         ) : null}
@@ -48,6 +49,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3">
               {gallery.map((img) => (
                 <div key={img.id} className="overflow-hidden rounded-2xl border border-border bg-surface">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- media URLs are administrator-managed R2/public URLs. */}
                   <img src={img.publicUrl ?? ""} alt={img.altText ?? ""} className="aspect-square w-full object-cover" loading="lazy" />
                 </div>
               ))}

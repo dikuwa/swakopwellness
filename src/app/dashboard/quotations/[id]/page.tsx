@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePermission } from "@/auth/session";
-import { DashboardNav } from "@/dashboard/components";
+import { DashboardLayout } from "@/dashboard/components";
+import { logoutAction } from "../../actions";
 import { getClientById, getQuotationById } from "@/dashboard/data";
 import { acceptQuotationAction, convertToInvoiceAction, issueQuotationAction, rejectQuotationAction, voidQuotationAction } from "./actions";
 
@@ -45,10 +46,8 @@ export default async function QuotationDetailPage(props: { params: Promise<{ id:
   const canDownload = !["draft", "voided"].includes(quotation.status);
 
   return (
-    <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8">
-      <section className="mx-auto max-w-4xl rounded-[1.5rem] border border-border bg-surface p-6 sm:p-8">
-        <DashboardNav />
-        <div className="flex items-start justify-between gap-4">
+    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+      <div className="flex items-start justify-between gap-4">
           <div>
             <Link href="/dashboard/quotations" className="text-sm text-muted-foreground hover:text-foreground">&larr; Quotations</Link>
             <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">{quotation.quotationNumber}</h1>
@@ -256,7 +255,6 @@ export default async function QuotationDetailPage(props: { params: Promise<{ id:
             </form>
           )}
         </div>
-      </section>
-    </main>
+    </DashboardLayout>
   );
 }

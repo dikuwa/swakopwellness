@@ -1,7 +1,8 @@
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { bookingRules } from "@/db/schema";
-import { DashboardNav } from "@/dashboard/components";
+import { DashboardLayout } from "@/dashboard/components";
+import { logoutAction } from "../../actions";
 import { updateBookingRules } from "@/settings/actions";
 
 export const dynamic = "force-dynamic";
@@ -14,20 +15,15 @@ export default async function BookingRulesPage() {
 
   if (!rules) {
     return (
-      <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8">
-        <section className="mx-auto max-w-3xl rounded-[1.5rem] border border-border bg-surface p-6 shadow-[0_20px_80px_oklch(0.235_0.025_158_/_0.08)] sm:p-8">
-          <DashboardNav />
-          <h1 className="text-3xl font-semibold tracking-[-0.035em]">Booking Rules</h1>
-          <p className="mt-6 text-muted-foreground">No booking rules found. Please seed the database.</p>
-        </section>
-      </main>
+      <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+        <h1 className="text-3xl font-semibold tracking-[-0.035em]">Booking Rules</h1>
+        <p className="mt-6 text-muted-foreground">No booking rules found. Please seed the database.</p>
+      </DashboardLayout>
     );
   }
 
   return (
-    <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8">
-      <section className="mx-auto max-w-3xl rounded-[1.5rem] border border-border bg-surface p-6 shadow-[0_20px_80px_oklch(0.235_0.025_158_/_0.08)] sm:p-8">
-        <DashboardNav />
+    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
         <div className="mb-6">
           <a href="/dashboard/settings" className="text-sm text-muted-foreground hover:text-foreground">&larr; All Settings</a>
         </div>
@@ -67,7 +63,6 @@ export default async function BookingRulesPage() {
             </button>
           </div>
         </form>
-      </section>
-    </main>
+    </DashboardLayout>
   );
 }

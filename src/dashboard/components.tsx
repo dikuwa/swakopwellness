@@ -144,7 +144,7 @@ export function DashboardLayout({ children, signOutForm }: { children: React.Rea
       </aside>
 
       {/* Main */}
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         {/* Mobile header */}
         <header className="sticky top-0 z-30 flex items-center gap-4 border-b border-border bg-background/95 px-5 py-3 backdrop-blur md:hidden">
           <button
@@ -162,7 +162,7 @@ export function DashboardLayout({ children, signOutForm }: { children: React.Rea
           </Link>
         </header>
 
-        <main className="flex-1 px-5 py-6 sm:px-8 md:py-8">
+        <main className="min-w-0 flex-1 overflow-x-hidden px-5 py-6 sm:px-8 md:py-8">
           {children}
         </main>
       </div>

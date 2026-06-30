@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getQuotationById } from "@/dashboard/data";
 import { getDb } from "@/db/client";
-import { businessSettings, clients, communicationSettings } from "@/db/schema";
+import { businessSettings, clients } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { generateQuotationPdf } from "@/documents/pdf";
 
@@ -18,8 +18,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const [business] = await db.select().from(businessSettings).limit(1);
   if (!business) notFound();
-
-  const [comm] = await db.select().from(communicationSettings).limit(1);
 
   const pdfData = {
     quotationNumber: quotation.quotationNumber,

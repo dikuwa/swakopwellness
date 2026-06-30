@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, type ReactNode } from "react";
-import { DashboardNav } from "@/dashboard/components";
+import { DashboardLayout } from "@/dashboard/components";
+import { logoutAction } from "../actions";
 
 interface Category {
   id: string;
@@ -66,10 +67,8 @@ export function ServiceForm({ categories, action, initialData, mediaAssets, chil
   }, [state, router]);
 
   return (
-    <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8">
-      <section className="mx-auto max-w-4xl rounded-[1.5rem] border border-border bg-surface p-6 sm:p-8">
-        <DashboardNav />
-        <h1 className="text-3xl font-semibold tracking-[-0.035em]">
+    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+      <h1 className="text-3xl font-semibold tracking-[-0.035em]">
           {isEdit ? "Edit Service" : "New Service"}
         </h1>
 
@@ -337,6 +336,7 @@ export function ServiceForm({ categories, action, initialData, mediaAssets, chil
                     className={`aspect-square overflow-hidden rounded-xl border-2 ${initialData?.featuredImageId === asset.id ? "border-primary ring-2 ring-primary" : "border-border"} bg-surface transition-colors hover:border-primary`}
                   >
                     {asset.publicUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element -- media URLs are administrator-managed R2/public URLs.
                       <img src={asset.publicUrl} alt={asset.altText ?? ""} className="h-full w-full object-cover" loading="lazy" />
                     ) : (
                       <div className="flex h-full items-center justify-center text-xs text-muted-foreground">No URL</div>
@@ -407,7 +407,6 @@ export function ServiceForm({ categories, action, initialData, mediaAssets, chil
           </div>
         </form>
         {children}
-      </section>
-    </main>
+    </DashboardLayout>
   );
 }

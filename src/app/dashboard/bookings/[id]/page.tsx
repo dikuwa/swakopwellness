@@ -5,7 +5,8 @@ import { requirePermission } from "@/auth/session";
 import { hasPermission } from "@/auth/permissions";
 import { cancelBooking, changeBookingStatus, confirmBooking, markCompleted, markNoShow } from "@/booking/actions";
 import { getAvailableActions } from "@/booking/status";
-import { DashboardNav } from "@/dashboard/components";
+import { DashboardLayout } from "@/dashboard/components";
+import { logoutAction } from "../../actions";
 import { getDashboardBookingById } from "@/dashboard/data";
 
 export const dynamic = "force-dynamic";
@@ -90,10 +91,8 @@ export default async function BookingDetailPage(props: { params: Promise<{ id: s
   const actions = getAvailableActions(booking.status);
 
   return (
-    <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8">
-      <section className="mx-auto max-w-6xl rounded-[1.5rem] border border-border bg-surface p-6 sm:p-8">
-        <DashboardNav />
-        <Link href="/dashboard/bookings" className="text-sm text-muted-foreground hover:text-foreground">&larr; Bookings</Link>
+    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+      <Link href="/dashboard/bookings" className="text-sm text-muted-foreground hover:text-foreground">&larr; Bookings</Link>
         <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-primary">{booking.reference}</p>
@@ -174,7 +173,6 @@ export default async function BookingDetailPage(props: { params: Promise<{ id: s
             </div>
           </section>
         </div>
-      </section>
-    </main>
+    </DashboardLayout>
   );
 }

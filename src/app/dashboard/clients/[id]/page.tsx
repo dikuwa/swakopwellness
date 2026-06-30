@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
-import { DashboardNav } from "@/dashboard/components";
+import { DashboardLayout } from "@/dashboard/components";
+import { logoutAction } from "../../actions";
 import { getClientById } from "@/dashboard/data";
 import { getDb } from "@/db/client";
 import { bookings, invoices, payments } from "@/db/schema";
@@ -15,15 +16,12 @@ export default async function DashboardClientDetailPage(props: { params: Promise
 
   if (!client) {
     return (
-      <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8">
-        <section className="mx-auto max-w-6xl rounded-[1.5rem] border border-border bg-surface p-6 shadow-[0_20px_80px_oklch(0.235_0.025_158_/_0.08)] sm:p-8">
-          <DashboardNav />
-          <p className="text-muted-foreground">Client not found.</p>
-          <Link href="/dashboard/clients" className="mt-4 inline-block rounded-xl border border-border px-3 py-2 text-sm font-semibold hover:bg-surface-muted">
-            ← Back to Clients
-          </Link>
-        </section>
-      </main>
+      <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+        <p className="text-muted-foreground">Client not found.</p>
+        <Link href="/dashboard/clients" className="mt-4 inline-block rounded-xl border border-border px-3 py-2 text-sm font-semibold hover:bg-surface-muted">
+          ← Back to Clients
+        </Link>
+      </DashboardLayout>
     );
   }
 
@@ -48,9 +46,7 @@ export default async function DashboardClientDetailPage(props: { params: Promise
     .orderBy(payments.paymentDate);
 
   return (
-    <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8">
-      <section className="mx-auto max-w-6xl rounded-[1.5rem] border border-border bg-surface p-6 shadow-[0_20px_80px_oklch(0.235_0.025_158_/_0.08)] sm:p-8">
-        <DashboardNav />
+    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
         <Link href="/dashboard/clients" className="mb-4 inline-block rounded-xl border border-border px-3 py-2 text-sm font-semibold hover:bg-surface-muted">
           ← Back to Clients
         </Link>
@@ -184,7 +180,6 @@ export default async function DashboardClientDetailPage(props: { params: Promise
             <p className="mt-4 text-muted-foreground">No payments found.</p>
           )}
         </section>
-      </section>
-    </main>
+    </DashboardLayout>
   );
 }
