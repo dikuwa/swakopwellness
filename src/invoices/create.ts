@@ -3,6 +3,7 @@ import { getDb } from "@/db/client";
 import { clients, invoiceLineItems, invoices } from "@/db/schema";
 import { getNextDocumentNumber } from "@/documents/number";
 import { recordActivity } from "@/activity-log/record";
+import { notifyStaff } from "@/notifications/create";
 
 export interface LineItemInput {
   serviceId?: string | null;
@@ -50,15 +51,15 @@ function calculateDiscountCents(
 
 export async function createInvoice(input: CreateInvoiceInput): Promise<InvoiceResult> {
   const db = getDb();
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const [client] = await tx.select({ id: clients.id }).from(clients).where(eq(clients.id, input.clientId)).limit(1);
-    if (!client) return { ok: false, message: "Client not found." };
+    if (!client) return { ok: false, message: "Client not found." } as InvoiceResult;
 
     let invoiceNumber: string;
     try {
       invoiceNumber = await getNextDocumentNumber("invoice");
     } catch {
-      return { ok: false, message: "Invoice numbering is not configured." };
+      return { ok: false, message: "Invoice numbering is not configured." } as InvoiceResult;
     }
 
     const subtotalCents = input.lineItems.reduce((sum, item) => sum + calculateLineTotal(item), 0);
@@ -104,8 +105,13 @@ export async function createInvoice(input: CreateInvoiceInput): Promise<InvoiceR
 
     await recordActivity(input.createdByUserId ?? undefined, "invoice.created", "invoice", invoice.id, `Invoice ${invoiceNumber} created (N$${(totalCents / 100).toFixed(2)})`);
 
-    return { ok: true, id: invoice.id, invoiceNumber, totalCents };
+    return { ok: true as const, id: invoice.id, invoiceNumber, totalCents };
   });
+
+  if (result.ok) {
+    await notifyStaff("invoice.created", `Invoice ${result.invoiceNumber}`, `Invoice ${result.invoiceNumber} for N$${(result.totalCents / 100).toFixed(2)} created`, "invoice", result.id);
+  }
+  return result;
 }
 
 export async function issueInvoice(invoiceId: string, userId: string): Promise<InvoiceResult> {
@@ -121,6 +127,7 @@ export async function issueInvoice(invoiceId: string, userId: string): Promise<I
     .where(eq(invoices.id, invoiceId));
 
   await recordActivity(userId, "invoice.issued", "invoice", invoiceId, `Invoice ${invoice.invoiceNumber} issued`);
+  await notifyStaff("invoice.issued", `Invoice ${invoice.invoiceNumber} issued`, `Invoice ${invoice.invoiceNumber} issued for N$${(invoice.totalCents / 100).toFixed(2)}`, "invoice", invoiceId);
   return { ok: true, id: invoiceId, invoiceNumber: invoice.invoiceNumber, totalCents: invoice.totalCents };
 }
 
@@ -137,5 +144,6 @@ export async function voidInvoice(invoiceId: string, reason: string, userId: str
     .where(eq(invoices.id, invoiceId));
 
   await recordActivity(userId, "invoice.voided", "invoice", invoiceId, `Invoice ${invoice.invoiceNumber} voided: ${reason}`);
+  await notifyStaff("invoice.voided", `Invoice ${invoice.invoiceNumber} voided`, `Invoice ${invoice.invoiceNumber} voided: ${reason}`, "invoice", invoiceId);
   return { ok: true, id: invoiceId, invoiceNumber: invoice.invoiceNumber, totalCents: invoice.totalCents };
 }

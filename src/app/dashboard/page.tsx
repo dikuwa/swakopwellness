@@ -2,7 +2,7 @@ import { count, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { requireAuth } from "@/auth/session";
 import { DashboardNav } from "@/dashboard/components";
-import { bookings, clients, followUps, invoices } from "@/db/schema";
+import { bookings, clients, followUps, invoices, notifications } from "@/db/schema";
 import { logoutAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +27,10 @@ export default async function DashboardPage() {
     .select({ value: count() })
     .from(invoices)
     .where(inArray(invoices.status, ["issued", "partially_paid", "overdue"]));
+  const [unreadNotifications] = await db
+    .select({ value: sql<number>`count(*)::int` })
+    .from(notifications)
+    .where(sql`${notifications.userId} = ${user.id} AND ${notifications.readAt} IS NULL`);
 
   return (
     <main className="min-h-screen bg-background px-5 py-8 text-foreground sm:px-8">
@@ -54,6 +58,7 @@ export default async function DashboardPage() {
           <StatCard label="Clients" value={clientCount.value} />
           <StatCard label="Follow-ups Due" value={followUpsDue.value} />
           <StatCard label="Outstanding Invoices" value={outstandingInvoices.value} />
+          <StatCard label="Unread Notifications" value={unreadNotifications.value} />
         </div>
       </section>
     </main>

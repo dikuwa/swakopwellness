@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { clients, invoices, payments, receipts } from "@/db/schema";
 import { recordActivity } from "@/activity-log/record";
+import { notifyStaff } from "@/notifications/create";
 
 export interface RecordPaymentInput {
   clientId: string;
@@ -27,9 +28,9 @@ export type PaymentResult = {
 
 export async function recordPayment(input: RecordPaymentInput): Promise<PaymentResult> {
   const db = getDb();
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const [client] = await tx.select({ id: clients.id }).from(clients).where(eq(clients.id, input.clientId)).limit(1);
-    if (!client) return { ok: false, message: "Client not found." };
+    if (!client) return { ok: false, message: "Client not found." } as PaymentResult;
 
     const [payment] = await tx
       .insert(payments)
@@ -109,21 +110,20 @@ export async function recordPayment(input: RecordPaymentInput): Promise<PaymentR
       );
     }
 
-    return {
-      ok: true,
-      id: payment.id,
-      receiptId,
-      receiptNumber,
-      invoiceStatus: newInvoiceStatus,
-    };
+    return { ok: true as const, id: payment.id, receiptId, receiptNumber, invoiceStatus: newInvoiceStatus };
   });
+
+  if (result.ok) {
+    await notifyStaff("payment.recorded", `Payment recorded`, `Payment of N$${(input.amountCents / 100).toFixed(2)} recorded (${input.method})`, "payment", result.id);
+  }
+  return result;
 }
 
 export async function voidPayment(paymentId: string, reason: string, userId: string): Promise<PaymentResult> {
   const db = getDb();
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const [payment] = await tx.select().from(payments).where(eq(payments.id, paymentId)).limit(1);
-    if (!payment) return { ok: false, message: "Payment not found." };
+    if (!payment) return { ok: false, message: "Payment not found." } as PaymentResult;
 
     await tx.delete(payments).where(eq(payments.id, paymentId));
 
@@ -141,6 +141,11 @@ export async function voidPayment(paymentId: string, reason: string, userId: str
     }
 
     await recordActivity(userId, "payment.voided", "payment", paymentId, `Payment of N$${(payment.amountCents / 100).toFixed(2)} voided: ${reason}`);
-    return { ok: true, id: paymentId };
+    return { ok: true as const, id: paymentId };
   });
+
+  if (result.ok) {
+    await notifyStaff("payment.voided", `Payment voided`, `Payment voided: ${reason}`, "payment", paymentId);
+  }
+  return result;
 }

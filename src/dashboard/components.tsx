@@ -8,6 +8,8 @@ const links = [
   { href: "/dashboard/clients", label: "Clients" },
   { href: "/dashboard/invoices", label: "Invoices" },
   { href: "/dashboard/receipts", label: "Receipts" },
+  { href: "/dashboard/activity-log", label: "Activity Log" },
+  { href: "/dashboard/notifications", label: "Notifications" },
 ];
 
 export function DashboardNav() {

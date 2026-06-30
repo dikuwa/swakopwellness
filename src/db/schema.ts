@@ -567,3 +567,26 @@ export const receiptsRelations = relations(receipts, ({ one }) => ({
   invoice: one(invoices, { fields: [receipts.invoiceId], references: [invoices.id] }),
   receivedBy: one(users, { fields: [receipts.receivedByUserId], references: [users.id] }),
 }));
+
+export const notifications = pgTable(
+  "notifications",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    title: text("title").notNull(),
+    summary: text("summary").notNull(),
+    entityType: text("entity_type"),
+    entityId: uuid("entity_id"),
+    readAt: timestamp("read_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("notifications_user_read_idx").on(table.userId, table.readAt),
+    index("notifications_created_idx").on(table.createdAt),
+  ],
+);
+
+export const notificationsRelations = relations(notifications, ({ one }) => ({
+  user: one(users, { fields: [notifications.userId], references: [users.id] }),
+}));

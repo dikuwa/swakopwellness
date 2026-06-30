@@ -5,6 +5,7 @@ import { normalizeEmail, normalizePhone } from "./contact";
 import { createBookingReference } from "./reference";
 import { getInitialBookingStatus } from "./status";
 import { bookingRequestSchema, hasAtLeastOneContact, isContactMethodAvailable, parseDateTime, type BookingRequestInput } from "./validation";
+import { notifyStaff } from "@/notifications/create";
 
 export type CreateBookingResult =
   | { ok: true; reference: string; status: string; bookingId?: string; clientId?: string }
@@ -23,7 +24,7 @@ export async function createBookingRequest(input: unknown, source: "website_form
 
   const db = getDb();
 
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const [communication] = await tx.select().from(communicationSettings).limit(1);
     if (!communication) return { ok: false, message: "Communication settings are not configured." } satisfies CreateBookingResult;
     if (!isContactMethodAvailable(data.preferredContactMethod, communication)) {
@@ -141,8 +142,15 @@ export async function createBookingRequest(input: unknown, source: "website_form
     await tx.insert(bookingStatusHistory).values({ bookingId: booking.id, toStatus: status, note: "Booking request created." });
     await tx.update(clients).set({ lastBookingAt: new Date(), updatedAt: new Date() }).where(eq(clients.id, client.id));
 
-    return { ok: true, reference: booking.reference, status, bookingId: booking.id, clientId: client.id } satisfies CreateBookingResult;
+    return { ok: true as const, reference: booking.reference, status, bookingId: booking.id, clientId: client.id };
   });
+
+  if (result.ok && result.status !== "duplicate_returned") {
+    const sourceLabel = source === "manual_admin" ? "Admin" : "Website";
+    const needsReview = result.status === "requires_review";
+    await notifyStaff("booking.created", `New booking ${result.reference}`, `${sourceLabel} booking request for ${data.fullName} (${result.reference})${needsReview ? " — requires review" : ""}`, "booking", result.bookingId);
+  }
+  return result;
 }
 
 export function formDataToBookingInput(formData: FormData): BookingRequestInput {

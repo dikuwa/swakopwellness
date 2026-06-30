@@ -43,6 +43,13 @@
       "when": 1782791953669,
       "tag": "0005_bent_prowler",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782796840025,
+      "tag": "0006_brown_wilson_fisk",
+      "breakpoints": true
     }
   ]
 }
