@@ -9,14 +9,13 @@ import { recordActivity } from "@/activity-log/record";
 import { notifyStaff } from "@/notifications/create";
 import { validTransitions } from "./status";
 
-type TransitionResult = { ok: true; reference: string } | { ok: false; error: string };
 type TxResult = { ok: false; error: string } | { ok: true };
 
 async function transitionBookingStatus(
   bookingId: string,
   newStatus: string,
   note?: string,
-): Promise<TransitionResult> {
+): Promise<void> {
   const user = await requirePermission("bookings:update");
   const db = getDb();
 
@@ -59,7 +58,7 @@ async function transitionBookingStatus(
     return { ok: true as const };
   });
 
-  if (!result.ok) return { ok: false as const, error: result.error };
+  if (!result.ok) throw new Error(result.error);
 
   if (reference && fromStatus) {
     recordActivity(
@@ -81,30 +80,28 @@ async function transitionBookingStatus(
     revalidatePath("/dashboard/bookings");
     revalidatePath(`/dashboard/bookings/${bookingId}`);
   }
-
-  return { ok: true as const, reference: reference! };
 }
 
-export async function confirmBooking(bookingId: string): Promise<TransitionResult> {
-  return transitionBookingStatus(bookingId, "confirmed");
+export async function confirmBooking(bookingId: string): Promise<void> {
+  await transitionBookingStatus(bookingId, "confirmed");
 }
 
-export async function cancelBooking(formData: FormData): Promise<TransitionResult> {
+export async function cancelBooking(formData: FormData): Promise<void> {
   const bookingId = formData.get("bookingId") as string;
   const reason = (formData.get("reason") as string) || "No reason provided";
-  return transitionBookingStatus(bookingId, "cancelled", reason);
+  await transitionBookingStatus(bookingId, "cancelled", reason);
 }
 
-export async function markCompleted(bookingId: string): Promise<TransitionResult> {
-  return transitionBookingStatus(bookingId, "completed");
+export async function markCompleted(bookingId: string): Promise<void> {
+  await transitionBookingStatus(bookingId, "completed");
 }
 
-export async function markNoShow(bookingId: string): Promise<TransitionResult> {
-  return transitionBookingStatus(bookingId, "no_show");
+export async function markNoShow(bookingId: string): Promise<void> {
+  await transitionBookingStatus(bookingId, "no_show");
 }
 
-export async function changeBookingStatus(formData: FormData): Promise<TransitionResult> {
+export async function changeBookingStatus(formData: FormData): Promise<void> {
   const bookingId = formData.get("bookingId") as string;
   const newStatus = formData.get("newStatus") as string;
-  return transitionBookingStatus(bookingId, newStatus);
+  await transitionBookingStatus(bookingId, newStatus);
 }

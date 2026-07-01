@@ -201,23 +201,27 @@ export default async function InvoiceDetailPage(props: { params: Promise<{ id: s
             Download PDF
           </a>
           {canVoid && (
-            <form action={voidInvoiceAction} onSubmit={(e) => {
-              const reason = prompt("Reason for voiding this invoice:");
-              if (!reason) { e.preventDefault(); return; }
-              const input = document.createElement("input");
-              input.type = "hidden";
-              input.name = "reason";
-              input.value = reason;
-              e.currentTarget.appendChild(input);
-            }}>
-              <input type="hidden" name="invoice_id" value={invoice.id} />
-              <button
-                type="submit"
-                className="h-11 rounded-xl border border-red-200 px-5 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50"
-              >
+            <details className="group">
+              <summary className="h-11 inline-flex cursor-pointer items-center rounded-xl border border-red-200 px-5 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50 list-none [&::-webkit-details-marker]:hidden">
                 Void Invoice
-              </button>
-            </form>
+              </summary>
+              <form action={voidInvoiceAction} className="mt-3 flex gap-2">
+                <input type="hidden" name="invoice_id" value={invoice.id} />
+                <input
+                  type="text"
+                  name="reason"
+                  placeholder="Reason for voiding"
+                  required
+                  className="h-11 flex-1 rounded-xl border border-border bg-background px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                />
+                <button
+                  type="submit"
+                  className="h-11 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-700"
+                >
+                  Confirm Void
+                </button>
+              </form>
+            </details>
           )}
         </div>
     </DashboardLayout>

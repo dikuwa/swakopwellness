@@ -199,7 +199,7 @@ export default async function DashboardCalendarPage(props: { searchParams: Promi
               {dateBookings.map((b) => (
                 <Link
                   key={b.id}
-                  href="/dashboard/bookings"
+                  href={`/dashboard/bookings/${b.id}`}
                   className="flex items-center justify-between gap-4 rounded-2xl border border-border bg-background p-4 transition-colors hover:bg-surface-muted/50"
                 >
                   <div className="flex items-center gap-4">

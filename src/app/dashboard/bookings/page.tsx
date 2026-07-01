@@ -43,7 +43,7 @@ const actionLabels: Record<string, string> = {
 function ActionForm({ bookingId, action }: { bookingId: string; action: string }) {
   if (action === "cancelled") {
     return (
-      <form action={async (fd) => { cancelBooking(fd); }} className="flex items-center gap-1">
+      <form action={cancelBooking} className="flex items-center gap-1">
         <input type="hidden" name="bookingId" value={bookingId} />
         <input
           type="text"
@@ -64,7 +64,7 @@ function ActionForm({ bookingId, action }: { bookingId: string; action: string }
 
   if (action === "confirmed") {
     return (
-      <form action={async () => { confirmBooking(bookingId); }}>
+      <form action={confirmBooking.bind(null, bookingId)}>
         <button
           type="submit"
           className="rounded-lg border border-border px-2 py-1 text-xs font-semibold text-[oklch(0.49_0.16_158)] hover:bg-surface-muted"
@@ -77,7 +77,7 @@ function ActionForm({ bookingId, action }: { bookingId: string; action: string }
 
   if (action === "completed") {
     return (
-      <form action={async () => { markCompleted(bookingId); }}>
+      <form action={markCompleted.bind(null, bookingId)}>
         <button
           type="submit"
           className="rounded-lg border border-border px-2 py-1 text-xs font-semibold text-[oklch(0.45_0.12_220)] hover:bg-surface-muted"
@@ -90,7 +90,7 @@ function ActionForm({ bookingId, action }: { bookingId: string; action: string }
 
   if (action === "no_show") {
     return (
-      <form action={async () => { markNoShow(bookingId); }}>
+      <form action={markNoShow.bind(null, bookingId)}>
         <button
           type="submit"
           className="rounded-lg border border-border px-2 py-1 text-xs font-semibold text-[oklch(0.55_0.20_36)] hover:bg-surface-muted"
@@ -102,7 +102,7 @@ function ActionForm({ bookingId, action }: { bookingId: string; action: string }
   }
 
   return (
-    <form action={async (fd) => { changeBookingStatus(fd); }}>
+    <form action={changeBookingStatus}>
       <input type="hidden" name="bookingId" value={bookingId} />
       <input type="hidden" name="newStatus" value={action} />
       <button
