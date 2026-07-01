@@ -30,7 +30,7 @@ export default async function DocumentNumberingPage() {
           Configure the numbering format for automatically generated documents. The final number is displayed as: <span className="font-mono text-foreground">PREFIX-00001</span>
         </p>
         <div className="mt-8 space-y-4">
-          {sequences.length === 0 && <p className="text-muted-foreground">No document sequences found. Please seed the database.</p>}
+          {sequences.length === 0 ? <p className="text-muted-foreground">No document sequences found. Please seed the database.</p> : null}
           {sequences.map((seq) => {
             const label = documentTypeLabels[seq.documentType] ?? seq.documentType.replaceAll("_", " ");
             return (

@@ -67,7 +67,7 @@ export default async function PaymentDetailPage(props: { params: Promise<{ id: s
         {payment.voidedAt && (
           <div className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
             <p className="font-semibold">This payment was voided on {payment.voidedAt.toLocaleString("en-NA")}.</p>
-            {payment.voidReason && <p className="mt-1">Reason: {payment.voidReason}</p>}
+            {payment.voidReason ? <p className="mt-1">Reason: {payment.voidReason}</p> : null}
           </div>
         )}
 

@@ -1,14 +1,9 @@
+import { cache } from "react";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 import * as schema from "./schema";
 
-type Database = ReturnType<typeof drizzle<typeof schema>>;
-
-let cachedDb: Database | undefined;
-
-export function getDb() {
-  if (cachedDb) return cachedDb;
-
+export const getDb = cache(() => {
   const connectionString = process.env.DATABASE_URL;
 
   if (!connectionString) {
@@ -16,6 +11,5 @@ export function getDb() {
   }
 
   const queryClient = postgres(connectionString, { prepare: false });
-  cachedDb = drizzle(queryClient, { schema });
-  return cachedDb;
-}
+  return drizzle(queryClient, { schema });
+});

@@ -64,8 +64,9 @@ export default async function EditServicePage({ params }: PageProps) {
     .where(eq(serviceImages.serviceId, id))
     .orderBy(asc(serviceImages.sortOrder));
 
+  const mediaMap = new Map(allMedia.map((m) => [m.id, m]));
   const galleryImages = galleryEntries
-    .map((g) => allMedia.find((m) => m.id === g.mediaAssetId))
+    .map((g) => mediaMap.get(g.mediaAssetId))
     .filter(Boolean);
 
   return (

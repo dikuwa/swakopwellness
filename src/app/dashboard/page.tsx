@@ -79,130 +79,43 @@ export default async function DashboardPage() {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
 
-  const [business] = await db.select().from(businessSettings).limit(1);
+  const [
+    [business],
+    [newRequests],
+    [todayBookingsCount],
+    [clientCount],
+    [followUpsDueCount],
+    [outstandingInvoicesCount],
+    [pendingQuotationsCount],
+    [unreadNotificationsResult],
+    [requiresReviewCount],
+    [overdueFollowUpsCount],
+    [outstandingTotal],
+    [revenue30d],
+    todaySchedule,
+    upcomingBookings,
+    followUpsDue,
+    recentActivity,
+  ] = await Promise.all([
+    db.select().from(businessSettings).limit(1),
+    db.select({ value: count() }).from(bookings).where(eq(bookings.status, "new_request")),
+    db.select({ value: count() }).from(bookings).where(sql`${bookings.preferredAt} >= ${todayStart.toISOString()} AND ${bookings.preferredAt} < ${todayEnd.toISOString()}`),
+    db.select({ value: count() }).from(clients),
+    db.select({ value: count() }).from(followUps).where(inArray(followUps.status, ["pending", "due_today"])),
+    db.select({ value: count() }).from(invoices).where(inArray(invoices.status, ["issued", "partially_paid", "overdue"])),
+    db.select({ value: count() }).from(quotations).where(inArray(quotations.status, ["draft", "issued"])),
+    db.select({ value: sql<number>`count(*)::int` }).from(notifications).where(sql`${notifications.userId} = ${user.id} AND ${notifications.readAt} IS NULL`),
+    db.select({ value: count() }).from(bookings).where(eq(bookings.status, "requires_review")),
+    db.select({ value: count() }).from(followUps).where(and(eq(followUps.status, "pending"), sql`${followUps.dueAt} < ${now.toISOString()}`)),
+    db.select({ value: sql<number>`coalesce(sum(${invoices.balanceCents}), 0)::int` }).from(invoices).where(inArray(invoices.status, ["issued", "partially_paid", "overdue"])),
+    db.select({ value: sql<number>`coalesce(sum(${payments.amountCents}), 0)::int` }).from(payments).where(and(sql`${payments.paymentDate} >= ${thirtyDaysAgo.toISOString()}`, isNull(payments.voidedAt))),
+    db.select({ id: bookings.id, reference: bookings.reference, clientId: bookings.clientId, serviceName: bookings.serviceName, preferredAt: bookings.preferredAt, status: bookings.status, clientName: clients.fullName }).from(bookings).innerJoin(clients, eq(bookings.clientId, clients.id)).where(sql`${bookings.preferredAt} >= ${todayStart.toISOString()} AND ${bookings.preferredAt} < ${todayEnd.toISOString()}`).orderBy(asc(bookings.preferredAt)).limit(20),
+    db.select({ id: bookings.id, reference: bookings.reference, clientId: bookings.clientId, serviceName: bookings.serviceName, preferredAt: bookings.preferredAt, status: bookings.status, clientName: clients.fullName }).from(bookings).innerJoin(clients, eq(bookings.clientId, clients.id)).where(and(sql`${bookings.preferredAt} >= ${todayEnd.toISOString()}`, inArray(bookings.status, ["new_request", "requires_review", "confirmed", "contacting_client", "awaiting_client_response", "rescheduled"]))).orderBy(asc(bookings.preferredAt)).limit(5),
+    db.select({ id: followUps.id, dueAt: followUps.dueAt, method: followUps.method, status: followUps.status, internalNote: followUps.internalNote, clientName: clients.fullName, bookingReference: bookings.reference }).from(followUps).leftJoin(clients, eq(followUps.clientId, clients.id)).leftJoin(bookings, eq(followUps.bookingId, bookings.id)).where(inArray(followUps.status, ["pending", "due_today"])).orderBy(asc(followUps.dueAt)).limit(10),
+    db.select({ id: activityLog.id, action: activityLog.action, summary: activityLog.summary, createdAt: activityLog.createdAt, userName: users.name }).from(activityLog).leftJoin(users, eq(activityLog.userId, users.id)).orderBy(desc(activityLog.createdAt)).limit(10),
+  ]);
+
   const currencyCode = business?.currencyCode ?? "NAD";
-
-  const [newRequests] = await db
-    .select({ value: count() })
-    .from(bookings)
-    .where(eq(bookings.status, "new_request"));
-
-  const [todayBookingsCount] = await db
-    .select({ value: count() })
-    .from(bookings)
-    .where(sql`${bookings.preferredAt} >= ${todayStart.toISOString()} AND ${bookings.preferredAt} < ${todayEnd.toISOString()}`);
-
-  const [clientCount] = await db.select({ value: count() }).from(clients);
-
-  const [followUpsDueCount] = await db
-    .select({ value: count() })
-    .from(followUps)
-    .where(inArray(followUps.status, ["pending", "due_today"]));
-
-  const [outstandingInvoicesCount] = await db
-    .select({ value: count() })
-    .from(invoices)
-    .where(inArray(invoices.status, ["issued", "partially_paid", "overdue"]));
-
-  const [pendingQuotationsCount] = await db
-    .select({ value: count() })
-    .from(quotations)
-    .where(inArray(quotations.status, ["draft", "issued"]));
-
-  const [unreadNotificationsResult] = await db
-    .select({ value: sql<number>`count(*)::int` })
-    .from(notifications)
-    .where(sql`${notifications.userId} = ${user.id} AND ${notifications.readAt} IS NULL`);
-
-  const [requiresReviewCount] = await db
-    .select({ value: count() })
-    .from(bookings)
-    .where(eq(bookings.status, "requires_review"));
-
-  const [overdueFollowUpsCount] = await db
-    .select({ value: count() })
-    .from(followUps)
-    .where(and(eq(followUps.status, "pending"), sql`${followUps.dueAt} < ${now.toISOString()}`));
-
-  const [outstandingTotal] = await db
-    .select({ value: sql<number>`coalesce(sum(${invoices.balanceCents}), 0)::int` })
-    .from(invoices)
-    .where(inArray(invoices.status, ["issued", "partially_paid", "overdue"]));
-
-  const [revenue30d] = await db
-    .select({ value: sql<number>`coalesce(sum(${payments.amountCents}), 0)::int` })
-    .from(payments)
-    .where(and(sql`${payments.paymentDate} >= ${thirtyDaysAgo.toISOString()}`, isNull(payments.voidedAt)));
-
-  const todaySchedule = await db
-    .select({
-      id: bookings.id,
-      reference: bookings.reference,
-      clientId: bookings.clientId,
-      serviceName: bookings.serviceName,
-      preferredAt: bookings.preferredAt,
-      status: bookings.status,
-      clientName: clients.fullName,
-    })
-    .from(bookings)
-    .innerJoin(clients, eq(bookings.clientId, clients.id))
-    .where(sql`${bookings.preferredAt} >= ${todayStart.toISOString()} AND ${bookings.preferredAt} < ${todayEnd.toISOString()}`)
-    .orderBy(asc(bookings.preferredAt))
-    .limit(20);
-
-  const upcomingBookings = await db
-    .select({
-      id: bookings.id,
-      reference: bookings.reference,
-      clientId: bookings.clientId,
-      serviceName: bookings.serviceName,
-      preferredAt: bookings.preferredAt,
-      status: bookings.status,
-      clientName: clients.fullName,
-    })
-    .from(bookings)
-    .innerJoin(clients, eq(bookings.clientId, clients.id))
-    .where(
-      and(
-        sql`${bookings.preferredAt} >= ${todayEnd.toISOString()}`,
-        inArray(bookings.status, [
-          "new_request", "requires_review", "confirmed",
-          "contacting_client", "awaiting_client_response", "rescheduled",
-        ]),
-      )
-    )
-    .orderBy(asc(bookings.preferredAt))
-    .limit(5);
-
-  const followUpsDue = await db
-    .select({
-      id: followUps.id,
-      dueAt: followUps.dueAt,
-      method: followUps.method,
-      status: followUps.status,
-      internalNote: followUps.internalNote,
-      clientName: clients.fullName,
-      bookingReference: bookings.reference,
-    })
-    .from(followUps)
-    .leftJoin(clients, eq(followUps.clientId, clients.id))
-    .leftJoin(bookings, eq(followUps.bookingId, bookings.id))
-    .where(inArray(followUps.status, ["pending", "due_today"]))
-    .orderBy(asc(followUps.dueAt))
-    .limit(10);
-
-  const recentActivity = await db
-    .select({
-      id: activityLog.id,
-      action: activityLog.action,
-      summary: activityLog.summary,
-      createdAt: activityLog.createdAt,
-      userName: users.name,
-    })
-    .from(activityLog)
-    .leftJoin(users, eq(activityLog.userId, users.id))
-    .orderBy(desc(activityLog.createdAt))
-    .limit(10);
 
   const fmtCurrency = (cents: number) =>
     new Intl.NumberFormat("en-NA", { style: "currency", currency: currencyCode }).format(cents / 100);

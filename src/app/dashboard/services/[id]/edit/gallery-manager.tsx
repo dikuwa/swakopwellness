@@ -21,14 +21,16 @@ export function GalleryManager({
   allMedia: MediaAsset[];
 }) {
   const [images, setImages] = useState(galleryImages.filter(Boolean) as MediaAsset[]);
-  const unusedMedia = allMedia.filter((m) => !images.some((i) => i.id === m.id));
+  const mediaMap = new Map(allMedia.map((m) => [m.id, m]));
+  const imageIds = new Set(images.map((i) => i.id));
+  const unusedMedia = allMedia.filter((m) => !imageIds.has(m.id));
 
   const [, addAction, addPending] = useActionState(
     async (_prev: unknown, formData: FormData) => {
       const assetId = formData.get("assetId") as string;
       if (!assetId) return null;
       await addServiceGalleryImage(serviceId, assetId);
-      const asset = allMedia.find((m) => m.id === assetId);
+      const asset = mediaMap.get(assetId);
       if (asset) setImages((prev) => [...prev, asset]);
       return { ok: true };
     },

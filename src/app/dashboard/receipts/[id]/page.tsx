@@ -74,7 +74,7 @@ export default async function ReceiptDetailPage(props: { params: Promise<{ id: s
           <div>
             <p className="text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase">Client</p>
             <p className="mt-1 font-semibold">{receipt.clientName}</p>
-            {receipt.clientPhone && <p className="text-sm text-muted-foreground">{receipt.clientPhone}</p>}
+            {receipt.clientPhone ? <p className="text-sm text-muted-foreground">{receipt.clientPhone}</p> : null}
           </div>
           <div>
             <p className="text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase">Amount</p>
@@ -118,7 +118,7 @@ export default async function ReceiptDetailPage(props: { params: Promise<{ id: s
           <div className="mt-8 rounded-2xl border border-border bg-surface-muted p-5">
             <p className="text-sm font-semibold text-[oklch(0.45_0.18_36)]">Voided</p>
             <p className="mt-1 text-sm text-muted-foreground">{formatDate(receipt.voidedAt)}</p>
-            {receipt.voidReason && <p className="mt-1 text-sm text-muted-foreground">Reason: {receipt.voidReason}</p>}
+            {receipt.voidReason ? <p className="mt-1 text-sm text-muted-foreground">Reason: {receipt.voidReason}</p> : null}
           </div>
         )}
 

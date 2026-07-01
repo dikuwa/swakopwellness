@@ -46,7 +46,7 @@ export default async function DashboardClientsPage() {
           </tbody>
         </table>
       </div>
-      {clients.length === 0 && <p className="mt-6 text-muted-foreground">No clients found.</p>}
+      {clients.length === 0 ? <p className="mt-6 text-muted-foreground">No clients found.</p> : null}
     </DashboardLayout>
   );
 }

@@ -27,23 +27,11 @@ export default async function DashboardClientDetailPage(props: { params: Promise
 
   const db = getDb();
 
-  const clientBookings = await db
-    .select()
-    .from(bookings)
-    .where(eq(bookings.clientId, id))
-    .orderBy(bookings.preferredAt);
-
-  const clientInvoices = await db
-    .select()
-    .from(invoices)
-    .where(eq(invoices.clientId, id))
-    .orderBy(invoices.issueDate);
-
-  const clientPayments = await db
-    .select()
-    .from(payments)
-    .where(eq(payments.clientId, id))
-    .orderBy(payments.paymentDate);
+  const [clientBookings, clientInvoices, clientPayments] = await Promise.all([
+    db.select().from(bookings).where(eq(bookings.clientId, id)).orderBy(bookings.preferredAt),
+    db.select().from(invoices).where(eq(invoices.clientId, id)).orderBy(invoices.issueDate),
+    db.select().from(payments).where(eq(payments.clientId, id)).orderBy(payments.paymentDate),
+  ]);
 
   return (
     <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>

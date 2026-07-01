@@ -143,13 +143,12 @@ export default async function DashboardCalendarPage(props: { searchParams: Promi
 
   const thirtyDaysUrl = `/dashboard/calendar?from=${todayStr}&to=${toISODate(new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000))}`;
 
-  function activeClass(href: string) {
-    const match = href.match(/from=(\d{4}-\d{2}-\d{2})&to=(\d{4}-\d{2}-\d{2})/);
-    if (!match) return "";
-    return match[1] === fromStr && match[2] === toStr
-      ? "bg-surface-muted font-semibold"
-      : "";
-  }
+  const activeClass = (href: string) => {
+    const params = new URLSearchParams(href.split("?")[1] ?? "");
+    const f = params.get("from");
+    const t = params.get("to");
+    return f === fromStr && t === toStr ? "bg-surface-muted font-semibold" : "";
+  };
 
   return (
     <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
