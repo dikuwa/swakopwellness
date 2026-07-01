@@ -72,7 +72,7 @@ export default async function EditServicePage({ params }: PageProps) {
   return (
     <ServiceForm
       categories={categories}
-      action={async (data) => updateService(id, data)}
+      action={updateService.bind(null, id)}
       mediaAssets={allMedia}
       initialData={{
         name: service.name,

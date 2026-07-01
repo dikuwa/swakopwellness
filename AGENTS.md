@@ -853,3 +853,68 @@ A task is complete only when:
 - production build has passed;
 - changes have been reviewed for regressions;
 - the final response clearly states what changed and what was tested.
+
+---
+
+# SUMMARY
+
+## Goal
+- Upgrade Swakop Wellness Centre admin dashboard to a practical daily control centre for a non-technical owner.
+
+## Constraints & Preferences
+- Preserve existing brand: colours, typography, radii, shadows, cards, spacing, buttons, navigation, icons, responsive behaviour, database, permissions, routes, booking functionality.
+- No Readdy branding or different visual system.
+- No mock dashboard data; use existing DB as single source of truth.
+- No `prompt()` calls; use proper DOM forms instead.
+- No JSON editing interfaces exposed to the owner.
+- Site must be light-only; no dark mode support.
+- Prefer direct imports over barrel files.
+- Use `React.cache()` for per-request DB dedup.
+
+## Progress
+- Bookings page: replaced server action return type from `Promise<TransitionResult>` to `Promise<void>`; fixed type mismatch crash.
+- Created `/dashboard/payments/new` page.
+- Fixed calendar booking links → per-booking detail pages.
+- Replaced all `prompt()` calls with inline `<details>` expandable forms.
+- Removed unused `TransitionResult` type and garbled `.env` text.
+- Redesigned Overview page (`/dashboard`): KPI grid, today's schedule, alerts, finance summary, activity feed.
+- Business settings form: replaced JSON textarea with 4 discrete fields.
+- Applied Vercel React Best Practices: `React.cache()` on `getDb()`, parallelised 16+ queries, `Map`/`Set` lookups, `&&`→ternary fixes, hoisted inline components.
+- Added `color-scheme: light` to `:root`; simplified layout themeColor (no dark mode).
+- Removed 6 dead functions and 1 dead barrel file.
+
+## Key Decisions
+- Server actions return `void` (not `TransitionResult`) to match Next.js form action types.
+- `<details>`/`<summary>` for void/reject reasons instead of modals or `prompt()`.
+- `Promise.all` for independent DB queries on `force-dynamic` pages to avoid waterfall latency.
+- `React.cache()` for `getDb()` — safer than module-level singleton in concurrent rendering.
+- `color-scheme: light` is the single correct fix for browser dark-mode defaults on a light-only site.
+
+## Next Steps
+- Future enhancements per AGENTS.md implementation order.
+
+## Critical Context
+- `Promise<TransitionResult>` was the root cause of "Something went wrong" on `/dashboard/bookings`.
+- Vercel build green at commit `3bcf6c3`.
+- Site is light-only; no dark mode code exists.
+
+## Relevant Files
+- `src/app/dashboard/page.tsx` — redesigned Overview
+- `src/app/dashboard/settings/business/page.tsx` — discrete fields
+- `src/db/client.ts` — `React.cache()` on `getDb()`
+- `src/dashboard/data.ts` — parallelised, dead functions removed
+- `src/app/globals.css` — `color-scheme: light`
+- `src/app/layout.tsx` — static themeColor
+- `src/db/schema.ts` — all DB models
+- `src/ui/components.tsx` — shared UI components
+- `src/app/dashboard/services/[id]/edit/page.tsx` — fixed server action reference (bind instead of anonymous wrapper)
+- `scripts/seed-realistic-data.ts` — comprehensive realistic data seeder
+
+## Audit Session (2026-07-02)
+- Fixed garbled `DATABASE_URL` in `.env` (had `your-pooled-postgres-url` prefix and `ur-direct-postgres-url` suffix merged into valid URL)
+- Fixed missing `duration_minutes` for 3 services (Frequency Therapy, Meridians, Food Tolerance) — duration was NULL in DB causing "—" display in dashboard
+- Fixed `/dashboard/services/[id]/edit` — replaced `action={async (data) => updateService(id, data)}` with `action={updateService.bind(null, id)}` to resolve "Functions cannot be passed directly to Client Components" error
+- Seeded 10 realistic Namibian client records, 12 bookings across all statuses, 4 invoices with line items, 3 paid receipts, 5 follow-ups, and activity log entries
+- Removed 4 test/generic clients and their related bookings
+- Removed all test data with "Test", "TEST", "Codex", "Chat Test" patterns
+- Verified: typecheck ✓, lint ✓, production build ✓
