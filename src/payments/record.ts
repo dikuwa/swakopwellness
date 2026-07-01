@@ -119,40 +119,4 @@ export async function recordPayment(input: RecordPaymentInput): Promise<PaymentR
   return result;
 }
 
-export async function voidPayment(paymentId: string, reason: string, userId: string): Promise<PaymentResult> {
-  const db = getDb();
-  const result = await db.transaction(async (tx) => {
-    const [payment] = await tx.select().from(payments).where(eq(payments.id, paymentId)).limit(1);
-    if (!payment) return { ok: false, message: "Payment not found." } as PaymentResult;
 
-    if (payment.voidedAt) {
-      return { ok: false, message: "Payment is already voided." } as PaymentResult;
-    }
-
-    await tx
-      .update(payments)
-      .set({ voidedAt: new Date(), voidReason: reason, voidedByUserId: userId })
-      .where(eq(payments.id, paymentId));
-
-    if (payment.invoiceId) {
-      const [inv] = await tx.select().from(invoices).where(eq(invoices.id, payment.invoiceId)).limit(1);
-      if (inv) {
-        const newPaid = inv.amountPaidCents - payment.amountCents;
-        const newBalance = inv.totalCents - newPaid;
-        const status = newPaid <= 0 ? "issued" : "partially_paid";
-        await tx
-          .update(invoices)
-          .set({ amountPaidCents: Math.max(0, newPaid), balanceCents: Math.max(0, newBalance), status, updatedAt: new Date() })
-          .where(eq(invoices.id, payment.invoiceId));
-      }
-    }
-
-    await recordActivity(userId, "payment.voided", "payment", paymentId, `Payment of N$${(payment.amountCents / 100).toFixed(2)} voided: ${reason}`);
-    return { ok: true as const, id: paymentId };
-  });
-
-  if (result.ok) {
-    await notifyStaff("payment.voided", `Payment voided`, `Payment voided: ${reason}`, "payment", paymentId);
-  }
-  return result;
-}

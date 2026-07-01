@@ -199,23 +199,6 @@ export async function getDashboardBookingById(id: string, includeSuitability: bo
   return { ...booking, history, answers };
 }
 
-export async function getUpcomingCalendarBookings() {
-  const db = getDb();
-  return db
-    .select({
-      id: bookings.id,
-      reference: bookings.reference,
-      serviceName: bookings.serviceName,
-      preferredAt: bookings.preferredAt,
-      status: bookings.status,
-      clientName: clients.fullName,
-    })
-    .from(bookings)
-    .innerJoin(clients, eq(bookings.clientId, clients.id))
-    .where(inArray(bookings.status, ["new_request", "requires_review", "contacting_client", "awaiting_client_response", "confirmed", "rescheduled"]))
-    .orderBy(asc(bookings.preferredAt))
-    .limit(80);
-}
 
 export async function getFollowUps() {
   const db = getDb();
@@ -355,19 +338,4 @@ export async function getReceipts() {
     .limit(100);
 }
 
-export async function getPayments() {
-  const db = getDb();
-  return db
-    .select({
-      id: payments.id,
-      clientName: clients.fullName,
-      amountCents: payments.amountCents,
-      paymentDate: payments.paymentDate,
-      method: payments.method,
-      reference: payments.reference,
-    })
-    .from(payments)
-    .innerJoin(clients, eq(payments.clientId, clients.id))
-    .orderBy(desc(payments.createdAt))
-    .limit(100);
-}
+

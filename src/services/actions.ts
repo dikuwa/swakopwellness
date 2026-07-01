@@ -244,19 +244,6 @@ export async function toggleServicePublic(id: string) {
   revalidateServiceManagement();
 }
 
-export async function reorderServices(ids: string[]) {
-  await requirePermission("services:manage");
-  const db = getDb();
-
-  for (let i = 0; i < ids.length; i++) {
-    await db
-      .update(services)
-      .set({ sortOrder: i, updatedAt: new Date() })
-      .where(eq(services.id, ids[i]));
-  }
-
-  revalidateServiceManagement();
-}
 
 export async function createServiceCategory(data: FormData) {
   const user = await requirePermission("services:manage");
@@ -640,19 +627,4 @@ export async function removeServiceGalleryImage(serviceId: string, mediaAssetId:
 
   revalidateServiceManagement();
   revalidatePath(`/dashboard/services/${serviceId}/edit`);
-}
-
-export async function reorderServiceGalleryImages(items: { serviceId: string; mediaAssetId: string; sortOrder: number }[]) {
-  await requirePermission("services:manage");
-  const db = getDb();
-
-  for (const item of items) {
-    await db
-      .update(serviceImages)
-      .set({ sortOrder: item.sortOrder })
-      .where(and(eq(serviceImages.serviceId, item.serviceId), eq(serviceImages.mediaAssetId, item.mediaAssetId)));
-  }
-
-  revalidateServiceManagement();
-  revalidatePath(`/dashboard/services/${items[0]?.serviceId}/edit`);
 }

@@ -72,47 +72,6 @@ export async function createFollowUp(data: FormData): Promise<FollowUpActionResu
   return { ok: true };
 }
 
-export async function updateFollowUp(id: string, data: FormData): Promise<FollowUpActionResult> {
-  const user = await requirePermission("bookings:update");
-  const db = getDb();
-
-  const clientId = readText(data, "clientId");
-  const bookingId = readText(data, "bookingId") || null;
-  const dueAt = parseDueAt(data);
-  const method = readText(data, "method");
-  const internalNote = readText(data, "internalNote") || null;
-
-  if (!clientId) return { ok: false, error: "Client is required." };
-  if (!dueAt) return { ok: false, error: "A valid due date and time is required." };
-  if (!method) return { ok: false, error: "Method is required." };
-
-  const [followUp] = await db.select({ id: followUps.id, status: followUps.status }).from(followUps).where(eq(followUps.id, id)).limit(1);
-  if (!followUp) return { ok: false, error: "Follow-up not found." };
-  if (followUp.status !== "pending") return { ok: false, error: "Only pending follow-ups can be updated." };
-
-  const [client] = await db.select({ id: clients.id }).from(clients).where(eq(clients.id, clientId)).limit(1);
-  if (!client) return { ok: false, error: "Client not found." };
-
-  if (bookingId) {
-    const [booking] = await db
-      .select({ id: bookings.id })
-      .from(bookings)
-      .where(and(eq(bookings.id, bookingId), eq(bookings.clientId, clientId)))
-      .limit(1);
-
-    if (!booking) return { ok: false, error: "Booking not found for this client." };
-  }
-
-  await db
-    .update(followUps)
-    .set({ clientId, bookingId, dueAt, method, internalNote, updatedAt: new Date() })
-    .where(eq(followUps.id, id));
-
-  await recordActivity(user.id, "follow_up.update", "follow_up", id, "Updated follow-up");
-  revalidatePath("/dashboard/follow-ups");
-
-  return { ok: true };
-}
 
 async function setPendingFollowUpStatus(id: string, status: "completed" | "cancelled"): Promise<FollowUpActionResult> {
   const user = await requirePermission("bookings:update");
