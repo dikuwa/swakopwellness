@@ -22,17 +22,19 @@ export default async function Home() {
   ]);
 
   return (
-    <PageShell business={business} communication={communication}>
+    <PageShell business={business} communication={communication} flushTop>
       <main>
-        <section className="mx-auto max-w-7xl px-3 py-4 sm:px-5">
-          <div className="relative overflow-hidden rounded-2xl bg-primary text-primary-foreground">
+        <section className="relative bg-primary text-primary-foreground">
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,oklch(0.235_0.025_158_/_0.72),oklch(0.235_0.025_158_/_0.18)),url('/images/wellness-room.png')] bg-cover bg-center" />
+          <div className="relative mx-auto max-w-7xl px-3 pb-4 pt-24 sm:px-5">
+          <div className="relative overflow-hidden rounded-2xl">
             <div className="absolute inset-0 bg-[linear-gradient(90deg,oklch(0.235_0.025_158_/_0.72),oklch(0.235_0.025_158_/_0.18)),url('/images/wellness-room.png')] bg-cover bg-center" />
             <div className="relative min-h-[560px] px-6 py-16 sm:px-12 lg:px-20">
               <div className="max-w-2xl">
                 <p className="text-sm font-semibold uppercase text-primary-foreground/75">By appointment only</p>
-                <h1 className="mt-5 text-5xl font-semibold leading-tight sm:text-6xl">Wellness support, guided by careful assessment.</h1>
+                <h1 className="display-tight mt-5 text-5xl font-semibold sm:text-6xl">Wellness support, guided by careful assessment.</h1>
                 <p className="mt-5 max-w-xl text-sm leading-7 text-primary-foreground/85 sm:text-base">
-                  Non-invasive wellness services to help you understand your body, restore balance, and feel your best naturally. All appointments are by request and confirmed by our team.
+                  Using the Diacom Lite Freq Utium, an FCC‑certified bioresonance scanner, we gently scan your body to uncover root causes of imbalance and guide personalised wellness support. All appointments are by request and confirmed by our team.
                 </p>
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                   <Link href="/book" className="inline-flex h-12 items-center justify-center rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[0_10px_24px_oklch(0.235_0.025_158_/_0.18)] ring-1 ring-primary-foreground/10">
@@ -52,13 +54,14 @@ export default async function Home() {
               </div>
             </div>
           </div>
+          </div>
         </section>
 
         <section className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <p className="flex items-center gap-2 text-xs font-semibold uppercase text-primary"><Sprout className="h-4 w-4" /> Our services</p>
-              <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">Non-invasive wellness support</h2>
+              <h2 className="display-tight mt-3 text-3xl font-semibold sm:text-4xl">Non-invasive wellness support</h2>
               <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Carefully designed assessments and frequency-based support to help you feel more balanced and in control of your wellbeing.</p>
             </div>
             <Link href="/services" className="inline-flex h-11 items-center justify-center rounded-xl border border-border px-4 text-sm font-semibold hover:bg-surface-muted">View all services</Link>
@@ -89,9 +92,19 @@ export default async function Home() {
         </section>
 
         <section className="mx-auto max-w-6xl px-5 pb-16 sm:px-8">
+          <div className="rounded-2xl border border-border bg-surface p-6 sm:p-10">
+            <p className="flex items-center gap-2 text-xs font-semibold uppercase text-primary"><Sprout className="h-4 w-4" /> Diacom Technology</p>
+            <h2 className="display-tight mt-3 text-3xl font-semibold">Our Technology</h2>
+            <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground">
+              The Diacom Lite Freq Utium sends harmless electromagnetic signals to read frequency patterns from your organs and cells, identifying imbalances and root causes long before symptoms appear. It is FCC‑certified, non‑invasive and does not involve needles or radiation.
+            </p>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-5 pb-16 sm:px-8">
           <div className="rounded-2xl bg-surface-muted p-6 sm:p-10">
             <p className="text-xs font-semibold uppercase text-primary">How appointments work</p>
-            <h2 className="mt-3 text-3xl font-semibold">Your wellness journey, step by step</h2>
+            <h2 className="display-tight mt-3 text-3xl font-semibold">Your wellness journey, step by step</h2>
             <div className="mt-8 grid gap-5 md:grid-cols-4">
               {[
                 { title: "Choose a service", desc: "Browse services and select the one that best suits your needs.", Icon: CalendarDays },
@@ -112,13 +125,13 @@ export default async function Home() {
         <section className="mx-auto grid max-w-6xl gap-8 px-5 pb-16 sm:px-8 lg:grid-cols-[1fr_0.9fr]">
           <div>
             <p className="text-xs font-semibold uppercase text-primary">Why choose Swakop Wellness</p>
-            <h2 className="mt-3 text-3xl font-semibold">Care that sees the whole you</h2>
+            <h2 className="display-tight mt-3 text-3xl font-semibold">Care that sees the whole you</h2>
             <div className="mt-6 grid gap-5 sm:grid-cols-2">
               {[
-                { title: "Personalised care", desc: "We take time to understand your health history and goals.", Icon: CalendarDays },
-                { title: "Non-invasive approach", desc: "Our services are gentle, safe, and support your body naturally.", Icon: ShieldCheck },
-                { title: "Experienced guidance", desc: "Professional assessments and evidence-informed support.", Icon: Stethoscope },
-                { title: "Holistic wellbeing", desc: "We look at the bigger picture to support lasting balance.", Icon: Heart },
+                { title: "Root‑cause focus", desc: "We don\u2019t just soothe symptoms; our scans look deeper to uncover the underlying imbalances behind fatigue, discomfort or chronic issues.", Icon: Stethoscope },
+                { title: "Safe & certified technology", desc: "Our Diacom device is FCC\u2011certified and non\u2011invasive, suitable for adults and children and free from needles or radiation.", Icon: ShieldCheck },
+                { title: "Personalised insights", desc: "You\u2019ll receive a clear report and tailored recommendations based on your body\u2019s unique frequency patterns.", Icon: Heart },
+                { title: "Supportive guidance", desc: "Experienced practitioners explain your results and provide targeted frequency therapy or dietary advice to restore balance.", Icon: Sprout },
               ].map(({ title, desc, Icon }) => (
                 <div key={title} className="flex gap-3">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-muted text-primary"><Icon className="h-5 w-5" /></span>
@@ -141,7 +154,7 @@ export default async function Home() {
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase text-primary">FAQ</p>
-              <h2 className="mt-3 text-3xl font-semibold">Questions you might have</h2>
+              <h2 className="display-tight mt-3 text-3xl font-semibold">Questions you might have</h2>
             </div>
             <Link href="/faqs" className="hidden h-11 items-center rounded-xl border border-border px-4 text-sm font-semibold hover:bg-surface-muted sm:inline-flex">View all FAQs</Link>
           </div>
@@ -154,7 +167,7 @@ export default async function Home() {
 
         <section className="mx-auto max-w-6xl px-5 pb-16 sm:px-8">
           <p className="text-xs font-semibold uppercase text-primary">Visit us</p>
-          <h2 className="mt-3 text-3xl font-semibold">Contact &amp; Location</h2>
+          <h2 className="display-tight mt-3 text-3xl font-semibold">Contact &amp; Location</h2>
           <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_1fr]">
             <div className="rounded-2xl border border-border bg-surface p-5">
               <div className="grid min-h-48 place-items-center rounded-xl bg-[linear-gradient(135deg,oklch(0.924_0.025_116),oklch(0.988_0.009_85))] text-center text-sm text-muted-foreground">
@@ -179,10 +192,10 @@ export default async function Home() {
 
         <section className="mx-auto max-w-6xl px-5 pb-16 sm:px-8">
           <div className="overflow-hidden rounded-2xl bg-primary text-primary-foreground">
-            <div className="bg-[linear-gradient(90deg,oklch(0.235_0.025_158_/_0.70),oklch(0.235_0.025_158_/_0.20)),url('/images/contact-room.png')] bg-cover bg-center px-6 py-12 sm:px-10">
-              <h2 className="text-3xl font-semibold">Ready to feel more balanced?</h2>
-              <p className="mt-2 text-primary-foreground/80">Book an appointment online or call us to get started.</p>
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <div className="bg-[linear-gradient(90deg,oklch(0.235_0.025_158_/_0.70),oklch(0.235_0.025_158_/_0.20)),url('/images/contact-room.png')] bg-cover bg-center px-6 py-12 text-center sm:px-10">
+              <h2 className="display-tight text-3xl font-semibold">Ready to feel more balanced?</h2>
+              <p className="mx-auto mt-2 max-w-2xl text-primary-foreground/80">Book an appointment online or call us to get started.</p>
+              <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
                 <Link href="/book" className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground ring-1 ring-primary-foreground/10">Book appointment</Link>
                 {communication.enableCalls ? <a href={`tel:${communication.mainPhone.replaceAll(" ", "")}`} className="inline-flex h-11 items-center justify-center rounded-xl border border-primary-foreground/55 px-5 text-sm font-semibold">Call now</a> : null}
               </div>

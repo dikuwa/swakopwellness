@@ -38,9 +38,9 @@ export default async function FaqsPage() {
               <h2 className="text-2xl font-semibold">Important safety guidance</h2>
               <p className="mt-3 text-sm leading-7 text-muted-foreground">{business.medicalDisclaimer}</p>
               <ul className="mt-3 list-disc space-y-1 pl-5 text-sm leading-6 text-muted-foreground">
-                <li>Tell us if you are undergoing chemotherapy.</li>
-                <li>Tell us if you are taking strong medication such as antibiotics.</li>
-                <li>Tell us if you have a pacemaker or implanted electronic medical device.</li>
+                <li>Clients undergoing chemotherapy should postpone scanning.</li>
+                <li>Clients taking strong medications (e.g., antibiotics) should postpone scanning.</li>
+                <li>Clients with pacemakers or implanted electronic medical devices should postpone scanning.</li>
               </ul>
             </div>
           </div>
