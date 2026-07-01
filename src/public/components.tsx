@@ -169,13 +169,23 @@ export function PublicFooter({ business, communication, services }: { business: 
   );
 }
 
-export async function PageShell({ business, communication, children }: { business: Business; communication: Communication; children: React.ReactNode }) {
+export async function PageShell({
+  business,
+  communication,
+  children,
+  flushTop = false,
+}: {
+  business: Business;
+  communication: Communication;
+  children: React.ReactNode;
+  flushTop?: boolean;
+}) {
   const services = await getPublicServices();
 
   return (
     <>
       <PublicHeader business={business} communication={communication} />
-      <div className="pt-20">{children}</div>
+      <div className={flushTop ? "" : "pt-20"}>{children}</div>
       <PublicFooter business={business} communication={communication} services={services} />
       <MobileActionBar communication={communication} />
     </>

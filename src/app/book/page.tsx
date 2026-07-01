@@ -59,7 +59,7 @@ export default async function BookPage({ searchParams }: { searchParams: Promise
               <div className="grid min-h-64 bg-[linear-gradient(90deg,oklch(0.235_0.025_158_/_0.75),oklch(0.235_0.025_158_/_0.20)),url('/images/faq-room.png')] bg-cover bg-center p-8 sm:p-12">
                 <div className="max-w-xl self-center">
                   <p className="text-sm font-semibold uppercase text-primary-foreground/75">Book Appointment</p>
-                  <h1 className="mt-4 text-4xl font-semibold sm:text-5xl">Your wellness journey starts here.</h1>
+                  <h1 className="display-tight mt-4 text-4xl font-semibold sm:text-5xl">Your wellness journey starts here.</h1>
                   <p className="mt-4 text-primary-foreground/80">Submitted times are requests only. Staff will review availability and contact you before an appointment is confirmed.</p>
                 </div>
               </div>

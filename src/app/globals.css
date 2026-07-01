@@ -69,6 +69,18 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: 0;
 }
 
+h1 {
+  line-height: 1.02;
+}
+
+h2 {
+  line-height: 1.08;
+}
+
+.display-tight {
+  line-height: 0.98;
+}
+
 :focus-visible {
   outline: 3px solid var(--primary);
   outline-offset: 3px;
