@@ -1,14 +1,15 @@
 import type { Metadata, Viewport } from "next";
-import { Lora, Raleway } from "next/font/google";
+import { Onest, Raleway } from "next/font/google";
+import { AppToaster } from "@/ui/toaster";
 import "./globals.css";
 
-const lora = Lora({
+const raleway = Raleway({
   subsets: ["latin"],
   variable: "--font-heading",
   display: "swap",
 });
 
-const raleway = Raleway({
+const onest = Onest({
   subsets: ["latin"],
   variable: "--font-body",
   display: "swap",
@@ -44,11 +45,14 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${lora.variable} ${raleway.variable}`}>
+    <html lang="en" className={`${raleway.variable} ${onest.variable}`}>
       <head>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <AppToaster />
+      </body>
     </html>
   );
 }

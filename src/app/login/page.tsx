@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { loginAction } from "./actions";
 import { Card, Input, Label } from "@/ui/components";
 
@@ -8,11 +9,15 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background px-5 py-10 text-foreground">
-      <Link href="/" className="flex items-center gap-3 text-sm font-semibold">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-sm font-bold tracking-wider text-primary-foreground">
-          SW
-        </span>
-        Swakop Wellness Centre
+      <Link href="/" className="flex items-center" aria-label="Swakop Wellness Centre">
+        <Image
+          src="/brand/logo-green.svg"
+          alt="Swakop Wellness Centre"
+          width={128}
+          height={75}
+          priority
+          className="h-auto w-28"
+        />
       </Link>
       <Card className="mt-8 w-full max-w-md p-6 sm:p-8">
         <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">Staff access</p>

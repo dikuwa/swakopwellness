@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { getEnabledContactMethods } from "@/settings/communication";
+import Image from "next/image";
+import { CalendarDays, Mail, MapPin, Menu, Phone, X } from "lucide-react";
+import { getPublicServices } from "@/public/data";
 
 type Business = {
   businessName: string;
@@ -19,19 +21,27 @@ type Communication = {
 };
 
 const navLinks = [
+  { href: "/", label: "Home" },
   { href: "/services", label: "Services" },
   { href: "/about", label: "About" },
   { href: "/faqs", label: "FAQs" },
-  { href: "/chat", label: "Chat to Book" },
+  { href: "/book", label: "Book" },
   { href: "/contact", label: "Contact" },
   { href: "/policies", label: "Policies" },
 ];
 
-function BrandMark() {
+function BrandLogo({ variant = "green", className = "" }: { variant?: "green" | "white"; className?: string }) {
+  const src = variant === "white" ? "/brand/logo-white.svg" : "/brand/logo-green.svg";
+
   return (
-    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-xs font-bold tracking-wider text-primary-foreground">
-      SW
-    </span>
+    <Image
+      src={src}
+      alt="Swakop Wellness Centre"
+      width={150}
+      height={88}
+      priority={variant === "green"}
+      className={`h-auto w-24 shrink-0 sm:w-28 ${className}`}
+    />
   );
 }
 
@@ -39,12 +49,10 @@ function MobileNav() {
   return (
     <details className="group md:hidden">
       <summary className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-xl border border-border transition-colors hover:bg-surface-muted" aria-label="Toggle navigation menu">
-        <svg className="h-5 w-5 text-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path className="block group-open:hidden" d="M4 6l16 0M4 12l16 0M4 18l16 0" />
-          <path className="hidden group-open:block" d="M18 6L6 18M6 6l12 12" />
-        </svg>
+        <Menu className="h-5 w-5 text-foreground group-open:hidden" aria-hidden="true" />
+        <X className="hidden h-5 w-5 text-foreground group-open:block" aria-hidden="true" />
       </summary>
-      <div className="absolute inset-x-0 top-full z-50 mt-2 px-5">
+      <div className="fixed inset-x-5 top-20 z-50">
         <nav aria-label="Mobile navigation" className="rounded-2xl border border-border bg-surface p-4 shadow-[0_8px_32px_oklch(0.235_0.025_158_/_0.08)]">
           {navLinks.map((link) => (
             <Link key={link.href} href={link.href} className="block rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors hover:bg-surface-muted">
@@ -64,9 +72,8 @@ export function PublicHeader({ business, communication }: { business: Business; 
     <header className="fixed inset-x-0 top-0 z-50">
       <div className="mx-auto max-w-6xl px-5 pt-4 sm:px-8">
         <div className="flex min-h-16 items-center justify-between gap-4 rounded-2xl border border-border bg-background/95 px-5 shadow-[0_4px_24px_oklch(0.235_0.025_158_/_0.04)] backdrop-blur supports-[backdrop-filter]:bg-background/85">
-          <Link href="/" className="flex items-center gap-3 text-base font-semibold">
-            <BrandMark />
-            <span className="hidden sm:inline">{business.businessName}</span>
+          <Link href="/" className="flex items-center" aria-label={business.businessName}>
+            <BrandLogo />
           </Link>
           <nav aria-label="Primary navigation" className="hidden items-center gap-1 text-sm text-muted-foreground md:flex">
             {navLinks.map((link) => (
@@ -82,7 +89,8 @@ export function PublicHeader({ business, communication }: { business: Business; 
               </a>
             ) : null}
             <Link href="/book" className="flex h-10 items-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_2px_8px_oklch(0.355_0.074_159_/_0.25)] transition-all duration-200 hover:bg-primary/90 hover:shadow-[0_4px_12px_oklch(0.355_0.074_159_/_0.35)]">
-              Book
+              <span className="sm:hidden">Book</span>
+              <span className="hidden sm:inline">Book Appointment</span>
             </Link>
             <MobileNav />
           </div>
@@ -93,25 +101,17 @@ export function PublicHeader({ business, communication }: { business: Business; 
 }
 
 export function MobileActionBar({ communication }: { communication: Communication }) {
-  const methods = getEnabledContactMethods(communication);
-
   return (
     <nav aria-label="Quick contact actions" className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-surface p-2 shadow-[0_-10px_40px_oklch(0.235_0.025_158_/_0.08)] md:hidden">
       <div className="grid grid-cols-3 gap-2">
-        {methods.includes("phone") ? (
+        {communication.enableCalls ? (
           <a href={`tel:${communication.mainPhone.replaceAll(" ", "")}`} className="flex h-10 items-center justify-center rounded-xl border border-border text-sm font-semibold transition-colors hover:bg-surface-muted">
             Call
           </a>
         ) : null}
-        {methods.includes("whatsapp") && communication.whatsappNumber ? (
-          <a href={`https://wa.me/${communication.whatsappNumber.replace(/\D/g, "")}`} className="flex h-10 items-center justify-center rounded-xl border border-border text-sm font-semibold transition-colors hover:bg-surface-muted">
-            WhatsApp
-          </a>
-        ) : (
-          <Link href="/chat" className="flex h-10 items-center justify-center rounded-xl border border-border text-sm font-semibold transition-colors hover:bg-surface-muted">
-            Chat
-          </Link>
-        )}
+        <Link href="/chat" className="flex h-10 items-center justify-center rounded-xl border border-border text-sm font-semibold transition-colors hover:bg-surface-muted">
+          Chat
+        </Link>
         <Link href="/book" className="flex h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_2px_8px_oklch(0.355_0.074_159_/_0.25)] transition-all duration-200 hover:bg-primary/90 hover:shadow-[0_4px_12px_oklch(0.355_0.074_159_/_0.35)]">
           Book
         </Link>
@@ -120,45 +120,63 @@ export function MobileActionBar({ communication }: { communication: Communicatio
   );
 }
 
-export function PublicFooter({ business, communication }: { business: Business; communication: Communication }) {
+export function PublicFooter({ business, communication, services }: { business: Business; communication: Communication; services: { slug: string; name: string }[] }) {
   return (
-    <footer className="border-t border-border bg-surface pb-28 pt-12 md:pb-12">
+    <footer className="border-t border-border bg-primary pb-28 pt-12 text-primary-foreground md:pb-12">
       <div className="mx-auto max-w-6xl px-5 sm:px-8">
-        <div className="grid gap-10 md:grid-cols-[1.5fr_1fr_1fr]">
+        <div className="grid gap-10 md:grid-cols-[1.35fr_0.85fr_1fr_1.2fr]">
           <div>
-            <Link href="/" className="flex items-center gap-3 text-base font-semibold">
-              <BrandMark />
-              {business.businessName}
+            <Link href="/" className="inline-flex items-center" aria-label={business.businessName}>
+              <BrandLogo variant="white" className="w-32 sm:w-36" />
             </Link>
-            <p className="mt-4 max-w-[52ch] text-sm leading-6 text-muted-foreground">
-              Complementary wellness services by appointment in Swakopmund. Not a replacement for medical diagnosis or treatment.
+            <p className="mt-4 max-w-[34ch] text-sm leading-6 text-primary-foreground/75">
+              Carefully designed assessment and frequency-based support to help you feel more balanced and in control of your wellbeing.
             </p>
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground">Visit</p>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">{business.address}</p>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">{business.operatingHours}, {business.appointmentModel.toLowerCase()}</p>
+            <p className="text-sm font-semibold">Quick Links</p>
+            <div className="mt-3 grid gap-2 text-sm text-primary-foreground/75">
+              {navLinks.map((link) => (
+                <Link key={link.href} href={link.href} className="hover:text-primary-foreground">{link.label}</Link>
+              ))}
+            </div>
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground">Contact</p>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">{communication.mainPhone}</p>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">{communication.businessEmail}</p>
+            <p className="text-sm font-semibold">Our Services</p>
+            <div className="mt-3 grid gap-2 text-sm text-primary-foreground/75">
+              {services.slice(0, 5).map((service) => (
+                <Link key={service.slug} href={`/services/${service.slug}`} className="hover:text-primary-foreground">{service.name}</Link>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="text-sm font-semibold">Contact Us</p>
+            <div className="mt-3 space-y-3 text-sm leading-6 text-primary-foreground/75">
+              <p className="flex gap-2"><MapPin className="mt-1 h-4 w-4 shrink-0" aria-hidden="true" />{business.address}</p>
+              {communication.enableCalls ? <p className="flex gap-2"><Phone className="mt-1 h-4 w-4 shrink-0" aria-hidden="true" />{communication.mainPhone}</p> : null}
+              {communication.enableEmailContact ? <p className="flex gap-2"><Mail className="mt-1 h-4 w-4 shrink-0" aria-hidden="true" />{communication.businessEmail}</p> : null}
+              <p className="flex gap-2"><CalendarDays className="mt-1 h-4 w-4 shrink-0" aria-hidden="true" />{business.operatingHours}<br />{business.appointmentModel}</p>
+            </div>
           </div>
         </div>
-        <div className="mt-10 border-t border-border pt-6 text-center text-sm leading-6 text-muted-foreground">
-          &copy; {new Date().getFullYear()} {business.businessName}. All rights reserved.
+        <div className="mt-10 grid gap-4 border-t border-primary-foreground/20 pt-6 text-sm leading-6 text-primary-foreground/70 md:grid-cols-[1fr_auto_1fr]">
+          <p>&copy; {new Date().getFullYear()} {business.businessName}. All rights reserved.</p>
+          <p className="text-center">Services are complementary wellness support and do not replace medical diagnosis or treatment.</p>
+          <Link href="/policies" className="md:text-right hover:text-primary-foreground">Policies &amp; Disclaimers</Link>
         </div>
       </div>
     </footer>
   );
 }
 
-export function PageShell({ business, communication, children }: { business: Business; communication: Communication; children: React.ReactNode }) {
+export async function PageShell({ business, communication, children }: { business: Business; communication: Communication; children: React.ReactNode }) {
+  const services = await getPublicServices();
+
   return (
     <>
       <PublicHeader business={business} communication={communication} />
       <div className="pt-20">{children}</div>
-      <PublicFooter business={business} communication={communication} />
+      <PublicFooter business={business} communication={communication} services={services} />
       <MobileActionBar communication={communication} />
     </>
   );

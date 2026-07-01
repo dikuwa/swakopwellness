@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import PDFDocument from "pdfkit";
 
 export interface InvoiceData {
@@ -78,10 +80,27 @@ function fmtDate(d: Date): string {
   return d.toLocaleDateString("en-NA", { year: "numeric", month: "long", day: "numeric" });
 }
 
+const documentLogoPath = join(process.cwd(), "public", "brand", "logo-document.png");
+
 function addBusinessHeader(doc: PDFKit.PDFDocument, business: BusinessData) {
-  doc.fontSize(20).font("Helvetica-Bold").fillColor("#333").text(business.businessName, { continued: false });
+  const startY = doc.y;
+  let detailsY = startY;
+
+  if (existsSync(documentLogoPath)) {
+    try {
+      doc.image(documentLogoPath, 50, startY, { width: 128 });
+      detailsY = startY + 88;
+    } catch {
+      doc.fontSize(20).font("Helvetica-Bold").fillColor("#333").text(business.businessName, 50, startY, { continued: false });
+      detailsY = doc.y + 6;
+    }
+  } else {
+    doc.fontSize(20).font("Helvetica-Bold").fillColor("#333").text(business.businessName, 50, startY, { continued: false });
+    detailsY = doc.y + 6;
+  }
+
   doc.fontSize(10).font("Helvetica").fillColor("#666");
-  doc.text(business.address);
+  doc.text(business.address, 50, detailsY);
   doc.text(business.phone);
   doc.text(business.email);
   if (business.registrationNumber) {

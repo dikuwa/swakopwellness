@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AlertTriangle, CalendarDays, Clock, Heart, Mail, MapPin, Phone, Send, ShieldCheck, Sprout, Stethoscope } from "lucide-react";
+import { ContactForm } from "@/app/contact/contact-form";
+import { submitContactMessage } from "@/app/contact/actions";
 import { PageShell } from "@/public/components";
 import { formatMoney, getBusinessSettings, getCommunicationSettings, getFeaturedServices, getPublicFaqs } from "@/public/data";
 
@@ -21,132 +24,168 @@ export default async function Home() {
   return (
     <PageShell business={business} communication={communication}>
       <main>
-        {/* Hero */}
-        <section className="mx-auto grid max-w-6xl gap-10 px-5 py-16 sm:px-8 md:grid-cols-[1.1fr_0.9fr] md:py-24">
-          <div>
-            <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">{business.appointmentModel}</p>
-            <h1 className="mt-4 max-w-3xl text-5xl leading-[1.08] tracking-[-0.04em] text-balance sm:text-6xl lg:text-7xl">
-              Wellness support, guided by careful assessment.
-            </h1>
-            <p className="mt-6 max-w-[65ch] text-base leading-7 text-muted-foreground sm:text-lg sm:leading-8">
-              Explore non-invasive wellness services and request an appointment with {business.businessName}. All bookings are requests until confirmed by staff.
-            </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <Link href="/book" className="inline-flex h-12 items-center justify-center rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[0_2px_8px_oklch(0.355_0.074_159_/_0.25)] transition-all duration-200 hover:bg-primary/90 hover:shadow-[0_4px_16px_oklch(0.355_0.074_159_/_0.35)]">
-                Book an appointment
-              </Link>
-              <Link href="/chat" className="inline-flex h-12 items-center justify-center rounded-xl border border-border px-6 text-sm font-semibold transition-colors hover:bg-surface-muted">
-                Chat to book
-              </Link>
-              {communication.enableCalls ? (
-                <a href={`tel:${communication.mainPhone.replaceAll(" ", "")}`} className="inline-flex h-12 items-center justify-center rounded-xl border border-border px-6 text-sm font-semibold transition-colors hover:bg-surface-muted">
-                  Call now
-                </a>
-              ) : null}
+        <section className="mx-auto max-w-7xl px-3 py-4 sm:px-5">
+          <div className="relative overflow-hidden rounded-2xl bg-primary text-primary-foreground">
+            <div className="absolute inset-0 bg-[linear-gradient(90deg,oklch(0.235_0.025_158_/_0.72),oklch(0.235_0.025_158_/_0.18)),url('/images/wellness-room.png')] bg-cover bg-center" />
+            <div className="relative min-h-[560px] px-6 py-16 sm:px-12 lg:px-20">
+              <div className="max-w-2xl">
+                <p className="text-sm font-semibold uppercase text-primary-foreground/75">By appointment only</p>
+                <h1 className="mt-5 text-5xl font-semibold leading-tight sm:text-6xl">Wellness support, guided by careful assessment.</h1>
+                <p className="mt-5 max-w-xl text-sm leading-7 text-primary-foreground/85 sm:text-base">
+                  Non-invasive wellness services to help you understand your body, restore balance, and feel your best naturally. All appointments are by request and confirmed by our team.
+                </p>
+                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                  <Link href="/book" className="inline-flex h-12 items-center justify-center rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[0_10px_24px_oklch(0.235_0.025_158_/_0.18)] ring-1 ring-primary-foreground/10">
+                    Book appointment
+                  </Link>
+                  {communication.enableCalls ? (
+                    <a href={`tel:${communication.mainPhone.replaceAll(" ", "")}`} className="inline-flex h-12 items-center justify-center rounded-xl bg-primary-foreground px-6 text-sm font-semibold text-primary">
+                      Call now
+                    </a>
+                  ) : null}
+                </div>
+                <div className="mt-8 grid gap-2 rounded-2xl bg-primary-foreground/12 p-4 text-xs text-primary-foreground/85 backdrop-blur sm:grid-cols-3">
+                  <span className="flex items-center gap-2"><Clock className="h-4 w-4" />{business.operatingHours}</span>
+                  <span className="flex items-center gap-2"><CalendarDays className="h-4 w-4" />{business.appointmentModel}</span>
+                  <span className="flex items-center gap-2"><MapPin className="h-4 w-4" />{business.address}</span>
+                </div>
+              </div>
             </div>
           </div>
-          <aside className="rounded-2xl border border-border bg-surface p-6 shadow-[0_4px_24px_oklch(0.235_0.025_158_/_0.04)] sm:p-8">
-            <p className="flex items-center gap-2 text-sm font-semibold">
-              <svg className="h-4 w-4 shrink-0 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M12 9v4M12 17h.01" /><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
-              </svg>
-              Safety note
-            </p>
-            <p className="mt-3 text-sm leading-6 text-muted-foreground">{business.medicalDisclaimer}</p>
-            <div className="mt-6 rounded-xl bg-surface-muted p-4 text-sm leading-6 text-secondary-foreground">
-              <p className="font-medium">{business.operatingHours}</p>
-              <p className="mt-1">{business.address}</p>
-            </div>
-          </aside>
         </section>
 
-        {/* Services */}
         <section className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-3xl tracking-[-0.03em] sm:text-4xl">Services and prices</h2>
-              <p className="mt-3 max-w-[65ch] text-sm leading-6 text-muted-foreground">Non-invasive wellness assessments and frequency-based support. Every service is fully editable from the dashboard.</p>
+              <p className="flex items-center gap-2 text-xs font-semibold uppercase text-primary"><Sprout className="h-4 w-4" /> Our services</p>
+              <h2 className="mt-3 text-3xl font-semibold sm:text-4xl">Non-invasive wellness support</h2>
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">Carefully designed assessments and frequency-based support to help you feel more balanced and in control of your wellbeing.</p>
             </div>
-            <Link href="/services" className="inline-flex h-10 items-center rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted">
-              View all services
-            </Link>
+            <Link href="/services" className="inline-flex h-11 items-center justify-center rounded-xl border border-border px-4 text-sm font-semibold hover:bg-surface-muted">View all services</Link>
           </div>
-          <div className="mt-8 grid gap-5 md:grid-cols-2">
+          <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
             {services.map((service) => (
-              <Link key={service.id} href={`/services/${service.slug}`} className="group rounded-2xl border border-border bg-surface shadow-[0_2px_12px_oklch(0.235_0.025_158_/_0.03)] transition-all duration-200 hover:shadow-[0_4px_24px_oklch(0.235_0.025_158_/_0.06)] hover:-translate-y-0.5">
+              <article key={service.id} className="overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_8px_30px_oklch(0.235_0.025_158_/_0.04)]">
                 {service.featuredImage?.publicUrl ? (
-                  <div className="aspect-[16/9] overflow-hidden rounded-t-2xl bg-surface">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- media URLs are administrator-managed R2/public URLs. */}
-                    <img src={service.featuredImage.publicUrl} alt={service.featuredImage.altText ?? service.name} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
-                  </div>
-                ) : null}
+                  // eslint-disable-next-line @next/next/no-img-element -- media URLs are administrator-managed public URLs.
+                  <img src={service.featuredImage.publicUrl} alt={service.featuredImage.altText ?? service.name} className="aspect-[4/3] w-full object-cover" loading="lazy" />
+                ) : (
+                  <div className="aspect-[4/3] bg-[linear-gradient(135deg,oklch(0.924_0.025_116),oklch(0.988_0.009_85))]" />
+                )}
                 <div className="p-5">
-                  <div className="flex items-start justify-between gap-4">
-                    <h3 className="text-xl tracking-[-0.02em]">{service.name}</h3>
-                    <p className="shrink-0 text-sm font-semibold text-primary">{formatMoney(service.priceCents, business.currencySymbol)}</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="text-lg font-semibold">{service.name}</h3>
+                    <span className="rounded-full bg-surface-muted px-2.5 py-1 text-xs font-semibold text-primary">{formatMoney(service.priceCents, business.currencySymbol)}</span>
                   </div>
                   <p className="mt-3 text-sm leading-6 text-muted-foreground">{service.shortDescription}</p>
+                  <div className="mt-5 flex items-center justify-between text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1"><Clock className="h-4 w-4" />{service.durationMinutes ?? 30} minutes</span>
+                    <Link href={`/services/${service.slug}`} className="font-semibold text-primary">Learn more</Link>
+                  </div>
                 </div>
-              </Link>
+              </article>
             ))}
           </div>
         </section>
 
-        {/* How it works */}
-        <section className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
+        <section className="mx-auto max-w-6xl px-5 pb-16 sm:px-8">
           <div className="rounded-2xl bg-surface-muted p-6 sm:p-10">
-            <h2 className="text-3xl tracking-[-0.03em] sm:text-4xl">How appointments work</h2>
-            <div className="mt-8 grid gap-5 md:grid-cols-3">
+            <p className="text-xs font-semibold uppercase text-primary">How appointments work</p>
+            <h2 className="mt-3 text-3xl font-semibold">Your wellness journey, step by step</h2>
+            <div className="mt-8 grid gap-5 md:grid-cols-4">
               {[
-                { step: "01", title: "Choose a service", desc: "Browse services and pricing, then pick what suits your needs." },
-                { step: "02", title: "Request a time", desc: "Staff review suitability and availability before confirming." },
-                { step: "03", title: "Visit the centre", desc: "Receive your wellness session at our Swakopmund location." },
-              ].map((item) => (
-                <div key={item.step} className="rounded-xl bg-surface p-5 transition-all duration-200 hover:shadow-[0_2px_12px_oklch(0.235_0.025_158_/_0.04)]">
-                  <span className="text-sm font-semibold tracking-wider text-primary">{item.step}</span>
-                  <h3 className="mt-2 text-lg">{item.title}</h3>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.desc}</p>
+                { title: "Choose a service", desc: "Browse services and select the one that best suits your needs.", Icon: CalendarDays },
+                { title: "Request a time", desc: "Share your availability and we will confirm your appointment.", Icon: Send },
+                { title: "Visit the centre", desc: "Attend your appointment at our Swakopmund location.", Icon: MapPin },
+                { title: "Receive support", desc: "Get your assessment and personalised wellness support.", Icon: Heart },
+              ].map(({ title, desc, Icon }) => (
+                <div key={title} className="rounded-2xl bg-surface p-5">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-background text-primary"><Icon className="h-5 w-5" /></span>
+                  <h3 className="mt-5 font-semibold">{title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{desc}</p>
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        {/* FAQ preview */}
-        <section className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-3xl tracking-[-0.03em] sm:text-4xl">Common questions</h2>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">Quick answers to the most common questions about our services.</p>
+        <section className="mx-auto grid max-w-6xl gap-8 px-5 pb-16 sm:px-8 lg:grid-cols-[1fr_0.9fr]">
+          <div>
+            <p className="text-xs font-semibold uppercase text-primary">Why choose Swakop Wellness</p>
+            <h2 className="mt-3 text-3xl font-semibold">Care that sees the whole you</h2>
+            <div className="mt-6 grid gap-5 sm:grid-cols-2">
+              {[
+                { title: "Personalised care", desc: "We take time to understand your health history and goals.", Icon: CalendarDays },
+                { title: "Non-invasive approach", desc: "Our services are gentle, safe, and support your body naturally.", Icon: ShieldCheck },
+                { title: "Experienced guidance", desc: "Professional assessments and evidence-informed support.", Icon: Stethoscope },
+                { title: "Holistic wellbeing", desc: "We look at the bigger picture to support lasting balance.", Icon: Heart },
+              ].map(({ title, desc, Icon }) => (
+                <div key={title} className="flex gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-muted text-primary"><Icon className="h-5 w-5" /></span>
+                  <div>
+                    <h3 className="font-semibold">{title}</h3>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{desc}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-            <Link href="/faqs" className="inline-flex h-10 items-center rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted">
-              View all FAQs
-            </Link>
           </div>
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
-            {faqs.slice(0, 2).map((faq) => (
-              <article key={faq.id} className="rounded-xl border border-border bg-surface p-5">
-                <h3 className="text-sm font-semibold">{faq.question}</h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{faq.answer}</p>
-              </article>
+          <aside className="rounded-2xl border border-warning/25 bg-warning/10 p-6">
+            <p className="flex items-center gap-2 font-semibold"><AlertTriangle className="h-5 w-5 text-warning" /> Important - please read</p>
+            <p className="mt-4 text-sm leading-6 text-muted-foreground">{business.medicalDisclaimer}</p>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">If you have a medical condition or are under medical care, please consult your healthcare provider before booking.</p>
+          </aside>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-5 pb-16 sm:px-8">
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase text-primary">FAQ</p>
+              <h2 className="mt-3 text-3xl font-semibold">Questions you might have</h2>
+            </div>
+            <Link href="/faqs" className="hidden h-11 items-center rounded-xl border border-border px-4 text-sm font-semibold hover:bg-surface-muted sm:inline-flex">View all FAQs</Link>
+          </div>
+          <div className="mt-6 grid gap-3 md:grid-cols-2">
+            {faqs.slice(0, 4).map((faq) => (
+              <Link key={faq.id} href="/faqs" className="rounded-xl border border-border bg-surface p-4 text-sm font-semibold hover:bg-surface-muted">{faq.question}</Link>
             ))}
           </div>
         </section>
 
-        {/* Final CTA */}
-        <section className="mx-auto max-w-6xl px-5 py-16 sm:px-8">
-          <div className="rounded-2xl border border-border bg-surface p-8 text-center shadow-[0_4px_24px_oklch(0.235_0.025_158_/_0.04)] sm:p-12">
-            <h2 className="text-3xl tracking-[-0.03em] sm:text-4xl">Ready to get started?</h2>
-            <p className="mx-auto mt-4 max-w-[50ch] text-sm leading-6 text-muted-foreground">
-              Request an appointment online or chat with our booking assistant. Our team will follow up to confirm your session.
-            </p>
-            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <Link href="/book" className="inline-flex h-12 items-center justify-center rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[0_2px_8px_oklch(0.355_0.074_159_/_0.25)] transition-all duration-200 hover:bg-primary/90 hover:shadow-[0_4px_16px_oklch(0.355_0.074_159_/_0.35)]">
-                Book an appointment
-              </Link>
-              <Link href="/chat" className="inline-flex h-12 items-center justify-center rounded-xl border border-border px-6 text-sm font-semibold transition-colors hover:bg-surface-muted">
-                Chat to book
-              </Link>
+        <section className="mx-auto max-w-6xl px-5 pb-16 sm:px-8">
+          <p className="text-xs font-semibold uppercase text-primary">Visit us</p>
+          <h2 className="mt-3 text-3xl font-semibold">Contact &amp; Location</h2>
+          <div className="mt-6 grid gap-5 lg:grid-cols-[1fr_1fr]">
+            <div className="rounded-2xl border border-border bg-surface p-5">
+              <div className="grid min-h-48 place-items-center rounded-xl bg-[linear-gradient(135deg,oklch(0.924_0.025_116),oklch(0.988_0.009_85))] text-center text-sm text-muted-foreground">
+                <span>{business.address}</span>
+              </div>
+              <div className="mt-5 grid gap-3 text-sm text-muted-foreground">
+                <p className="flex gap-2"><MapPin className="h-5 w-5 text-primary" />{business.address}</p>
+                {communication.enableCalls ? <p className="flex gap-2"><Phone className="h-5 w-5 text-primary" />{communication.mainPhone}</p> : null}
+                {communication.enableEmailContact ? <p className="flex gap-2"><Mail className="h-5 w-5 text-primary" />{communication.businessEmail}</p> : null}
+                <p className="flex gap-2"><Clock className="h-5 w-5 text-primary" />{business.operatingHours} - {business.appointmentModel}</p>
+              </div>
+            </div>
+            <div className="rounded-2xl border border-border bg-surface p-5">
+              <h3 className="font-semibold">Send us a message</h3>
+              <p className="mt-1 text-sm text-muted-foreground">We will get back to you to confirm your appointment.</p>
+              <div className="mt-5">
+                <ContactForm action={submitContactMessage} />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-5 pb-16 sm:px-8">
+          <div className="overflow-hidden rounded-2xl bg-primary text-primary-foreground">
+            <div className="bg-[linear-gradient(90deg,oklch(0.235_0.025_158_/_0.70),oklch(0.235_0.025_158_/_0.20)),url('/images/contact-room.png')] bg-cover bg-center px-6 py-12 sm:px-10">
+              <h2 className="text-3xl font-semibold">Ready to feel more balanced?</h2>
+              <p className="mt-2 text-primary-foreground/80">Book an appointment online or call us to get started.</p>
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                <Link href="/book" className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground ring-1 ring-primary-foreground/10">Book appointment</Link>
+                {communication.enableCalls ? <a href={`tel:${communication.mainPhone.replaceAll(" ", "")}`} className="inline-flex h-11 items-center justify-center rounded-xl border border-primary-foreground/55 px-5 text-sm font-semibold">Call now</a> : null}
+              </div>
             </div>
           </div>
         </section>

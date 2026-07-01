@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AlertTriangle, Clock } from "lucide-react";
 import { PageShell } from "@/public/components";
 import { formatMoney, getBusinessSettings, getCommunicationSettings, getPublicServices } from "@/public/data";
 
@@ -7,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Services",
-  description: "Explore our wellness services, prices and descriptions. Book an appointment or chat with our booking assistant.",
+  description: "Explore our wellness services, prices and descriptions. Book an appointment online.",
 };
 
 export default async function ServicesPage() {
@@ -15,32 +16,54 @@ export default async function ServicesPage() {
 
   return (
     <PageShell business={business} communication={communication}>
-      <main className="mx-auto max-w-6xl px-5 py-12 sm:px-8">
-        <h1 className="text-5xl font-semibold tracking-[-0.05em]">Services</h1>
-        <p className="mt-4 max-w-[65ch] text-muted-foreground">Prices and service details are loaded from editable service records.</p>
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
-          {services.map((service) => (
-            <Link key={service.id} href={`/services/${service.slug}`} className="group rounded-2xl border border-border bg-surface transition-colors hover:bg-surface-muted">
-              {service.featuredImage?.publicUrl ? (
-                <div className="aspect-[16/9] overflow-hidden rounded-t-2xl bg-surface">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- media URLs are administrator-managed R2/public URLs. */}
-                  <img src={service.featuredImage.publicUrl} alt={service.featuredImage.altText ?? service.name} className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" loading="lazy" />
-                </div>
-              ) : null}
-              <article className="p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <h2 className="text-2xl font-semibold tracking-[-0.035em]">{service.name}</h2>
-                  <p className="text-sm font-semibold text-primary">{formatMoney(service.priceCents, business.currencySymbol)}</p>
-                </div>
-                <p className="mt-3 text-sm leading-6 text-muted-foreground">{service.shortDescription}</p>
-                <div className="mt-5 flex gap-3">
-                  <span className="text-sm font-semibold text-primary underline underline-offset-4">Details</span>
-                  {service.bookingEnabled ? <span className="text-sm font-semibold text-primary underline underline-offset-4">Book</span> : null}
+      <main>
+        <section className="mx-auto max-w-6xl px-5 py-16 text-center sm:px-8">
+          <p className="inline-flex rounded-full bg-surface-muted px-4 py-2 text-sm font-semibold text-primary">Services</p>
+          <h1 className="mx-auto mt-5 max-w-3xl text-5xl font-semibold sm:text-6xl">Complementary wellness services by appointment</h1>
+          <p className="mx-auto mt-5 max-w-2xl text-muted-foreground">Choose from non-invasive assessments and frequency-based support. Prices, durations and service details are loaded from editable service records.</p>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-5 pb-16 sm:px-8">
+          <div className="grid gap-6 md:grid-cols-2">
+            {services.map((service) => (
+              <article key={service.id} className="overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_8px_30px_oklch(0.235_0.025_158_/_0.04)]">
+                {service.featuredImage?.publicUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- media URLs are administrator-managed public URLs.
+                  <img src={service.featuredImage.publicUrl} alt={service.featuredImage.altText ?? service.name} className="aspect-[16/9] w-full object-cover" loading="lazy" />
+                ) : (
+                  <div className="aspect-[16/9] bg-[linear-gradient(135deg,oklch(0.924_0.025_116),oklch(0.988_0.009_85))]" />
+                )}
+                <div className="p-6">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <h2 className="text-2xl font-semibold">{service.name}</h2>
+                    <span className="text-lg font-semibold text-primary">{formatMoney(service.priceCents, business.currencySymbol)}</span>
+                  </div>
+                  <p className="mt-3 text-sm leading-6 text-muted-foreground">{service.shortDescription}</p>
+                  <p className="mt-4 flex items-center gap-2 text-sm text-muted-foreground"><Clock className="h-4 w-4" />{service.durationMinutes ?? 30} minutes</p>
+                  <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                    <Link href={`/services/${service.slug}`} className="inline-flex h-11 items-center justify-center rounded-xl border border-border px-4 text-sm font-semibold hover:bg-surface-muted">View details</Link>
+                    {service.bookingEnabled ? <Link href={`/book?service=${service.slug}`} className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground">Book this service</Link> : null}
+                  </div>
                 </div>
               </article>
-            </Link>
-          ))}
-        </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-5 pb-16 sm:px-8">
+          <div className="rounded-2xl border border-warning/25 bg-warning/10 p-6">
+            <p className="flex items-center gap-2 font-semibold"><AlertTriangle className="h-5 w-5 text-warning" /> Complementary wellness notice</p>
+            <p className="mt-3 max-w-4xl text-sm leading-6 text-muted-foreground">{business.medicalDisclaimer}</p>
+          </div>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-5 pb-16 sm:px-8">
+          <div className="rounded-2xl bg-primary p-8 text-center text-primary-foreground sm:p-10">
+            <h2 className="text-3xl font-semibold">Ready to request an appointment?</h2>
+            <p className="mt-3 text-primary-foreground/75">Our team will review availability and confirm your request.</p>
+            <Link href="/book" className="mt-6 inline-flex h-12 items-center justify-center rounded-xl bg-primary-foreground px-6 text-sm font-semibold text-primary">Book appointment</Link>
+          </div>
+        </section>
       </main>
     </PageShell>
   );

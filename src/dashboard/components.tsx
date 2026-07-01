@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
@@ -48,9 +49,14 @@ const linkGroups = [
 
 function BrandMark() {
   return (
-    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary text-[10px] font-bold tracking-wider text-primary-foreground">
-      SW
-    </span>
+    <Image
+      src="/brand/logo-green.svg"
+      alt="Swakop Wellness Centre"
+      width={130}
+      height={76}
+      className="h-auto w-24 shrink-0 sm:w-28"
+      priority
+    />
   );
 }
 
@@ -91,9 +97,8 @@ export function DashboardSidebar({ onNavClick }: { onNavClick?: () => void }) {
 
   return (
     <nav aria-label="Dashboard navigation" className="flex flex-col gap-6">
-      <Link href="/dashboard" className="flex items-center gap-3 px-2 text-sm font-semibold" onClick={onNavClick}>
+      <Link href="/dashboard" className="flex items-center px-2" onClick={onNavClick} aria-label="Dashboard">
         <BrandMark />
-        Dashboard
       </Link>
       {linkGroups.map((group) => (
         <div key={group.label}>
@@ -156,9 +161,8 @@ export function DashboardLayout({ children, signOutForm }: { children: React.Rea
               <path d="M4 6l16 0M4 12l16 0M4 18l16 0" />
             </svg>
           </button>
-          <Link href="/dashboard" className="flex items-center gap-2 text-sm font-semibold">
+          <Link href="/dashboard" className="flex items-center" aria-label="Dashboard">
             <BrandMark />
-            Dashboard
           </Link>
         </header>
 

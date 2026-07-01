@@ -1,15 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Error({ reset }: { error: Error & { digest?: string }; reset: () => void }) {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-background px-8 text-center text-foreground">
-      <Link href="/" className="flex items-center gap-3 text-sm font-semibold">
-        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-sm font-bold tracking-wider text-primary-foreground">
-          SW
-        </span>
-        Swakop Wellness Centre
+      <Link href="/" className="flex items-center" aria-label="Swakop Wellness Centre">
+        <Image
+          src="/brand/logo-green.svg"
+          alt="Swakop Wellness Centre"
+          width={128}
+          height={75}
+          priority
+          className="h-auto w-28"
+        />
       </Link>
       <div className="mt-8 max-w-sm">
         <h1 className="text-4xl tracking-[-0.03em]">Something went wrong</h1>
