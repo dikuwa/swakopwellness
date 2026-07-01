@@ -75,6 +75,17 @@ export default async function NewReceiptPage() {
           </div>
 
           <div>
+            <label htmlFor="description" className="mb-2 block text-sm font-semibold">Payment Description</label>
+            <input
+              id="description"
+              name="description"
+              type="text"
+              className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="e.g. Basic Health Scan, consultation, custom item"
+            />
+          </div>
+
+          <div>
             <label htmlFor="invoiceId" className="mb-2 block text-sm font-semibold">Linked Invoice (optional)</label>
             <input
               id="invoiceId"

@@ -45,6 +45,7 @@ export default async function ReceiptsPage() {
                   <th>Date</th>
                   <th>Method</th>
                   <th>Status</th>
+                  <th className="text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -71,6 +72,12 @@ export default async function ReceiptsPage() {
                             Active
                           </span>
                         )}
+                      </td>
+                      <td className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Link href={`/dashboard/receipts/${r.id}`} className="font-semibold text-primary hover:underline">Preview</Link>
+                          <a href={`/api/receipts/${r.id}/pdf`} target="_blank" className="font-semibold text-primary hover:underline">PDF</a>
+                        </div>
                       </td>
                     </tr>
                   );

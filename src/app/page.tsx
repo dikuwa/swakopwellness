@@ -66,25 +66,27 @@ export default async function Home() {
             </div>
             <Link href="/services" className="inline-flex h-11 items-center justify-center rounded-xl border border-border px-4 text-sm font-semibold hover:bg-surface-muted">View all services</Link>
           </div>
-          <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-8 grid items-stretch gap-5 md:grid-cols-2 lg:grid-cols-4">
             {services.map((service) => (
-              <article key={service.id} className="overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_8px_30px_oklch(0.235_0.025_158_/_0.04)]">
+              <article key={service.id} className="flex h-full overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_8px_30px_oklch(0.235_0.025_158_/_0.04)]">
+                <div className="flex min-h-full w-full flex-col">
                 {service.featuredImage?.publicUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- media URLs are administrator-managed public URLs.
                   <img src={service.featuredImage.publicUrl} alt={service.featuredImage.altText ?? service.name} className="aspect-[4/3] w-full object-cover" loading="lazy" />
                 ) : (
                   <div className="aspect-[4/3] bg-[linear-gradient(135deg,oklch(0.924_0.025_116),oklch(0.988_0.009_85))]" />
                 )}
-                <div className="p-5">
+                <div className="flex flex-1 flex-col p-5">
                   <div className="flex items-start justify-between gap-3">
                     <h3 className="text-lg font-semibold">{service.name}</h3>
                     <span className="rounded-full bg-surface-muted px-2.5 py-1 text-xs font-semibold text-primary">{formatMoney(service.priceCents, business.currencySymbol)}</span>
                   </div>
                   <p className="mt-3 text-sm leading-6 text-muted-foreground">{service.shortDescription}</p>
-                  <div className="mt-5 flex items-center justify-between text-xs text-muted-foreground">
+                  <div className="mt-auto flex items-center justify-between gap-3 pt-5 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1"><Clock className="h-4 w-4" />{service.durationMinutes ?? 30} minutes</span>
                     <Link href={`/services/${service.slug}`} className="font-semibold text-primary">Learn more</Link>
                   </div>
+                </div>
                 </div>
               </article>
             ))}

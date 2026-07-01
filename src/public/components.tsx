@@ -1,7 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
-import { CalendarDays, Mail, MapPin, Menu, Phone, X } from "lucide-react";
+import { CalendarDays, Mail, MapPin, Phone } from "lucide-react";
 import { getPublicServices } from "@/public/data";
+import { MobileNavDrawer, PrimaryNavLinks, type NavLink } from "@/public/nav";
 
 type Business = {
   businessName: string;
@@ -20,13 +21,17 @@ type Communication = {
   whatsappNumber: string | null;
 };
 
-const navLinks = [
+const primaryNavLinks: NavLink[] = [
   { href: "/", label: "Home" },
   { href: "/services", label: "Services" },
   { href: "/about", label: "About" },
   { href: "/faqs", label: "FAQs" },
   { href: "/book", label: "Book" },
   { href: "/contact", label: "Contact" },
+];
+
+const footerNavLinks: NavLink[] = [
+  ...primaryNavLinks,
   { href: "/policies", label: "Policies" },
 ];
 
@@ -40,28 +45,8 @@ function BrandLogo({ variant = "green", className = "" }: { variant?: "green" | 
       width={150}
       height={88}
       priority={variant === "green"}
-      className={`h-auto w-24 shrink-0 sm:w-28 ${className}`}
+      className={`h-12 w-auto shrink-0 object-contain sm:h-14 ${className}`}
     />
-  );
-}
-
-function MobileNav() {
-  return (
-    <details className="group md:hidden">
-      <summary className="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-xl border border-border transition-colors hover:bg-surface-muted" aria-label="Toggle navigation menu">
-        <Menu className="h-5 w-5 text-foreground group-open:hidden" aria-hidden="true" />
-        <X className="hidden h-5 w-5 text-foreground group-open:block" aria-hidden="true" />
-      </summary>
-      <div className="fixed inset-x-5 top-20 z-50">
-        <nav aria-label="Mobile navigation" className="rounded-2xl border border-border bg-surface p-4 shadow-[0_8px_32px_oklch(0.235_0.025_158_/_0.08)]">
-          {navLinks.map((link) => (
-            <Link key={link.href} href={link.href} className="block rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors hover:bg-surface-muted">
-              {link.label}
-            </Link>
-          ))}
-        </nav>
-      </div>
-    </details>
   );
 }
 
@@ -71,16 +56,12 @@ export function PublicHeader({ business, communication }: { business: Business; 
   return (
     <header className="fixed inset-x-0 top-0 z-50">
       <div className="mx-auto max-w-6xl px-5 pt-4 sm:px-8">
-        <div className="flex min-h-16 items-center justify-between gap-4 rounded-2xl border border-border bg-background/95 px-5 shadow-[0_4px_24px_oklch(0.235_0.025_158_/_0.04)] backdrop-blur supports-[backdrop-filter]:bg-background/85">
-          <Link href="/" className="flex items-center" aria-label={business.businessName}>
+        <div className="flex min-h-18 items-center justify-between gap-4 rounded-2xl border border-border bg-background/95 px-6 shadow-[0_4px_24px_oklch(0.235_0.025_158_/_0.04)] backdrop-blur supports-[backdrop-filter]:bg-background/85">
+          <Link href="/" className="flex min-w-0 items-center py-2 pr-2" aria-label={business.businessName}>
             <BrandLogo />
           </Link>
-          <nav aria-label="Primary navigation" className="hidden items-center gap-1 text-sm text-muted-foreground md:flex">
-            {navLinks.map((link) => (
-              <Link key={link.href} href={link.href} className="rounded-xl px-3 py-2 transition-colors hover:bg-surface-muted hover:text-foreground">
-                {link.label}
-              </Link>
-            ))}
+          <nav aria-label="Primary navigation" className="hidden items-center gap-1 text-sm text-muted-foreground lg:flex">
+            <PrimaryNavLinks links={primaryNavLinks} />
           </nav>
           <div className="flex items-center gap-2">
             {showCall ? (
@@ -92,7 +73,7 @@ export function PublicHeader({ business, communication }: { business: Business; 
               <span className="sm:hidden">Book</span>
               <span className="hidden sm:inline">Book Appointment</span>
             </Link>
-            <MobileNav />
+            <MobileNavDrawer links={primaryNavLinks} />
           </div>
         </div>
       </div>
@@ -136,7 +117,7 @@ export function PublicFooter({ business, communication, services }: { business: 
           <div>
             <p className="text-sm font-semibold">Quick Links</p>
             <div className="mt-3 grid gap-2 text-sm text-primary-foreground/75">
-              {navLinks.map((link) => (
+              {footerNavLinks.map((link) => (
                 <Link key={link.href} href={link.href} className="hover:text-primary-foreground">{link.label}</Link>
               ))}
             </div>

@@ -1,3 +1,4 @@
+import { and, eq, isNull } from "drizzle-orm";
 import { getDb } from "../src/db/client";
 import {
   bookingRules,
@@ -5,6 +6,7 @@ import {
   communicationSettings,
   documentNumberSequences,
   faqs,
+  mediaAssets,
   policies,
   serviceCategories,
   serviceQuestions,
@@ -156,6 +158,78 @@ async function main() {
     }
     await db.insert(services).values({ ...svc, categoryId: categoryId ?? null } as typeof svc & { categoryId: string | null });
     console.log(`Seeded service "${svc.name}"`);
+  }
+
+  // ── Editable Service Images ───────────────────────────────────
+  const serviceImages = [
+    {
+      slug: "basic-health-scan",
+      storageKey: "seed/services/basic-health-scan.png",
+      publicUrl: "/images/services/basic-health-scan.png",
+      altText: "Calm wellness assessment room with scanner equipment",
+      mimeType: "image/png",
+      byteSize: 1769234,
+      width: 1672,
+      height: 941,
+    },
+    {
+      slug: "frequency-therapy",
+      storageKey: "seed/services/frequency-therapy.png",
+      publicUrl: "/images/services/frequency-therapy.png",
+      altText: "Frequency therapy room with comfortable treatment chair",
+      mimeType: "image/png",
+      byteSize: 1902127,
+      width: 1672,
+      height: 941,
+    },
+    {
+      slug: "meridians",
+      storageKey: "seed/services/meridians.png",
+      publicUrl: "/images/services/meridians.png",
+      altText: "Meridian wellness support room with botanical details",
+      mimeType: "image/png",
+      byteSize: 2021816,
+      width: 1672,
+      height: 941,
+    },
+    {
+      slug: "food-tolerance-and-nutrition-testing",
+      storageKey: "seed/services/food-tolerance-and-nutrition-testing.png",
+      publicUrl: "/images/services/food-tolerance-and-nutrition-testing.png",
+      altText: "Nutrition testing consultation table with fresh whole foods",
+      mimeType: "image/png",
+      byteSize: 2083707,
+      width: 1672,
+      height: 941,
+    },
+  ];
+
+  const existingMedia = await db.select({ id: mediaAssets.id, storageKey: mediaAssets.storageKey }).from(mediaAssets);
+  const mediaByKey = new Map(existingMedia.map((asset) => [asset.storageKey, asset.id]));
+
+  for (const image of serviceImages) {
+    let mediaId = mediaByKey.get(image.storageKey);
+    if (!mediaId) {
+      const [asset] = await db
+        .insert(mediaAssets)
+        .values({
+          storageKey: image.storageKey,
+          publicUrl: image.publicUrl,
+          altText: image.altText,
+          mimeType: image.mimeType,
+          byteSize: image.byteSize,
+          width: image.width,
+          height: image.height,
+        })
+        .returning({ id: mediaAssets.id });
+      mediaId = asset.id;
+      console.log(`Seeded media asset "${image.storageKey}"`);
+    }
+
+    await db
+      .update(services)
+      .set({ featuredImageId: mediaId, updatedAt: new Date() })
+      .where(and(eq(services.slug, image.slug), isNull(services.featuredImageId)));
   }
 
   // ── Suitability Questions ──────────────────────────────────────

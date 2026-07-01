@@ -53,6 +53,7 @@ export default async function InvoicesPage() {
               <th>Total</th>
               <th>Status</th>
               <th>Balance</th>
+              <th className="text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -69,11 +70,17 @@ export default async function InvoicesPage() {
                 <td>N${(inv.totalCents / 100).toFixed(2)}</td>
                 <td><StatusBadge status={inv.status} /></td>
                 <td>N${(inv.balanceCents / 100).toFixed(2)}</td>
+                <td className="text-right">
+                  <div className="flex justify-end gap-2">
+                    <Link href={`/dashboard/invoices/${inv.id}`} className="font-semibold text-primary hover:underline">Preview</Link>
+                    <a href={`/api/invoices/${inv.id}/pdf`} target="_blank" className="font-semibold text-primary hover:underline">PDF</a>
+                  </div>
+                </td>
               </tr>
             ))}
             {invoices.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-sm text-muted-foreground">
+                <td colSpan={8} className="py-8 text-center text-sm text-muted-foreground">
                   No invoices yet.
                 </td>
               </tr>

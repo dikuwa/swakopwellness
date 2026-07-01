@@ -7,27 +7,34 @@ import { useState } from "react";
 
 const linkGroups = [
   {
-    label: "Business",
+    label: "Operations",
     links: [
       { href: "/dashboard", label: "Overview" },
       { href: "/dashboard/bookings", label: "Bookings" },
       { href: "/dashboard/calendar", label: "Calendar" },
-      { href: "/dashboard/chat-conversations", label: "Chat" },
       { href: "/dashboard/follow-ups", label: "Follow-ups" },
       { href: "/dashboard/clients", label: "Clients" },
     ],
   },
   {
-    label: "Services",
+    label: "Content",
     links: [
-      { href: "/dashboard/services", label: "Services" },
+      {
+        href: "/dashboard/services",
+        label: "Services",
+        children: [
+          { href: "/dashboard/services/categories", label: "Categories" },
+          { href: "/dashboard/services/suitability", label: "Screening" },
+        ],
+      },
       { href: "/dashboard/faqs", label: "FAQs" },
       { href: "/dashboard/policies", label: "Policies" },
       { href: "/dashboard/media", label: "Media" },
+      { href: "/dashboard/chat-conversations", label: "Chat" },
     ],
   },
   {
-    label: "Finance",
+    label: "Finance & Documents",
     links: [
       { href: "/dashboard/invoices", label: "Invoices" },
       { href: "/dashboard/quotations", label: "Quotations" },
@@ -42,7 +49,16 @@ const linkGroups = [
       { href: "/dashboard/notifications", label: "Notifications" },
       { href: "/dashboard/activity-log", label: "Activity Log" },
       { href: "/dashboard/users", label: "Users" },
-      { href: "/dashboard/settings", label: "Settings" },
+      {
+        href: "/dashboard/settings",
+        label: "Settings",
+        children: [
+          { href: "/dashboard/settings/business", label: "Business" },
+          { href: "/dashboard/settings/communication", label: "Communication" },
+          { href: "/dashboard/settings/booking-rules", label: "Booking Rules" },
+          { href: "/dashboard/settings/document-numbering", label: "Document Numbering" },
+        ],
+      },
     ],
   },
 ];
@@ -105,20 +121,44 @@ export function DashboardSidebar({ onNavClick }: { onNavClick?: () => void }) {
           <p className="mb-1 px-2 text-[11px] font-semibold tracking-widest text-muted-foreground uppercase">{group.label}</p>
           <div className="flex flex-col gap-0.5">
             {group.links.map((link) => {
-              const active = pathname === link.href;
+              const active = link.href === "/dashboard" ? pathname === link.href : pathname === link.href || pathname.startsWith(`${link.href}/`);
               return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={onNavClick}
-                  className={`rounded-xl px-3 py-2 text-sm font-medium transition-colors duration-150 ${
-                    active
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-surface-muted hover:text-foreground"
-                  }`}
-                >
-                  {link.label}
-                </Link>
+                <div key={link.href}>
+                  <Link
+                    href={link.href}
+                    onClick={onNavClick}
+                    aria-current={active ? "page" : undefined}
+                    className={`flex items-center rounded-xl px-3 py-2 text-sm font-medium transition-colors duration-150 ${
+                      active
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-surface-muted hover:text-foreground"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                  {"children" in link && link.children && (active || link.children.some((child) => pathname === child.href || pathname.startsWith(`${child.href}/`))) ? (
+                    <div className="mt-1 grid gap-0.5 border-l border-border pl-3 ml-3">
+                      {link.children.map((child) => {
+                        const childActive = pathname === child.href || pathname.startsWith(`${child.href}/`);
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            onClick={onNavClick}
+                            aria-current={childActive ? "page" : undefined}
+                            className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                              childActive
+                                ? "bg-surface-muted text-foreground"
+                                : "text-muted-foreground hover:bg-surface-muted hover:text-foreground"
+                            }`}
+                          >
+                            {child.label}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  ) : null}
+                </div>
               );
             })}
           </div>

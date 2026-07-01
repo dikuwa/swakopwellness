@@ -17,6 +17,7 @@ interface Client {
 interface Service {
   id: string;
   name: string;
+  priceCents: number;
 }
 
 interface LineItem {
@@ -24,6 +25,7 @@ interface LineItem {
   quantity: number;
   unitPrice: string;
   serviceId: string;
+  discount: string;
 }
 
 export function QuotationForm({
@@ -34,11 +36,11 @@ export function QuotationForm({
   services: Service[];
 }) {
   const [items, setItems] = useState<LineItem[]>([
-    { description: "", quantity: 1, unitPrice: "", serviceId: "" },
+    { description: "", quantity: 1, unitPrice: "", serviceId: "", discount: "" },
   ]);
 
   function addItem() {
-    setItems((prev) => [...prev, { description: "", quantity: 1, unitPrice: "", serviceId: "" }]);
+    setItems((prev) => [...prev, { description: "", quantity: 1, unitPrice: "", serviceId: "", discount: "" }]);
   }
 
   function removeItem(index: number) {
@@ -56,6 +58,7 @@ export function QuotationForm({
     updateItem(index, "serviceId", serviceId);
     if (service) {
       updateItem(index, "description", service.name);
+      updateItem(index, "unitPrice", (service.priceCents / 100).toFixed(2));
     }
   }
 
@@ -109,7 +112,7 @@ export function QuotationForm({
                 onClick={addItem}
                 className="h-9 rounded-xl border border-border px-3 text-sm font-semibold transition-colors hover:bg-surface-muted"
               >
-                Add Item
+                Add custom item
               </button>
             </div>
             <div className="space-y-3">
@@ -117,7 +120,7 @@ export function QuotationForm({
                 <div key={i} className="flex flex-wrap items-end gap-3 rounded-2xl border border-border bg-background p-4">
                   <input type="hidden" name={`service_id_${i}`} value={item.serviceId} />
                   <div className="flex-1 min-w-[180px]">
-                    <label className="block text-xs font-semibold text-muted-foreground mb-1">Service</label>
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">Service or custom item</label>
                     <select
                       value={item.serviceId}
                       onChange={(e) => handleServiceSelect(i, e.target.value)}
@@ -165,6 +168,22 @@ export function QuotationForm({
                         required
                         value={item.unitPrice}
                         onChange={(e) => updateItem(i, "unitPrice", e.target.value)}
+                        placeholder="0.00"
+                        className="h-11 w-full rounded-xl border border-border bg-background pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                    </div>
+                  </div>
+                  <div className="w-28">
+                    <label className="block text-xs font-semibold text-muted-foreground mb-1">Line Discount</label>
+                    <div className="relative">
+                      <span className="pointer-events-none absolute inset-y-0 left-3 flex items-center text-sm text-muted-foreground">N$</span>
+                      <input
+                        name={`discount_${i}`}
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={item.discount}
+                        onChange={(e) => updateItem(i, "discount", e.target.value)}
                         placeholder="0.00"
                         className="h-11 w-full rounded-xl border border-border bg-background pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                       />

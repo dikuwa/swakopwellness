@@ -12,6 +12,7 @@ export interface RecordPaymentInput {
   paymentDate: Date;
   method: string;
   reference?: string | null;
+  description?: string | null;
   notes?: string | null;
   recordedByUserId: string;
   generateReceipt?: boolean;
@@ -94,6 +95,7 @@ export async function recordPayment(input: RecordPaymentInput): Promise<PaymentR
           paymentDate: input.paymentDate,
           paymentMethod: input.method,
           paymentReference: input.reference ?? null,
+          description: input.description ?? null,
           notes: input.notes ?? null,
           receivedByUserId: input.recordedByUserId,
         })
@@ -118,5 +120,4 @@ export async function recordPayment(input: RecordPaymentInput): Promise<PaymentR
   }
   return result;
 }
-
 

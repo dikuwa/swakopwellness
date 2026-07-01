@@ -29,18 +29,26 @@ export async function createQuotationAction(formData: FormData) {
     const description = formData.get(`description_${i}`) as string;
     const quantityStr = formData.get(`quantity_${i}`) as string;
     const unitPriceStr = formData.get(`unit_price_${i}`) as string;
+    const discountStr = formData.get(`discount_${i}`) as string;
     const serviceId = (formData.get(`service_id_${i}`) as string) || null;
 
     if (!description || !quantityStr || !unitPriceStr) {
       throw new Error(`Line item ${i + 1} is incomplete.`);
     }
 
+    const quantity = parseInt(quantityStr) || 1;
+    const unitPriceCents = Math.round((parseFloat(unitPriceStr) || 0) * 100);
+    const discountCents = Math.round((parseFloat(discountStr) || 0) * 100);
+    if (discountCents > quantity * unitPriceCents) {
+      throw new Error(`Line item ${i + 1} discount cannot exceed the line total.`);
+    }
+
     lineItems.push({
       description,
-      quantity: parseInt(quantityStr) || 1,
-      unitPriceCents: Math.round((parseFloat(unitPriceStr) || 0) * 100),
+      quantity,
+      unitPriceCents,
       serviceId,
-      discountCents: 0,
+      discountCents,
     });
   }
 

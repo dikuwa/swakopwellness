@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { requirePermission } from "@/auth/session";
 import { getQuotationById } from "@/dashboard/data";
 import { getDb } from "@/db/client";
 import { businessSettings, clients } from "@/db/schema";
@@ -8,6 +9,7 @@ import { generateQuotationPdf } from "@/documents/pdf";
 export const dynamic = "force-dynamic";
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  await requirePermission("financials:view");
   const { id } = await params;
   const quotation = await getQuotationById(id);
   if (!quotation) notFound();

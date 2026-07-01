@@ -24,26 +24,30 @@ export default async function ServicesPage() {
         </section>
 
         <section className="mx-auto max-w-6xl px-5 pb-16 sm:px-8">
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid items-stretch gap-6 md:grid-cols-2">
             {services.map((service) => (
-              <article key={service.id} className="overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_8px_30px_oklch(0.235_0.025_158_/_0.04)]">
+              <article key={service.id} className="flex h-full overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_8px_30px_oklch(0.235_0.025_158_/_0.04)]">
+                <div className="flex min-h-full w-full flex-col">
                 {service.featuredImage?.publicUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- media URLs are administrator-managed public URLs.
                   <img src={service.featuredImage.publicUrl} alt={service.featuredImage.altText ?? service.name} className="aspect-[16/9] w-full object-cover" loading="lazy" />
                 ) : (
                   <div className="aspect-[16/9] bg-[linear-gradient(135deg,oklch(0.924_0.025_116),oklch(0.988_0.009_85))]" />
                 )}
-                <div className="p-6">
+                <div className="flex flex-1 flex-col p-6">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <h2 className="text-2xl font-semibold">{service.name}</h2>
                     <span className="text-lg font-semibold text-primary">{formatMoney(service.priceCents, business.currencySymbol)}</span>
                   </div>
                   <p className="mt-3 text-sm leading-6 text-muted-foreground">{service.shortDescription}</p>
-                  <p className="mt-4 flex items-center gap-2 text-sm text-muted-foreground"><Clock className="h-4 w-4" />{service.durationMinutes ?? 30} minutes</p>
+                  <div className="mt-auto pt-5">
+                    <p className="flex items-center gap-2 text-sm text-muted-foreground"><Clock className="h-4 w-4" />{service.durationMinutes ?? 30} minutes</p>
+                  </div>
                   <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                     <Link href={`/services/${service.slug}`} className="inline-flex h-11 items-center justify-center rounded-xl border border-border px-4 text-sm font-semibold hover:bg-surface-muted">View details</Link>
                     {service.bookingEnabled ? <Link href={`/book?service=${service.slug}`} className="inline-flex h-11 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground">Book this service</Link> : null}
                   </div>
+                </div>
                 </div>
               </article>
             ))}

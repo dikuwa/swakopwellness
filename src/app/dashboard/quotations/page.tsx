@@ -53,6 +53,7 @@ export default async function QuotationsPage() {
                 <th>Valid Until</th>
                 <th>Total</th>
                 <th>Status</th>
+                <th className="text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -68,11 +69,17 @@ export default async function QuotationsPage() {
                   <td>{q.validUntil ? q.validUntil.toLocaleDateString("en-NA") : "—"}</td>
                   <td>N${(q.totalCents / 100).toFixed(2)}</td>
                   <td><StatusBadge status={q.status} /></td>
+                  <td className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Link href={`/dashboard/quotations/${q.id}`} className="font-semibold text-primary hover:underline">Preview</Link>
+                      <a href={`/api/quotations/${q.id}/pdf`} target="_blank" className="font-semibold text-primary hover:underline">PDF</a>
+                    </div>
+                  </td>
                 </tr>
               ))}
               {list.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+                  <td colSpan={7} className="py-8 text-center text-sm text-muted-foreground">
                     No quotations yet.
                   </td>
                 </tr>

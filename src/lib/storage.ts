@@ -1,15 +1,17 @@
-import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { env } from "./env";
 
-let client: S3Client | null = null;
+type S3ClientType = import("@aws-sdk/client-s3").S3Client;
+
+let client: S3ClientType | null = null;
 
 function getEndpoint(): string {
   if (env.R2_ENDPOINT) return env.R2_ENDPOINT;
   return `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
 }
 
-function getClient(): S3Client {
+async function getClient(): Promise<S3ClientType> {
   if (!client) {
+    const { S3Client } = await import("@aws-sdk/client-s3");
     client = new S3Client({
       region: "auto",
       endpoint: getEndpoint(),
@@ -31,13 +33,14 @@ export async function uploadFile(
   body: Uint8Array | Blob,
   contentType: string,
 ): Promise<string> {
+  const { PutObjectCommand } = await import("@aws-sdk/client-s3");
   const cmd = new PutObjectCommand({
     Bucket: env.R2_BUCKET_NAME,
     Key: key,
     Body: body,
     ContentType: contentType,
   });
-  await getClient().send(cmd);
+  await (await getClient()).send(cmd);
 
   if (env.R2_PUBLIC_BASE_URL) {
     const base = env.R2_PUBLIC_BASE_URL.replace(/\/+$/, "");
@@ -48,9 +51,10 @@ export async function uploadFile(
 }
 
 export async function deleteFile(key: string): Promise<void> {
+  const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
   const cmd = new DeleteObjectCommand({
     Bucket: env.R2_BUCKET_NAME,
     Key: key,
   });
-  await getClient().send(cmd);
+  await (await getClient()).send(cmd);
 }

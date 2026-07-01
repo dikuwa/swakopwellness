@@ -11,6 +11,7 @@ export async function createReceiptAction(formData: FormData) {
   const amountDollars = formData.get("amount") as string;
   const paymentDateStr = formData.get("paymentDate") as string;
   const method = formData.get("method") as string;
+  const description = (formData.get("description") as string) || null;
   const reference = (formData.get("reference") as string) || null;
   const notes = (formData.get("notes") as string) || null;
   const invoiceId = (formData.get("invoiceId") as string) || null;
@@ -32,6 +33,7 @@ export async function createReceiptAction(formData: FormData) {
     amountCents,
     paymentDate,
     method,
+    description,
     reference,
     notes,
     invoiceId,
