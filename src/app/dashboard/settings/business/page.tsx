@@ -67,10 +67,32 @@ export default async function BusinessSettingsPage() {
             <label htmlFor="medicalDisclaimer" className="mb-1.5 block text-sm font-medium">Medical Disclaimer</label>
             <textarea id="medicalDisclaimer" name="medicalDisclaimer" defaultValue={settings.medicalDisclaimer} required rows={4} className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-foreground" />
           </div>
-          <div>
-            <label htmlFor="documentDetails" className="mb-1.5 block text-sm font-medium">Document Details (JSON)</label>
-            <textarea id="documentDetails" name="documentDetails" defaultValue={JSON.stringify(settings.documentDetails, null, 2)} rows={6} className="w-full rounded-xl border border-border bg-surface px-4 py-3 font-mono text-sm text-foreground" />
-            <p className="mt-1 text-xs text-muted-foreground">Custom JSON data included in document templates (banking details, footer, etc.).</p>
+          <div className="border-t border-border pt-6 mt-6">
+            <h2 className="text-lg font-semibold">Document Details</h2>
+            <p className="mt-1 text-sm text-muted-foreground">These appear on invoices, receipts, and quotations.</p>
+
+            <div className="mt-4 space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="registrationNumber" className="mb-1.5 block text-sm font-medium">Registration Number</label>
+                  <input id="registrationNumber" name="registrationNumber" defaultValue={(settings.documentDetails as Record<string, unknown>)?.registrationNumber as string ?? ""} className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-foreground" />
+                </div>
+                <div>
+                  <label htmlFor="taxNumber" className="mb-1.5 block text-sm font-medium">Tax Number</label>
+                  <input id="taxNumber" name="taxNumber" defaultValue={(settings.documentDetails as Record<string, unknown>)?.taxNumber as string ?? ""} className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-foreground" />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="bankingDetails" className="mb-1.5 block text-sm font-medium">Banking Details</label>
+                <textarea id="bankingDetails" name="bankingDetails" defaultValue={(settings.documentDetails as Record<string, unknown>)?.bankingDetails as string ?? ""} rows={3} className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-foreground" />
+                <p className="mt-1 text-xs text-muted-foreground">Bank name, account number, branch code, etc.</p>
+              </div>
+              <div>
+                <label htmlFor="footerMessage" className="mb-1.5 block text-sm font-medium">Footer Message</label>
+                <textarea id="footerMessage" name="footerMessage" defaultValue={(settings.documentDetails as Record<string, unknown>)?.footerMessage as string ?? ""} rows={2} className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-foreground" />
+                <p className="mt-1 text-xs text-muted-foreground">Displayed at the bottom of invoices, receipts, and quotations.</p>
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-4 pt-2">
             <button type="submit" className="h-11 rounded-xl bg-[oklch(0.49_0.16_158)] px-6 text-sm font-semibold text-white transition-opacity hover:opacity-90">

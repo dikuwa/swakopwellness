@@ -19,15 +19,17 @@ export async function updateBusinessSettings(formData: FormData) {
     const appointmentModel = (formData.get("appointmentModel") as string) || "By appointment only";
     const medicalDisclaimer = formData.get("medicalDisclaimer") as string;
 
-    let documentDetails: Record<string, unknown> = {};
-    const raw = formData.get("documentDetails") as string;
-    if (raw && raw.trim()) {
-      try {
-        documentDetails = JSON.parse(raw);
-      } catch {
-        return { ok: false, error: "Document Details must be valid JSON." };
-      }
-    }
+    const registrationNumber = formData.get("registrationNumber") as string;
+    const taxNumber = formData.get("taxNumber") as string;
+    const bankingDetails = formData.get("bankingDetails") as string;
+    const footerMessage = formData.get("footerMessage") as string;
+
+    const documentDetails: Record<string, unknown> = {
+      registrationNumber,
+      taxNumber,
+      bankingDetails,
+      footerMessage,
+    };
 
     const [existing] = await db.select({ id: businessSettings.id }).from(businessSettings).limit(1);
     if (!existing) {
