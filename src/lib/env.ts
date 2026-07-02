@@ -18,6 +18,7 @@ export const envSchema = z.object({
   OPENAI_API_KEY: optionalString,
   OPENAI_MODEL: optionalString,
   SENTRY_DSN: optionalString,
+  CRON_SECRET: optionalString,
 });
 
 export type AppEnv = z.infer<typeof envSchema>;

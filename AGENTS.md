@@ -910,11 +910,28 @@ A task is complete only when:
 - `src/app/dashboard/services/[id]/edit/page.tsx` — fixed server action reference (bind instead of anonymous wrapper)
 - `scripts/seed-realistic-data.ts` — comprehensive realistic data seeder
 
-## Audit Session (2026-07-02)
+## Audit Session (2026-07-02 — continued)
 - Fixed garbled `DATABASE_URL` in `.env` (had `your-pooled-postgres-url` prefix and `ur-direct-postgres-url` suffix merged into valid URL)
 - Fixed missing `duration_minutes` for 3 services (Frequency Therapy, Meridians, Food Tolerance) — duration was NULL in DB causing "—" display in dashboard
 - Fixed `/dashboard/services/[id]/edit` — replaced `action={async (data) => updateService(id, data)}` with `action={updateService.bind(null, id)}` to resolve "Functions cannot be passed directly to Client Components" error
 - Seeded 10 realistic Namibian client records, 12 bookings across all statuses, 4 invoices with line items, 3 paid receipts, 5 follow-ups, and activity log entries
 - Removed 4 test/generic clients and their related bookings
 - Removed all test data with "Test", "TEST", "Codex", "Chat Test" patterns
-- Verified: typecheck ✓, lint ✓, production build ✓
+- Fixed routing conflict: cleared `.next` cache to resolve Turbopack cross-module caching issue where `/dashboard/invoices/[id]`, `/dashboard/receipts`, `/dashboard/quotations` showed wrong content
+- Fixed PDF generation crash: Turbopack sets `__dirname` inside pdfkit to virtual `/ROOT/...` path; patched `fs.readFileSync` in dev mode to redirect `/ROOT/` prefix to `process.cwd()` so font AFM files resolve correctly
+- Verified all three PDF types generate valid documents:
+  - Invoice PDF: 52KB, 2 pages, includes business address/phone/email/registration number/logo/footer
+  - Receipt PDF: 51KB, 1 page
+  - Quotation PDF: 51KB, 1 page
+- Updated business settings with FNB Namibia banking details, registration number, tax number, footer message
+- **Email notifications**: Added `RESEND_API_KEY` and `RESEND_FROM_EMAIL` to `.env`; wired up `sendBookingConfirmation()` in `booking/create.ts` to send acknowledgement emails after booking creation; added `sendFollowUpReminder()` in `email/send.ts` for staff follow-up reminders
+- **Gallery images**: Created `serviceImages` join records linking each service to its media asset — gallery section now renders on public service detail pages. Updated `scripts/seed-phase2.ts` to create gallery entries on re-seed
+- **E2E audit**: Verified all public pages (Home, Services, Service Detail with gallery, About, FAQs, Contact, Policies, Chat, Book) and all dashboard modules render correctly. Fixed Turbopack cross-module cache issue on public routes (`/services/[slug]` was showing FAQs content)
+- **Follow-up scheduler**: Created `src/followups/scheduler.ts` (`processDueFollowUpReminders`) and `GET /api/cron/follow-up-reminders` endpoint. Queries follow-ups with `dueAt ≤ now` and no recent reminder sent, then fires `sendFollowUpReminder()` for each and updates `reminderAt` to prevent duplicates. Can be called by Vercel Cron Jobs or any external cron service with `Authorization: Bearer <CRON_SECRET>`.
+- **Dogfood audit fixes**:
+  - Overview finance summary: replaced `Intl.NumberFormat("en-NA")` with `N$${(cents/100).toFixed(2)}` to fix `$` → `N$` currency display
+  - Bookings table: replaced `toLocaleString("en-NA")` with `toLocaleString("en-GB", {day, month, year, hour, minute})` to remove superfluous seconds
+  - Login error handling: wrapped DB operations in try/catch, added `?error=connection` error state and message
+  - Invoice detail route: `getInvoiceById()` now accepts both UUID and invoice reference (SWC-INV-XXXXX)
+  - Note: "Good morning" greeting was already time-aware; footer copyright already had the space — both were audit display artifacts
+- All 37 tests pass | typecheck ✓ | lint ✓ | production build ✓ (59 routes)

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect, type ReactNode } from "react";
+import toast from "react-hot-toast";
 import { DashboardLayout } from "@/dashboard/components";
 import { logoutAction } from "../actions";
 
@@ -62,9 +63,12 @@ export function ServiceForm({ categories, action, initialData, mediaAssets, chil
 
   useEffect(() => {
     if (state?.ok) {
+      toast.success(isEdit ? "Service updated" : "Service created");
       router.push("/dashboard/services");
+    } else if (state?.ok === false && state.error) {
+      toast.error(state.error);
     }
-  }, [state, router]);
+  }, [state, router, isEdit]);
 
   return (
     <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>

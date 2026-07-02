@@ -6,7 +6,7 @@ import { createBookingReference } from "./reference";
 import { getInitialBookingStatus } from "./status";
 import { bookingRequestSchema, hasAtLeastOneContact, isContactMethodAvailable, parseDateTime, type BookingRequestInput } from "./validation";
 import { notifyStaff } from "@/notifications/create";
-import { sendBookingNotificationToStaff } from "@/email/send";
+import { sendBookingConfirmation, sendBookingNotificationToStaff } from "@/email/send";
 
 export type CreateBookingResult =
   | { ok: true; reference: string; status: string; bookingId?: string; clientId?: string }
@@ -160,6 +160,7 @@ export async function createBookingRequest(input: unknown, source: BookingSource
     await notifyStaff("booking.created", `New booking ${result.reference}`, `${sourceLabel} booking request for ${data.fullName} (${result.reference})${needsReview ? " — requires review" : ""}`, "booking", result.bookingId);
     if (result.bookingId) {
       sendBookingNotificationToStaff(result.bookingId).catch(console.error);
+      sendBookingConfirmation(result.bookingId).catch(console.error);
     }
   }
   return result;

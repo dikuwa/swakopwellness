@@ -3,15 +3,30 @@ import { notFound } from "next/navigation";
 import { getDb } from "@/db/client";
 import { bookingRules, businessSettings, communicationSettings, faqs, mediaAssets, policies, serviceFaqs, serviceImages, serviceQuestions, services } from "@/db/schema";
 
+export type BusinessSettingsWithImage = Awaited<ReturnType<typeof getBusinessSettings>>;
+
 export function formatMoney(cents: number, symbol = "N$") {
   return `${symbol}${(cents / 100).toLocaleString("en-NA", { maximumFractionDigits: 0 })}`;
 }
 
 export async function getBusinessSettings() {
   const db = getDb();
-  const [settings] = await db.select().from(businessSettings).limit(1);
-  if (!settings) notFound();
-  return settings;
+  const [row] = await db
+    .select({
+      settings: businessSettings,
+      technologyImage: {
+        id: mediaAssets.id,
+        publicUrl: mediaAssets.publicUrl,
+        altText: mediaAssets.altText,
+        width: mediaAssets.width,
+        height: mediaAssets.height,
+      },
+    })
+    .from(businessSettings)
+    .leftJoin(mediaAssets, eq(businessSettings.technologyImageId, mediaAssets.id))
+    .limit(1);
+  if (!row) notFound();
+  return { ...row.settings, technologyImage: row.technologyImage ?? null };
 }
 
 export async function getCommunicationSettings() {

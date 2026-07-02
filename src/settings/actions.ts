@@ -18,6 +18,7 @@ export async function updateBusinessSettings(formData: FormData) {
     const operatingHours = formData.get("operatingHours") as string;
     const appointmentModel = (formData.get("appointmentModel") as string) || "By appointment only";
     const medicalDisclaimer = formData.get("medicalDisclaimer") as string;
+    const technologyImageId = (formData.get("technologyImageId") as string) || null;
 
     const registrationNumber = formData.get("registrationNumber") as string;
     const taxNumber = formData.get("taxNumber") as string;
@@ -46,6 +47,7 @@ export async function updateBusinessSettings(formData: FormData) {
         operatingHours,
         appointmentModel,
         medicalDisclaimer,
+        technologyImageId,
         documentDetails,
         updatedAt: new Date(),
       })

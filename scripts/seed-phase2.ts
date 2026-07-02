@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { getDb } from "../src/db/client";
 import {
   bookingRules,
@@ -9,6 +9,7 @@ import {
   mediaAssets,
   policies,
   serviceCategories,
+  serviceImages as serviceImagesTable,
   serviceQuestions,
   services,
 } from "../src/db/schema";
@@ -230,6 +231,28 @@ async function main() {
       .update(services)
       .set({ featuredImageId: mediaId, updatedAt: new Date() })
       .where(and(eq(services.slug, image.slug), isNull(services.featuredImageId)));
+
+    // Add to gallery if not already present
+    const svcRows = await db.select({ id: services.id }).from(services).where(eq(services.slug, image.slug)).limit(1);
+    if (svcRows.length > 0) {
+      const existingGallery = await db
+        .select({ serviceId: serviceImagesTable.serviceId })
+        .from(serviceImagesTable)
+        .where(and(eq(serviceImagesTable.serviceId, svcRows[0].id), eq(serviceImagesTable.mediaAssetId, mediaId)))
+        .limit(1);
+      if (existingGallery.length === 0) {
+        const maxSort = await db
+          .select({ max: sql<number>`COALESCE(MAX(sort_order), -1) + 1` })
+          .from(serviceImagesTable)
+          .where(eq(serviceImagesTable.serviceId, svcRows[0].id));
+        await db.insert(serviceImagesTable).values({
+          serviceId: svcRows[0].id,
+          mediaAssetId: mediaId,
+          sortOrder: maxSort[0]?.max ?? 0,
+        });
+        console.log(`Added gallery image for "${image.slug}"`);
+      }
+    }
   }
 
   // ── Suitability Questions ──────────────────────────────────────

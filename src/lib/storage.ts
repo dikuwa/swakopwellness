@@ -1,8 +1,12 @@
+import { writeFile, unlink } from "node:fs/promises";
+import { join } from "node:path";
 import { env } from "./env";
 
 type S3ClientType = import("@aws-sdk/client-s3").S3Client;
 
 let client: S3ClientType | null = null;
+
+const LOCAL_UPLOAD_DIR = join(process.cwd(), "public", "uploads");
 
 function getEndpoint(): string {
   if (env.R2_ENDPOINT) return env.R2_ENDPOINT;
@@ -33,6 +37,13 @@ export async function uploadFile(
   body: Uint8Array | Blob,
   contentType: string,
 ): Promise<string> {
+  if (!r2Configured()) {
+    const buffer = body instanceof Blob ? Buffer.from(await body.arrayBuffer()) : Buffer.from(body);
+    const filePath = join(LOCAL_UPLOAD_DIR, key);
+    await writeFile(filePath, buffer);
+    return `/uploads/${key}`;
+  }
+
   const { PutObjectCommand } = await import("@aws-sdk/client-s3");
   const cmd = new PutObjectCommand({
     Bucket: env.R2_BUCKET_NAME,
@@ -51,6 +62,12 @@ export async function uploadFile(
 }
 
 export async function deleteFile(key: string): Promise<void> {
+  if (!r2Configured()) {
+    const filePath = join(LOCAL_UPLOAD_DIR, key);
+    await unlink(filePath);
+    return;
+  }
+
   const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
   const cmd = new DeleteObjectCommand({
     Bucket: env.R2_BUCKET_NAME,

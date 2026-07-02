@@ -5,7 +5,7 @@ import { DashboardLayout } from "@/dashboard/components";
 import { StatCard, Badge, Card, LinkButton, PageHeading } from "@/ui/components";
 import {
   bookings, clients, followUps, invoices, notifications, payments,
-  activityLog, users, quotations, businessSettings,
+  activityLog, users, quotations,
 } from "@/db/schema";
 import Link from "next/link";
 import { logoutAction } from "./actions";
@@ -80,7 +80,6 @@ export default async function DashboardPage() {
   });
 
   const [
-    [business],
     [newRequests],
     [todayBookingsCount],
     [clientCount],
@@ -97,7 +96,6 @@ export default async function DashboardPage() {
     followUpsDue,
     recentActivity,
   ] = await Promise.all([
-    db.select().from(businessSettings).limit(1),
     db.select({ value: count() }).from(bookings).where(eq(bookings.status, "new_request")),
     db.select({ value: count() }).from(bookings).where(sql`${bookings.preferredAt} >= ${todayStart.toISOString()} AND ${bookings.preferredAt} < ${todayEnd.toISOString()}`),
     db.select({ value: count() }).from(clients),
@@ -115,10 +113,7 @@ export default async function DashboardPage() {
     db.select({ id: activityLog.id, action: activityLog.action, summary: activityLog.summary, createdAt: activityLog.createdAt, userName: users.name }).from(activityLog).leftJoin(users, eq(activityLog.userId, users.id)).orderBy(desc(activityLog.createdAt)).limit(10),
   ]);
 
-  const currencyCode = business?.currencyCode ?? "NAD";
-
-  const fmtCurrency = (cents: number) =>
-    new Intl.NumberFormat("en-NA", { style: "currency", currency: currencyCode }).format(cents / 100);
+  const fmtCurrency = (cents: number) => `N$${(cents / 100).toFixed(2)}`;
 
   const hasAlerts = requiresReviewCount.value > 0 || overdueFollowUpsCount.value > 0 || unreadNotificationsResult.value > 0;
 

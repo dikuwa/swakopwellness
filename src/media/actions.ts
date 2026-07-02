@@ -41,9 +41,7 @@ export async function uploadMediaAction(formData: FormData) {
   if (file.size > MAX_SIZE) {
     return { error: `File too large. Maximum size is ${MAX_SIZE / 1024 / 1024}MB.` };
   }
-  if (!r2Configured()) {
-    return { error: "Object storage is not configured." };
-  }
+  const localFallback = !r2Configured();
 
   const ext = file.name.split(".").pop() || "bin";
   const key = `media/${crypto.randomUUID()}.${ext}`;

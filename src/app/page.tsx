@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AlertTriangle, CalendarDays, Clock, Heart, Mail, MapPin, Phone, Send, ShieldCheck, Sprout, Stethoscope } from "lucide-react";
 import { ContactForm } from "@/app/contact/contact-form";
 import { submitContactMessage } from "@/app/contact/actions";
+import { DiacomSection } from "@/public/diacom-section";
 import { PageShell } from "@/public/components";
 import { formatMoney, getBusinessSettings, getCommunicationSettings, getFeaturedServices, getPublicFaqs } from "@/public/data";
 
@@ -93,15 +94,7 @@ export default async function Home() {
           </div>
         </section>
 
-        <section className="mx-auto max-w-6xl px-5 pb-16 sm:px-8">
-          <div className="rounded-2xl border border-border bg-surface p-6 sm:p-10">
-            <p className="flex items-center gap-2 text-xs font-semibold uppercase text-primary"><Sprout className="h-4 w-4" /> Diacom Technology</p>
-            <h2 className="display-tight mt-3 text-3xl font-semibold">Our Technology</h2>
-            <p className="mt-4 max-w-3xl text-sm leading-6 text-muted-foreground">
-              The Diacom Lite Freq Utium sends harmless electromagnetic signals to read frequency patterns from your organs and cells, identifying imbalances and root causes long before symptoms appear. It is FCC‑certified, non‑invasive and does not involve needles or radiation.
-            </p>
-          </div>
-        </section>
+        <DiacomSection business={business} />
 
         <section className="mx-auto max-w-6xl px-5 pb-16 sm:px-8">
           <div className="rounded-2xl bg-surface-muted p-6 sm:p-10">

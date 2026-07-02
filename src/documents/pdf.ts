@@ -1,6 +1,24 @@
 import { existsSync } from "node:fs";
 import { join } from "node:path";
+import fs from "node:fs";
 import PDFDocument from "pdfkit";
+
+// Turbopack sets __dirname inside the pdfkit module to /ROOT/... (a virtual path
+// that doesn't exist on the real filesystem). PDFKit uses __dirname to locate its
+// bundled standard-font AFM files. We patch the fs.readFileSync that pdfkit shares
+// so that /ROOT/ paths are redirected to the real filesystem.
+const ROOT_PREFIX = "/ROOT/";
+if (process.env.NODE_ENV === "development") {
+  const ROOT_REPLACEMENT = process.cwd();
+  const origReadFile = fs.readFileSync;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  fs.readFileSync = function (this: unknown, path: fs.PathOrFileDescriptor, ...args: any[]) {
+    if (typeof path === "string" && path.startsWith(ROOT_PREFIX)) {
+      return origReadFile.call(this, path.replace(ROOT_PREFIX, ROOT_REPLACEMENT + "/"), ...args);
+    }
+    return origReadFile.call(this, path, ...args);
+  } as typeof fs.readFileSync;
+}
 
 export interface InvoiceData {
   invoiceNumber: string;

@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { bookings, businessSettings, clients, communicationSettings, invoiceLineItems, invoices, services } from "@/db/schema";
+import { bookings, businessSettings, clients, communicationSettings, followUps, invoiceLineItems, invoices, services, users } from "@/db/schema";
 import { env } from "@/lib/env";
 
 function formatCents(cents: number): string {
@@ -302,5 +302,60 @@ export async function sendBookingNotificationToStaff(
     await sendNotificationEmail(to, `New Booking — ${booking.reference} — ${business.businessName}`, html);
   } catch (err) {
     console.error("[email] Failed to send staff notification:", err);
+  }
+}
+
+export async function sendFollowUpReminder(followUpId: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const db = getDb();
+    const [followUp] = await db
+      .select()
+      .from(followUps)
+      .where(eq(followUps.id, followUpId))
+      .limit(1);
+    if (!followUp) return { ok: false, error: "Follow-up not found." };
+
+    const [assignedUser] = followUp.assignedUserId
+      ? await db.select({ email: users.email, name: users.name }).from(users).where(eq(users.id, followUp.assignedUserId)).limit(1)
+      : [];
+
+    const [client] = await db
+      .select({ fullName: clients.fullName, phone: clients.phone, email: clients.email })
+      .from(clients)
+      .where(eq(clients.id, followUp.clientId))
+      .limit(1);
+
+    if (!client) return { ok: false, error: "Client not found." };
+
+    const to = assignedUser?.email;
+    if (!to) return { ok: true };
+
+    const business = await getBusinessDetails();
+    const dueStr = `${formatDate(followUp.dueAt)} at ${formatTime(followUp.dueAt)}`;
+    const methodLabel = followUp.method.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+    const html = wrapHtml(
+      `
+<h1 style="margin:0 0 8px;font-size:22px;font-weight:600">Follow-Up Reminder</h1>
+<p style="margin:0 0 24px;font-size:15px;color:#555">A follow-up is due.</p>
+
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:14px">
+<tr><td style="padding:8px 0;color:#888;width:120px">Client</td><td style="padding:8px 0;font-weight:600">${client.fullName}</td></tr>
+<tr><td style="padding:8px 0;color:#888">Due</td><td style="padding:8px 0">${dueStr}</td></tr>
+<tr><td style="padding:8px 0;color:#888">Method</td><td style="padding:8px 0;text-transform:capitalize">${methodLabel}</td></tr>
+${followUp.internalNote ? `<tr><td style="padding:8px 0;color:#888">Note</td><td style="padding:8px 0">${followUp.internalNote}</td></tr>` : ""}
+<tr><td style="padding:8px 0;color:#888">Client Phone</td><td style="padding:8px 0">${client.phone || "—"}</td></tr>
+<tr><td style="padding:8px 0;color:#888">Client Email</td><td style="padding:8px 0">${client.email || "—"}</td></tr>
+</table>
+
+<p style="margin:24px 0 0;font-size:14px;color:#555">Please follow up with the client ${followUp.method === "phone" ? "by phone" : `via ${methodLabel}`}.</p>
+`.trim(),
+      business,
+    );
+
+    return sendNotificationEmail(to, `Follow-Up Reminder — ${client.fullName} — ${business.businessName}`, html);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return { ok: false, error: message };
   }
 }

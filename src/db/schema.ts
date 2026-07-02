@@ -107,10 +107,15 @@ export const businessSettings = pgTable("business_settings", {
   currencyCode: text("currency_code").notNull().default("NAD"),
   currencySymbol: text("currency_symbol").notNull().default("N$"),
   medicalDisclaimer: text("medical_disclaimer").notNull(),
+  technologyImageId: uuid("technology_image_id").references(() => mediaAssets.id, { onDelete: "set null" }),
   documentDetails: jsonb("document_details").$type<Record<string, unknown>>().notNull().default({}),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const businessSettingsRelations = relations(businessSettings, ({ one }) => ({
+  technologyImage: one(mediaAssets, { fields: [businessSettings.technologyImageId], references: [mediaAssets.id] }),
+}));
 
 export const communicationSettings = pgTable("communication_settings", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -250,6 +255,11 @@ export const policies = pgTable(
   },
   (table) => [uniqueIndex("policies_slug_unique").on(table.slug)],
 );
+
+export const mediaAssetsRelations = relations(mediaAssets, ({ many }) => ({
+  services: many(services),
+  businessSettings: many(businessSettings),
+}));
 
 export const serviceCategoriesRelations = relations(serviceCategories, ({ many }) => ({
   services: many(services),

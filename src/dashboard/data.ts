@@ -279,13 +279,15 @@ export async function getInvoices() {
 
 export async function getInvoiceById(id: string) {
   const db = getDb();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
   const [invoice] = await db
     .select()
     .from(invoices)
-    .where(eq(invoices.id, id))
+    .where(isUuid ? eq(invoices.id, id) : eq(invoices.invoiceNumber, id))
     .limit(1);
   if (!invoice) return null;
-  const items = await db.select().from(invoiceLineItems).where(eq(invoiceLineItems.invoiceId, id)).orderBy(asc(invoiceLineItems.sortOrder));
+  const lookupId = isUuid ? id : invoice.id;
+  const items = await db.select().from(invoiceLineItems).where(eq(invoiceLineItems.invoiceId, lookupId)).orderBy(asc(invoiceLineItems.sortOrder));
   return { ...invoice, lineItems: items };
 }
 

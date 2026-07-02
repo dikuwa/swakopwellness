@@ -3,6 +3,7 @@ import { getDb } from "@/db/client";
 import { businessSettings } from "@/db/schema";
 import { DashboardLayout } from "@/dashboard/components";
 import { logoutAction } from "../../actions";
+import { getMediaAssets } from "@/media/actions";
 import { updateBusinessSettings } from "@/settings/actions";
 
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ export default async function BusinessSettingsPage() {
   const db = getDb();
 
   const [settings] = await db.select().from(businessSettings).limit(1);
+  const mediaAssets = await getMediaAssets();
 
   if (!settings) {
     return (
@@ -67,6 +69,54 @@ export default async function BusinessSettingsPage() {
             <label htmlFor="medicalDisclaimer" className="mb-1.5 block text-sm font-medium">Medical Disclaimer</label>
             <textarea id="medicalDisclaimer" name="medicalDisclaimer" defaultValue={settings.medicalDisclaimer} required rows={4} className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-foreground" />
           </div>
+          <div className="border-t border-border pt-6 mt-6">
+            <h2 className="text-lg font-semibold">Technology Image</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Shown in the Diacom Technology section on the homepage.</p>
+            <input type="hidden" name="technologyImageId" id="tech-image-input" value={settings.technologyImageId ?? ""} />
+            {mediaAssets.length > 0 ? (
+              <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const input = document.getElementById("tech-image-input") as HTMLInputElement;
+                    if (input) input.value = "";
+                    document.querySelectorAll("[data-tech-img]").forEach((el) => el.classList.remove("ring-2", "ring-primary"));
+                  }}
+                  className={`aspect-square overflow-hidden rounded-xl border-2 ${!settings.technologyImageId ? "border-primary" : "border-border"} bg-surface-muted transition-colors hover:border-primary`}
+                >
+                  <div className="flex h-full items-center justify-center text-xs text-muted-foreground">None</div>
+                </button>
+                {mediaAssets.map((asset) => (
+                  <button
+                    key={asset.id}
+                    type="button"
+                    data-tech-img
+                    data-id={asset.id}
+                    onClick={() => {
+                      const input = document.getElementById("tech-image-input") as HTMLInputElement;
+                      if (input) input.value = asset.id;
+                      document.querySelectorAll("[data-tech-img]").forEach((el) => el.classList.remove("ring-2", "ring-primary"));
+                      document.querySelector(`[data-tech-img][data-id="${asset.id}"]`)?.classList.add("ring-2", "ring-primary");
+                    }}
+                    className={`aspect-square overflow-hidden rounded-xl border-2 ${settings.technologyImageId === asset.id ? "border-primary ring-2 ring-primary" : "border-border"} bg-surface transition-colors hover:border-primary`}
+                  >
+                    {asset.publicUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={asset.publicUrl} alt={asset.altText ?? ""} className="h-full w-full object-cover" loading="lazy" />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-xs text-muted-foreground">No URL</div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-muted-foreground">
+                No media assets available.{" "}
+                <a href="/dashboard/media" className="text-primary underline">Upload images</a> first.
+              </p>
+            )}
+          </div>
+
           <div className="border-t border-border pt-6 mt-6">
             <h2 className="text-lg font-semibold">Document Details</h2>
             <p className="mt-1 text-sm text-muted-foreground">These appear on invoices, receipts, and quotations.</p>

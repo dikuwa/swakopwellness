@@ -5,7 +5,7 @@ import { Card, Input, Label } from "@/ui/components";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const params = await searchParams;
-  const hasError = params.error === "invalid";
+  const error = params.error === "invalid" ? "invalid" : params.error === "connection" ? "connection" : null;
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-background px-5 py-10 text-foreground">
@@ -25,9 +25,14 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         <p className="mt-3 text-sm leading-6 text-muted-foreground">
           Use the staff account created by the owner bootstrap script. Public registration is disabled.
         </p>
-        {hasError ? (
+        {error === "invalid" ? (
           <p className="mt-5 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive" role="alert">
             Check the email and password, then try again.
+          </p>
+        ) : null}
+        {error === "connection" ? (
+          <p className="mt-5 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+            Unable to connect. Please try again.
           </p>
         ) : null}
         <form action={loginAction} className="mt-6 space-y-4">

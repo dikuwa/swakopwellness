@@ -164,7 +164,7 @@ export default async function DashboardBookingsPage() {
                 </td>
                 <td className="whitespace-nowrap">{booking.clientName}</td>
                 <td className="whitespace-nowrap">{booking.serviceName}</td>
-                <td className="whitespace-nowrap">{booking.preferredAt.toLocaleString("en-NA")}</td>
+                <td className="whitespace-nowrap">{booking.preferredAt.toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" })}</td>
                 <td className="whitespace-nowrap">
                   <StatusBadge status={booking.status} />
                 </td>

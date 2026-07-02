@@ -9,7 +9,6 @@ import { getDb } from "@/db/client";
 import { users } from "@/db/schema";
 
 export async function loginAction(formData: FormData) {
-  const db = getDb();
   const parsed = loginSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
@@ -17,16 +16,23 @@ export async function loginAction(formData: FormData) {
 
   if (!parsed.success) redirect("/login?error=invalid");
 
-  const [user] = await db
-    .select({ id: users.id, passwordHash: users.passwordHash, active: users.active })
-    .from(users)
-    .where(eq(sql`lower(${users.email})`, parsed.data.email.toLowerCase()))
-    .limit(1);
+  try {
+    const db = getDb();
 
-  if (!user || !user.active || !(await verifyPassword(parsed.data.password, user.passwordHash))) {
-    redirect("/login?error=invalid");
+    const [user] = await db
+      .select({ id: users.id, passwordHash: users.passwordHash, active: users.active })
+      .from(users)
+      .where(eq(sql`lower(${users.email})`, parsed.data.email.toLowerCase()))
+      .limit(1);
+
+    if (!user || !user.active || !(await verifyPassword(parsed.data.password, user.passwordHash))) {
+      redirect("/login?error=invalid");
+    }
+
+    await createSession(user.id);
+  } catch {
+    redirect("/login?error=connection");
   }
 
-  await createSession(user.id);
   redirect("/dashboard");
 }
