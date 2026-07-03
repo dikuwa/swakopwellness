@@ -1,6 +1,6 @@
 import { requirePermission } from "@/auth/session";
 import { hasPermission } from "@/auth/permissions";
-import { DashboardLayout } from "@/dashboard/components";
+import { DashboardShell } from "@/dashboard/shell";
 import { logoutAction } from "../actions";
 import { getClients, getFollowUpBookingOptions, getFollowUps } from "@/dashboard/data";
 import { cancelFollowUp, completeFollowUp, createFollowUp } from "@/followups/actions";
@@ -14,7 +14,7 @@ export default async function DashboardFollowUpsPage() {
   const [followUps, clients, bookingOptions] = await Promise.all([getFollowUps(), getClients(), getFollowUpBookingOptions()]);
 
   return (
-    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+    <DashboardShell>
       <div>
         <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">Management</p>
         <h1 className="text-3xl font-semibold tracking-[-0.035em]">Follow-ups</h1>
@@ -104,6 +104,6 @@ export default async function DashboardFollowUpsPage() {
             );
           })}
         </div>
-    </DashboardLayout>
+    </DashboardShell>
   );
 }

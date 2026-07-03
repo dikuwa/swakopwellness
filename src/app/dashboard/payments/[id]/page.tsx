@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
-import { DashboardLayout } from "@/dashboard/components";
+import { DashboardShell } from "@/dashboard/shell";
 import { logoutAction } from "../../actions";
 import { getDb } from "@/db/client";
 import { payments, clients, invoices, bookings, users } from "@/db/schema";
@@ -42,7 +42,7 @@ export default async function PaymentDetailPage(props: { params: Promise<{ id: s
 
   if (!payment) {
     return (
-      <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+      <DashboardShell>
         <p className="text-muted-foreground">Payment not found.</p>
         <Link
           href="/dashboard/payments"
@@ -50,12 +50,12 @@ export default async function PaymentDetailPage(props: { params: Promise<{ id: s
         >
           ← Back to Payments
         </Link>
-      </DashboardLayout>
+      </DashboardShell>
     );
   }
 
   return (
-    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+    <DashboardShell>
         <Link
           href="/dashboard/payments"
           className="text-sm text-muted-foreground hover:text-foreground"
@@ -142,6 +142,6 @@ export default async function PaymentDetailPage(props: { params: Promise<{ id: s
             Recorded at {payment.createdAt.toLocaleString("en-NA")}
           </p>
         </div>
-    </DashboardLayout>
+    </DashboardShell>
   );
 }

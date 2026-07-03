@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requirePermission } from "@/auth/session";
-import { DashboardLayout } from "@/dashboard/components";
+import { DashboardShell } from "@/dashboard/shell";
 import { getDashboardBookings } from "@/dashboard/data";
 import { confirmBooking, cancelBooking, markCompleted, markNoShow, changeBookingStatus } from "@/booking/actions";
 import { getAvailableActions } from "@/booking/status";
@@ -132,7 +132,7 @@ export default async function DashboardBookingsPage() {
   const bookings = await getDashboardBookings();
 
   return (
-    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+    <DashboardShell>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">Management</p>
@@ -177,6 +177,6 @@ export default async function DashboardBookingsPage() {
           </tbody>
         </table>
       </div>
-    </DashboardLayout>
+    </DashboardShell>
   );
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requirePermission } from "@/auth/session";
-import { DashboardLayout } from "@/dashboard/components";
+import { DashboardShell } from "@/dashboard/shell";
 import { getClients } from "@/dashboard/data";
 import { logoutAction } from "../actions";
 
@@ -11,7 +11,7 @@ export default async function DashboardClientsPage() {
   const clients = await getClients();
 
   return (
-    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+    <DashboardShell>
       <div>
         <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">Management</p>
         <h1 className="mt-2 text-2xl sm:text-3xl tracking-[-0.03em]">Clients</h1>
@@ -47,6 +47,6 @@ export default async function DashboardClientsPage() {
         </table>
       </div>
       {clients.length === 0 ? <p className="mt-6 text-muted-foreground">No clients found.</p> : null}
-    </DashboardLayout>
+    </DashboardShell>
   );
 }

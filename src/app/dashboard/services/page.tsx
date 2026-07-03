@@ -3,7 +3,7 @@ import { eq, isNull } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { services, serviceCategories } from "@/db/schema";
-import { DashboardLayout } from "@/dashboard/components";
+import { DashboardShell } from "@/dashboard/shell";
 import {
   archiveService,
   toggleServiceActive,
@@ -36,7 +36,7 @@ export default async function ServicesPage() {
     .orderBy(services.sortOrder);
 
   return (
-    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+    <DashboardShell>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">Services</p>
@@ -157,6 +157,6 @@ export default async function ServicesPage() {
             </tbody>
           </table>
         </div>
-    </DashboardLayout>
+    </DashboardShell>
   );
 }

@@ -5,7 +5,7 @@ import { requirePermission } from "@/auth/session";
 import { hasPermission } from "@/auth/permissions";
 import { cancelBooking, changeBookingStatus, confirmBooking, markCompleted, markNoShow } from "@/booking/actions";
 import { getAvailableActions } from "@/booking/status";
-import { DashboardLayout } from "@/dashboard/components";
+import { DashboardShell } from "@/dashboard/shell";
 import { logoutAction } from "../../actions";
 import { getDashboardBookingById } from "@/dashboard/data";
 
@@ -91,7 +91,7 @@ export default async function BookingDetailPage(props: { params: Promise<{ id: s
   const actions = getAvailableActions(booking.status);
 
   return (
-    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+    <DashboardShell>
       <Link href="/dashboard/bookings" className="text-sm text-muted-foreground hover:text-foreground">&larr; Bookings</Link>
         <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -173,6 +173,6 @@ export default async function BookingDetailPage(props: { params: Promise<{ id: s
             </div>
           </section>
         </div>
-    </DashboardLayout>
+    </DashboardShell>
   );
 }

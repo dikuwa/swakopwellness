@@ -1,14 +1,14 @@
 import { count, eq, inArray, sql, and, desc, asc, isNull } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { requireAuth } from "@/auth/session";
-import { DashboardLayout } from "@/dashboard/components";
+import { DashboardShell } from "@/dashboard/shell";
 import { StatCard, Badge, Card, LinkButton, PageHeading } from "@/ui/components";
 import {
   bookings, clients, followUps, invoices, notifications, payments,
   activityLog, users, quotations,
 } from "@/db/schema";
 import Link from "next/link";
-import { logoutAction } from "./actions";
+
 
 export const dynamic = "force-dynamic";
 
@@ -127,15 +127,7 @@ export default async function DashboardPage() {
   ];
 
   return (
-    <DashboardLayout
-      signOutForm={
-        <form action={logoutAction}>
-          <button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">
-            Sign out
-          </button>
-        </form>
-      }
-    >
+    <DashboardShell>
       <PageHeading pre="Overview" title={`${greeting}, ${user.name}`} description={todayDateStr} />
 
       {hasAlerts ? (
@@ -336,6 +328,6 @@ export default async function DashboardPage() {
           )}
         </div>
       </Card>
-    </DashboardLayout>
+    </DashboardShell>
   );
 }

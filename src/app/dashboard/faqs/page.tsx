@@ -3,7 +3,7 @@ import { asc } from "drizzle-orm";
 import { requireAuth } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { faqs } from "@/db/schema";
-import { DashboardLayout } from "@/dashboard/components";
+import { DashboardShell } from "@/dashboard/shell";
 import { logoutAction } from "../actions";
 import { deleteFaq, toggleFaqPublic, reorderFaqs } from "@/faqs/actions";
 
@@ -21,7 +21,7 @@ export default async function FaqsPage() {
   const faqIds = allFaqs.map((f) => f.id);
 
   return (
-    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+    <DashboardShell>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">Management</p>
@@ -137,6 +137,6 @@ export default async function FaqsPage() {
             </tbody>
           </table>
         </div>
-    </DashboardLayout>
+    </DashboardShell>
   );
 }

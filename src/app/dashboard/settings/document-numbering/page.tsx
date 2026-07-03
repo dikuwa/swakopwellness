@@ -1,7 +1,7 @@
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { documentNumberSequences } from "@/db/schema";
-import { DashboardLayout } from "@/dashboard/components";
+import { DashboardShell } from "@/dashboard/shell";
 import { logoutAction } from "../../actions";
 import { updateDocumentSequence } from "@/settings/actions";
 import { asc } from "drizzle-orm";
@@ -21,7 +21,7 @@ export default async function DocumentNumberingPage() {
   const sequences = await db.select().from(documentNumberSequences).orderBy(asc(documentNumberSequences.documentType));
 
   return (
-    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+    <DashboardShell>
       <div className="mb-6">
           <a href="/dashboard/settings" className="text-sm text-muted-foreground hover:text-foreground">&larr; All Settings</a>
         </div>
@@ -63,6 +63,6 @@ export default async function DocumentNumberingPage() {
             );
           })}
         </div>
-    </DashboardLayout>
+    </DashboardShell>
   );
 }

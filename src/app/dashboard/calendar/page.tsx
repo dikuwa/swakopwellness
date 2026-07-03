@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { and, asc, eq, gte, lte } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
-import { DashboardLayout } from "@/dashboard/components";
+import { DashboardShell } from "@/dashboard/shell";
 import { getDb } from "@/db/client";
 import { logoutAction } from "../actions";
 import { bookings, clients } from "@/db/schema";
@@ -151,7 +151,7 @@ export default async function DashboardCalendarPage(props: { searchParams: Promi
   };
 
   return (
-    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+    <DashboardShell>
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">Planning</p>
@@ -220,6 +220,6 @@ export default async function DashboardCalendarPage(props: { searchParams: Promi
           </section>
         ))}
       </div>
-    </DashboardLayout>
+    </DashboardShell>
   );
 }

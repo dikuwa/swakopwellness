@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requirePermission } from "@/auth/session";
-import { DashboardLayout } from "@/dashboard/components";
+import { DashboardShell } from "@/dashboard/shell";
 import { logoutAction } from "../actions";
 import { getDashboardChatConversations } from "@/dashboard/data";
 
@@ -21,7 +21,7 @@ export default async function ChatConversationsPage() {
   const conversations = await getDashboardChatConversations();
 
   return (
-    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+    <DashboardShell>
       <h1 className="text-3xl font-semibold tracking-[-0.035em]">Chat Conversations</h1>
         <p className="mt-2 text-sm text-muted-foreground">Review chatbot conversations, linked bookings and client details.</p>
 
@@ -69,6 +69,6 @@ export default async function ChatConversationsPage() {
             </table>
           </div>
         )}
-    </DashboardLayout>
+    </DashboardShell>
   );
 }

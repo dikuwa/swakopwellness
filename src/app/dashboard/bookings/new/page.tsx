@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requirePermission } from "@/auth/session";
-import { DashboardLayout } from "@/dashboard/components";
+import { DashboardShell } from "@/dashboard/shell";
 import { logoutAction } from "../../actions";
 import { getActiveSuitabilityQuestionsForDashboard, getBookableServicesForManualUse } from "@/dashboard/data";
 import { getBookingRules, getCommunicationSettings } from "@/public/data";
@@ -19,7 +19,7 @@ export default async function NewManualBookingPage({ searchParams }: { searchPar
   ]);
 
   return (
-    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+    <DashboardShell>
       <Link href="/dashboard/bookings" className="text-sm text-muted-foreground hover:text-foreground">&larr; Bookings</Link>
         <div className="mt-3 max-w-2xl">
           <h1 className="text-3xl font-semibold tracking-[-0.035em]">Add Manual Booking</h1>
@@ -135,6 +135,6 @@ export default async function NewManualBookingPage({ searchParams }: { searchPar
             </ul>
           </aside>
         </form>
-    </DashboardLayout>
+    </DashboardShell>
   );
 }

@@ -2,7 +2,7 @@ import { asc } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { serviceCategories } from "@/db/schema";
-import { DashboardLayout } from "@/dashboard/components";
+import { DashboardShell } from "@/dashboard/shell";
 import { logoutAction } from "../../actions";
 import {
   createServiceCategory,
@@ -23,7 +23,7 @@ export default async function ServiceCategoriesPage() {
     .orderBy(asc(serviceCategories.sortOrder), asc(serviceCategories.name));
 
   return (
-    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+    <DashboardShell>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-muted-foreground">
@@ -172,6 +172,6 @@ export default async function ServiceCategoriesPage() {
             </div>
           )}
         </div>
-    </DashboardLayout>
+    </DashboardShell>
   );
 }

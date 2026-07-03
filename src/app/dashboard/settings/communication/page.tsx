@@ -1,7 +1,7 @@
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { communicationSettings } from "@/db/schema";
-import { DashboardLayout } from "@/dashboard/components";
+import { DashboardShell } from "@/dashboard/shell";
 import { logoutAction } from "../../actions";
 import { updateCommunicationSettings } from "@/settings/actions";
 
@@ -15,15 +15,15 @@ export default async function CommunicationSettingsPage() {
 
   if (!settings) {
     return (
-      <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+      <DashboardShell>
         <h1 className="text-3xl font-semibold tracking-[-0.035em]">Communication Settings</h1>
         <p className="mt-6 text-muted-foreground">No communication settings found. Please seed the database.</p>
-      </DashboardLayout>
+      </DashboardShell>
     );
   }
 
   return (
-    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+    <DashboardShell>
         <div className="mb-6">
           <a href="/dashboard/settings" className="text-sm text-muted-foreground hover:text-foreground">&larr; All Settings</a>
         </div>
@@ -88,6 +88,6 @@ export default async function CommunicationSettingsPage() {
             </button>
           </div>
         </form>
-    </DashboardLayout>
+    </DashboardShell>
   );
 }

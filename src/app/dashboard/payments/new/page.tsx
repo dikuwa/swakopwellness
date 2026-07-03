@@ -1,5 +1,5 @@
 import { requirePermission } from "@/auth/session";
-import { DashboardLayout } from "@/dashboard/components";
+import { DashboardShell } from "@/dashboard/shell";
 import { logoutAction } from "../../actions";
 import { getClients } from "@/dashboard/data";
 import { createPaymentAction } from "./actions";
@@ -12,7 +12,7 @@ export default async function NewPaymentPage(props: { searchParams: Promise<{ in
   const sp = await props.searchParams;
 
   return (
-    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+    <DashboardShell>
       <h1 className="text-3xl font-semibold tracking-[-0.035em]">Record Payment</h1>
         <p className="mt-3 text-sm text-muted-foreground">Record a payment and optionally link it to an invoice.</p>
         <form action={createPaymentAction} className="mt-6 space-y-5">
@@ -117,6 +117,6 @@ export default async function NewPaymentPage(props: { searchParams: Promise<{ in
             Record Payment
           </button>
         </form>
-    </DashboardLayout>
+    </DashboardShell>
   );
 }

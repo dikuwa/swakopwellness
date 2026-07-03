@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requirePermission } from "@/auth/session";
-import { DashboardLayout } from "@/dashboard/components";
+import { DashboardShell } from "@/dashboard/shell";
 import { logoutAction } from "../../actions";
 import { getInvoiceById, getClientById } from "@/dashboard/data";
 import { emailInvoiceAction, issueInvoiceAction, voidInvoiceAction } from "./actions";
@@ -40,7 +40,7 @@ export default async function InvoiceDetailPage(props: { params: Promise<{ id: s
   const canEmail = !["draft", "voided"].includes(invoice.status);
 
   return (
-    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+    <DashboardShell>
       <div className="flex items-start justify-between gap-4">
           <div>
             <Link href="/dashboard/invoices" className="text-sm text-muted-foreground hover:text-foreground">&larr; Invoices</Link>
@@ -224,6 +224,6 @@ export default async function InvoiceDetailPage(props: { params: Promise<{ id: s
             </details>
           )}
         </div>
-    </DashboardLayout>
+    </DashboardShell>
   );
 }

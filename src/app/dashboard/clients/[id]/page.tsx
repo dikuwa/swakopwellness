@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
-import { DashboardLayout } from "@/dashboard/components";
+import { DashboardShell } from "@/dashboard/shell";
 import { logoutAction } from "../../actions";
 import { getClientById } from "@/dashboard/data";
 import { getDb } from "@/db/client";
@@ -16,12 +16,12 @@ export default async function DashboardClientDetailPage(props: { params: Promise
 
   if (!client) {
     return (
-      <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+      <DashboardShell>
         <p className="text-muted-foreground">Client not found.</p>
         <Link href="/dashboard/clients" className="mt-4 inline-block rounded-xl border border-border px-3 py-2 text-sm font-semibold hover:bg-surface-muted">
           ← Back to Clients
         </Link>
-      </DashboardLayout>
+      </DashboardShell>
     );
   }
 
@@ -34,7 +34,7 @@ export default async function DashboardClientDetailPage(props: { params: Promise
   ]);
 
   return (
-    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+    <DashboardShell>
         <Link href="/dashboard/clients" className="mb-4 inline-block rounded-xl border border-border px-3 py-2 text-sm font-semibold hover:bg-surface-muted">
           ← Back to Clients
         </Link>
@@ -168,6 +168,6 @@ export default async function DashboardClientDetailPage(props: { params: Promise
             <p className="mt-4 text-muted-foreground">No payments found.</p>
           )}
         </section>
-    </DashboardLayout>
+    </DashboardShell>
   );
 }

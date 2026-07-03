@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { receipts, clients, users } from "@/db/schema";
 import { requirePermission } from "@/auth/session";
-import { DashboardLayout } from "@/dashboard/components";
+import { DashboardShell } from "@/dashboard/shell";
 import { logoutAction } from "../../actions";
 import { hasPermission } from "@/auth/permissions";
 import { voidReceiptAction } from "./actions";
@@ -52,7 +52,7 @@ export default async function ReceiptDetailPage(props: { params: Promise<{ id: s
   const canVoid = hasPermission(user.permissions, "documents:void");
 
   return (
-    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+    <DashboardShell>
       <Link href="/dashboard/receipts" className="text-sm text-muted-foreground hover:text-foreground">&larr; Back to receipts</Link>
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -152,6 +152,6 @@ export default async function ReceiptDetailPage(props: { params: Promise<{ id: s
             </form>
           </div>
         )}
-    </DashboardLayout>
+    </DashboardShell>
   );
 }

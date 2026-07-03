@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { DashboardLayout } from "@/dashboard/components";
+import { DashboardLayoutWithSignOut } from "@/dashboard/components";
 import { logoutAction } from "../../actions";
 import { createInvoiceAction } from "./actions";
 
@@ -63,7 +63,7 @@ export function InvoiceForm({
   }
 
   return (
-    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+    <DashboardLayoutWithSignOut signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
       <h1 className="text-3xl font-semibold tracking-[-0.035em]">New Invoice</h1>
         <form action={createInvoiceAction} className="mt-8 space-y-8">
           <div className="grid gap-6 sm:grid-cols-3">
@@ -268,6 +268,6 @@ export function InvoiceForm({
             </Link>
           </div>
         </form>
-    </DashboardLayout>
+    </DashboardLayoutWithSignOut>
   );
 }

@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, type ReactNode } from "react";
+import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
 import toast from "react-hot-toast";
-import { DashboardLayout } from "@/dashboard/components";
+import { Loader2, Upload } from "lucide-react";
+import { uploadMediaAndReturnAction } from "@/media/actions";
+import { DashboardLayoutWithSignOut } from "@/dashboard/components";
 import { logoutAction } from "../actions";
 
 interface Category {
@@ -42,6 +44,8 @@ interface MediaAsset {
   createdAt: Date;
 }
 
+
+
 interface Props {
   categories: Category[];
   action: (
@@ -55,6 +59,44 @@ interface Props {
 export function ServiceForm({ categories, action, initialData, mediaAssets, children }: Props) {
   const router = useRouter();
   const isEdit = !!initialData;
+
+  const uploadInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingInline, setUploadingInline] = useState(false);
+  const [localMediaAssets, setLocalMediaAssets] = useState<MediaAsset[]>(mediaAssets ?? []);
+
+  useEffect(() => {
+    if (mediaAssets) setLocalMediaAssets(mediaAssets);
+  }, [mediaAssets]);
+
+  const handleInlineUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingInline(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("altText", file.name.split(".")[0] ?? "");
+
+    try {
+      const result = await uploadMediaAndReturnAction(formData);
+      if (result?.error) {
+        toast.error(result.error);
+      } else if (result?.asset) {
+        setLocalMediaAssets((prev) => [result.asset, ...prev]);
+        toast.success("Image uploaded");
+        // Auto-select the uploaded image
+        setTimeout(() => {
+          (document.getElementById("featuredImageId") as HTMLInputElement).value = result.asset.id;
+          document.querySelectorAll("[data-img-picker]").forEach((el) => el.classList.remove("ring-2", "ring-primary"));
+          document.querySelector(`[data-img-picker][data-id="${result.asset.id}"]`)?.classList.add("ring-2", "ring-primary");
+        }, 50);
+      }
+    } catch {
+      toast.error("Upload failed");
+    }
+    setUploadingInline(false);
+    if (uploadInputRef.current) uploadInputRef.current.value = "";
+  };
 
   const [state, formAction, isPending] = useActionState(
     async (_prev: unknown, formData: FormData) => action(formData),
@@ -71,7 +113,7 @@ export function ServiceForm({ categories, action, initialData, mediaAssets, chil
   }, [state, router, isEdit]);
 
   return (
-    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+    <DashboardLayoutWithSignOut signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
       <h1 className="text-3xl font-semibold tracking-[-0.035em]">
           {isEdit ? "Edit Service" : "New Service"}
         </h1>
@@ -314,7 +356,36 @@ export function ServiceForm({ categories, action, initialData, mediaAssets, chil
           <div className="space-y-6 rounded-xl border border-border bg-background p-6">
             <h2 className="text-lg font-semibold">Featured Image</h2>
             <input type="hidden" name="featuredImageId" value={initialData?.featuredImageId ?? ""} id="featuredImageId" />
-            {mediaAssets && mediaAssets.length > 0 ? (
+
+            {/* Inline upload */}
+            <input
+              ref={uploadInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
+              onChange={handleInlineUpload}
+              className="sr-only"
+              id="inline-upload-input"
+            />
+            <button
+              type="button"
+              onClick={() => uploadInputRef.current?.click()}
+              disabled={uploadingInline}
+              className="mb-4 flex h-9 items-center gap-2 rounded-xl border border-border px-4 text-xs font-semibold text-foreground transition-colors hover:bg-surface-muted disabled:opacity-50"
+            >
+              {uploadingInline ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                  Uploading...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-3.5 w-3.5" aria-hidden="true" />
+                  Upload new image
+                </>
+              )}
+            </button>
+
+            {localMediaAssets.length > 0 ? (
               <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
                 <button
                   type="button"
@@ -326,7 +397,7 @@ export function ServiceForm({ categories, action, initialData, mediaAssets, chil
                 >
                   <div className="flex h-full items-center justify-center text-xs text-muted-foreground">None</div>
                 </button>
-                {mediaAssets.map((asset) => (
+                {localMediaAssets.map((asset) => (
                   <button
                     key={asset.id}
                     type="button"
@@ -411,6 +482,6 @@ export function ServiceForm({ categories, action, initialData, mediaAssets, chil
           </div>
         </form>
         {children}
-    </DashboardLayout>
+    </DashboardLayoutWithSignOut>
   );
 }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requirePermission } from "@/auth/session";
-import { DashboardLayout } from "@/dashboard/components";
+import { DashboardShell } from "@/dashboard/shell";
 import { getInvoices } from "@/dashboard/data";
 import { logoutAction } from "../actions";
 
@@ -29,7 +29,7 @@ export default async function InvoicesPage() {
   const invoices = await getInvoices();
 
   return (
-    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+    <DashboardShell>
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">Finance</p>
@@ -88,6 +88,6 @@ export default async function InvoicesPage() {
           </tbody>
         </table>
       </div>
-    </DashboardLayout>
+    </DashboardShell>
   );
 }

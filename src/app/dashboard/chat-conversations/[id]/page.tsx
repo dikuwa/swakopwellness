@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { hasPermission } from "@/auth/permissions";
 import { requirePermission } from "@/auth/session";
-import { DashboardLayout } from "@/dashboard/components";
+import { DashboardShell } from "@/dashboard/shell";
 import { logoutAction } from "../../actions";
 import { getDashboardChatConversationById } from "@/dashboard/data";
 import { updateChatConversationStatus } from "../actions";
@@ -40,7 +40,7 @@ export default async function ChatConversationDetailPage(props: { params: Promis
   const canUpdateStatus = hasPermission(user.permissions, "bookings:update");
 
   return (
-    <DashboardLayout signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+    <DashboardShell>
       <Link href="/dashboard/chat-conversations" className="text-sm text-muted-foreground hover:text-foreground">&larr; Chat conversations</Link>
 
         <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -116,6 +116,6 @@ export default async function ChatConversationDetailPage(props: { params: Promis
             ))}
           </div>
         </section>
-    </DashboardLayout>
+    </DashboardShell>
   );
 }
