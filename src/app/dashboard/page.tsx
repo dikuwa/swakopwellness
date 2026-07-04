@@ -107,10 +107,10 @@ export default async function DashboardPage() {
     db.select({ value: count() }).from(followUps).where(and(eq(followUps.status, "pending"), sql`${followUps.dueAt} < ${now.toISOString()}`)),
     db.select({ value: sql<number>`coalesce(sum(${invoices.balanceCents}), 0)::int` }).from(invoices).where(inArray(invoices.status, ["issued", "partially_paid", "overdue"])),
     db.select({ value: sql<number>`coalesce(sum(${payments.amountCents}), 0)::int` }).from(payments).where(and(sql`${payments.paymentDate} >= ${thirtyDaysAgo.toISOString()}`, isNull(payments.voidedAt))),
-    db.select({ id: bookings.id, reference: bookings.reference, clientId: bookings.clientId, serviceName: bookings.serviceName, preferredAt: bookings.preferredAt, status: bookings.status, clientName: clients.fullName }).from(bookings).innerJoin(clients, eq(bookings.clientId, clients.id)).where(sql`${bookings.preferredAt} >= ${todayStart.toISOString()} AND ${bookings.preferredAt} < ${todayEnd.toISOString()}`).orderBy(asc(bookings.preferredAt)).limit(20),
-    db.select({ id: bookings.id, reference: bookings.reference, clientId: bookings.clientId, serviceName: bookings.serviceName, preferredAt: bookings.preferredAt, status: bookings.status, clientName: clients.fullName }).from(bookings).innerJoin(clients, eq(bookings.clientId, clients.id)).where(and(sql`${bookings.preferredAt} >= ${todayEnd.toISOString()}`, inArray(bookings.status, ["new_request", "requires_review", "confirmed", "contacting_client", "awaiting_client_response", "rescheduled"]))).orderBy(asc(bookings.preferredAt)).limit(5),
-    db.select({ id: followUps.id, dueAt: followUps.dueAt, method: followUps.method, status: followUps.status, internalNote: followUps.internalNote, clientName: clients.fullName, bookingReference: bookings.reference }).from(followUps).leftJoin(clients, eq(followUps.clientId, clients.id)).leftJoin(bookings, eq(followUps.bookingId, bookings.id)).where(inArray(followUps.status, ["pending", "due_today"])).orderBy(asc(followUps.dueAt)).limit(10),
-    db.select({ id: activityLog.id, action: activityLog.action, summary: activityLog.summary, createdAt: activityLog.createdAt, userName: users.name }).from(activityLog).leftJoin(users, eq(activityLog.userId, users.id)).orderBy(desc(activityLog.createdAt)).limit(10),
+    db.select({ id: bookings.id, reference: bookings.reference, clientId: bookings.clientId, serviceName: bookings.serviceName, preferredAt: bookings.preferredAt, status: bookings.status, clientName: clients.fullName }).from(bookings).innerJoin(clients, eq(bookings.clientId, clients.id)).where(sql`${bookings.preferredAt} >= ${todayStart.toISOString()} AND ${bookings.preferredAt} < ${todayEnd.toISOString()}`).orderBy(asc(bookings.preferredAt)),
+    db.select({ id: bookings.id, reference: bookings.reference, clientId: bookings.clientId, serviceName: bookings.serviceName, preferredAt: bookings.preferredAt, status: bookings.status, clientName: clients.fullName }).from(bookings).innerJoin(clients, eq(bookings.clientId, clients.id)).where(sql`${bookings.preferredAt} > ${todayEnd.toISOString()}`).orderBy(asc(bookings.preferredAt)).limit(50),
+    db.select({ id: followUps.id, dueAt: followUps.dueAt, method: followUps.method, status: followUps.status, internalNote: followUps.internalNote, clientName: clients.fullName, bookingReference: bookings.reference }).from(followUps).innerJoin(clients, eq(followUps.clientId, clients.id)).leftJoin(bookings, eq(followUps.bookingId, bookings.id)).where(and(eq(followUps.status, "pending"), sql`${followUps.dueAt} < ${todayEnd.toISOString()}`)).orderBy(asc(followUps.dueAt)).limit(10),
+    db.select({ id: activityLog.id, action: activityLog.action, summary: activityLog.summary, createdAt: activityLog.createdAt, userName: users.name }).from(activityLog).leftJoin(users, eq(activityLog.actorUserId, users.id)).orderBy(desc(activityLog.createdAt)).limit(10),
   ]);
 
   const fmtCurrency = (cents: number) => `N$${(cents / 100).toFixed(2)}`;
@@ -130,37 +130,50 @@ export default async function DashboardPage() {
     <DashboardShell>
       <PageHeading pre="Overview" title={`${greeting}, ${user.name}`} description={todayDateStr} />
 
-      {hasAlerts ? (
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-              {requiresReviewCount.value > 0 ? (
-            <Link
-              href="/dashboard/bookings"
-              className="flex items-center gap-2 rounded-xl border border-warning/20 bg-warning/5 px-4 py-3 text-sm font-medium text-warning transition-colors hover:bg-warning/10"
-            >
-              <WarningIcon />
-              {requiresReviewCount.value} booking(s) require review
-            </Link>
-          ) : null}
-          {overdueFollowUpsCount.value > 0 ? (
-            <Link
-              href="/dashboard/follow-ups"
-              className="flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
-            >
-              <WarningIcon />
-              {overdueFollowUpsCount.value} follow-up(s) overdue
-            </Link>
-          ) : null}
-          {unreadNotificationsResult.value > 0 ? (
-            <Link
-              href="/dashboard/notifications"
-              className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
-            >
-              <BellIcon />
-              {unreadNotificationsResult.value} unread notification(s)
-            </Link>
-          ) : null}
+      {/* Quick actions and alerts row */}
+      <div className="mt-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+        {/* Quick action buttons */}
+        <div className="flex flex-wrap items-center gap-2">
+          <LinkButton href="/dashboard/bookings/new" variant="secondary" size="sm">New Booking</LinkButton>
+          <LinkButton href="/dashboard/invoices/new" variant="secondary" size="sm">New Invoice</LinkButton>
+          <LinkButton href="/dashboard/receipts/new" variant="secondary" size="sm">New Receipt</LinkButton>
+          <LinkButton href="/dashboard/clients" variant="secondary" size="sm">Clients</LinkButton>
+          <LinkButton href="/dashboard/follow-ups" variant="secondary" size="sm">Follow-ups</LinkButton>
         </div>
-      ) : null}
+
+        {/* Alert chips */}
+        {hasAlerts ? (
+          <div className="flex flex-wrap items-center gap-3">
+            {requiresReviewCount.value > 0 ? (
+              <Link
+                href="/dashboard/bookings"
+                className="flex items-center gap-2 rounded-xl border border-warning/20 bg-warning/5 px-3 py-2 text-xs font-medium text-warning transition-colors hover:bg-warning/10"
+              >
+                <WarningIcon />
+                {requiresReviewCount.value} booking(s) require review
+              </Link>
+            ) : null}
+            {overdueFollowUpsCount.value > 0 ? (
+              <Link
+                href="/dashboard/follow-ups"
+                className="flex items-center gap-2 rounded-xl border border-destructive/20 bg-destructive/5 px-3 py-2 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"
+              >
+                <WarningIcon />
+                {overdueFollowUpsCount.value} follow-up(s) overdue
+              </Link>
+            ) : null}
+            {unreadNotificationsResult.value > 0 ? (
+              <Link
+                href="/dashboard/notifications"
+                className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-3 py-2 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+              >
+                <BellIcon />
+                {unreadNotificationsResult.value} unread notification(s)
+              </Link>
+            ) : null}
+          </div>
+        ) : null}
+      </div>
 
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6">
         {kpiCards.map((s) => (
@@ -293,14 +306,6 @@ export default async function DashboardPage() {
             </div>
           </Card>
         </div>
-      </div>
-
-      <div className="mt-6 flex flex-wrap items-center gap-2">
-        <LinkButton href="/dashboard/bookings/new" variant="secondary" size="sm">New Booking</LinkButton>
-        <LinkButton href="/dashboard/invoices/new" variant="secondary" size="sm">New Invoice</LinkButton>
-        <LinkButton href="/dashboard/receipts/new" variant="secondary" size="sm">New Receipt</LinkButton>
-        <LinkButton href="/dashboard/clients" variant="secondary" size="sm">Clients</LinkButton>
-        <LinkButton href="/dashboard/follow-ups" variant="secondary" size="sm">Follow-ups</LinkButton>
       </div>
 
       <Card className="mt-6">
