@@ -15,7 +15,6 @@ import {
   Activity,
   CircleHelp,
   ShieldCheck,
-  Images,
   MessageCircle,
   FileText,
   FileSignature,
@@ -30,15 +29,9 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Store,
-  MessageSquare,
-  CalendarRange,
-  Hash,
   Menu,
-  X,
-  ChevronUp,
+  ExternalLink,
 } from "lucide-react";
-import toast from "react-hot-toast";
 import { logoutAction } from "./logout-action";
 
 // ── Icon map ─────────────────────────────────────────────
@@ -54,7 +47,7 @@ const iconMap: Record<string, typeof LayoutDashboard> = {
   "/dashboard/services/suitability": Activity,
   "/dashboard/faqs": CircleHelp,
   "/dashboard/policies": ShieldCheck,
-  "/dashboard/media": Images,
+
   "/dashboard/chat-conversations": MessageCircle,
   "/dashboard/invoices": FileText,
   "/dashboard/quotations": FileSignature,
@@ -65,10 +58,6 @@ const iconMap: Record<string, typeof LayoutDashboard> = {
   "/dashboard/activity-log": History,
   "/dashboard/users": UserRoundCog,
   "/dashboard/settings": Settings,
-  "/dashboard/settings/business": Store,
-  "/dashboard/settings/communication": MessageSquare,
-  "/dashboard/settings/booking-rules": CalendarRange,
-  "/dashboard/settings/document-numbering": Hash,
 };
 
 function NavIcon({ href, className }: { href: string; className?: string }) {
@@ -119,7 +108,6 @@ const linkGroups: NavGroup[] = [
       },
       { href: "/dashboard/faqs", label: "FAQs" },
       { href: "/dashboard/policies", label: "Policies" },
-      { href: "/dashboard/media", label: "Media" },
       { href: "/dashboard/chat-conversations", label: "Chat" },
     ],
   },
@@ -139,16 +127,7 @@ const linkGroups: NavGroup[] = [
       { href: "/dashboard/notifications", label: "Notifications" },
       { href: "/dashboard/activity-log", label: "Activity Log" },
       { href: "/dashboard/users", label: "Users" },
-      {
-        href: "/dashboard/settings",
-        label: "Settings",
-        children: [
-          { href: "/dashboard/settings/business", label: "Business" },
-          { href: "/dashboard/settings/communication", label: "Communication" },
-          { href: "/dashboard/settings/booking-rules", label: "Booking Rules" },
-          { href: "/dashboard/settings/document-numbering", label: "Document Numbering" },
-        ],
-      },
+      { href: "/dashboard/settings", label: "Settings" },
     ],
   },
 ];
@@ -255,35 +234,26 @@ function DashboardSidebar({
     return saved;
   });
 
-  // Auto-open group containing active route
-  useEffect(() => {
-    setOpenGroups((prev) => {
-      const next = { ...prev };
-      let changed = false;
-      for (const group of linkGroups) {
-        const hasActive = group.links.some((link) => {
-          if (pathname === link.href || pathname.startsWith(`${link.href}/`)) return true;
-          if (link.children) {
-            return link.children.some(
-              (child) => pathname === child.href || pathname.startsWith(`${child.href}/`),
-            );
-          }
-          return false;
-        });
-        if (hasActive && !next[group.label]) {
-          next[group.label] = true;
-          changed = true;
+  // Compute whether a nav group is open based on user toggle OR active route
+  const isGroupOpen = useCallback(
+    (label: string): boolean => {
+      const group = linkGroups.find((g) => g.label === label);
+      if (!group) return true;
+      const hasActive = group.links.some((link) => {
+        if (pathname === link.href || pathname.startsWith(`${link.href}/`)) return true;
+        if (link.children) {
+          return link.children.some(
+            (child) => pathname === child.href || pathname.startsWith(`${child.href}/`),
+          );
         }
-      }
-      if (changed) {
-        // Persist
-        for (const [k, v] of Object.entries(next)) {
-          sessionStorage.setItem(groupStorageKey(k), String(v));
-        }
-      }
-      return next;
-    });
-  }, [pathname]);
+        return false;
+      });
+      const userToggle = openGroups[label];
+      // Show if group has active route, otherwise use user's preference (default open)
+      return hasActive || (userToggle !== undefined ? userToggle : true);
+    },
+    [pathname, openGroups],
+  );
 
   const toggleGroup = useCallback((label: string) => {
     setOpenGroups((prev) => {
@@ -321,7 +291,7 @@ function DashboardSidebar({
       </Link>
 
       {linkGroups.map((group) => {
-        const groupOpen = openGroups[group.label] ?? true;
+        const groupOpen = isGroupOpen(group.label);
 
         // Don't show children labels when collapsed
         return (
@@ -402,8 +372,19 @@ function DashboardSidebar({
             </div>
           </div>
         );
-      })}
-    </nav>
+      })}        {/* View Website link */}
+        <Link
+          href="/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`mt-4 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground ${
+            collapsed ? "justify-center px-2" : ""
+          }`}
+        >
+          <ExternalLink className="h-4 w-4 shrink-0" aria-hidden="true" />
+          {!collapsed && <span className="truncate">View Website</span>}
+        </Link>
+      </nav>
   );
 }
 
@@ -448,7 +429,7 @@ function NotificationBell({ unreadCount }: { unreadCount: number }) {
 
 // ── User avatar and dropdown ─────────────────────────────
 
-function UserAvatar({ name, email }: { name: string; email: string }) {
+function UserAvatar({ name }: { name: string }) {
   const initials = name
     .split(" ")
     .map((n) => n[0])
@@ -673,7 +654,7 @@ export function DashboardLayout({
           </div>
           <div className="flex items-center gap-2">
             <NotificationBell unreadCount={unreadCount} />
-            <UserAvatar name={userName} email={userEmail} />
+            <UserAvatar name={userName} />
           </div>
         </header>
 
@@ -694,94 +675,4 @@ export function DashboardLayout({
   );
 }
 
-/**
- * @deprecated Use DashboardLayout with userName/userEmail/unreadCount instead.
- */
-export function DashboardLayoutWithSignOut({
-  children,
-  signOutForm,
-}: {
-  children: React.ReactNode;
-  signOutForm: React.ReactNode;
-}) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return sessionStorage.getItem(collapseStorageKey()) === "true";
-  });
 
-  const toggleCollapse = useCallback(() => {
-    setCollapsed((prev) => {
-      const next = !prev;
-      sessionStorage.setItem(collapseStorageKey(), String(next));
-      return next;
-    });
-  }, []);
-
-  return (
-    <div className="flex min-h-screen bg-background">
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm md:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-surface transition-all duration-300 md:sticky ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0 ${collapsed ? "w-16" : "w-64"}`}
-      >
-        <div className="flex-1 overflow-y-auto px-2 py-4 sm:px-4 sm:py-6">
-          <DashboardSidebar
-            collapsed={collapsed}
-            onNavClick={() => setSidebarOpen(false)}
-          />
-        </div>
-        <div className="border-t border-border p-2 sm:p-4">
-          {signOutForm}
-        </div>
-      </aside>
-
-      {/* Collapse toggle (desktop) */}
-      <div
-        className={`fixed bottom-6 z-30 hidden md:block ${
-          collapsed ? "left-[3.5rem]" : "left-[15rem]"
-        } transition-all duration-300`}
-      >
-        <CollapseToggle collapsed={collapsed} onToggle={toggleCollapse} />
-      </div>
-
-      {/* Main */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* Mobile header */}
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-border bg-background/95 px-5 py-3 backdrop-blur md:hidden">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="flex h-10 w-10 items-center justify-center rounded-xl border border-border transition-colors hover:bg-surface-muted"
-              aria-label="Open sidebar"
-            >
-              <Menu className="h-5 w-5 text-foreground" aria-hidden="true" />
-            </button>
-            <Link href="/dashboard" className="flex items-center" aria-label="Dashboard">
-              <BrandMark />
-            </Link>
-          </div>
-        </header>
-
-        <main className="min-w-0 flex-1 overflow-x-hidden px-5 py-6 sm:px-8 md:py-8">
-          {children}
-        </main>
-      </div>
-    </div>
-  );
-}
-
-// ── Backward-compatible DashboardNav (kept for reference, unused now) ──
-
-export function DashboardNav() {
-  return null;
-}

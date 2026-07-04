@@ -232,6 +232,70 @@ export async function convertQuotationToInvoice(quotationId: string, userId: str
   return result;
 }
 
+export async function duplicateQuotation(quotationId: string, userId: string): Promise<QuotationResult> {
+  const db = getDb();
+  const [q] = await db.select().from(quotations).where(eq(quotations.id, quotationId)).limit(1);
+  if (!q) return { ok: false, message: "Quotation not found." };
+
+  const result = await db.transaction(async (tx) => {
+    const items = await tx
+      .select()
+      .from(quotationLineItems)
+      .where(eq(quotationLineItems.quotationId, quotationId))
+      .orderBy(quotationLineItems.sortOrder);
+
+    let quotationNumber: string;
+    try {
+      quotationNumber = await getNextDocumentNumber("quotation");
+    } catch {
+      return { ok: false, message: "Quotation numbering is not configured." } as QuotationResult;
+    }
+
+    const [duplicate] = await tx
+      .insert(quotations)
+      .values({
+        quotationNumber,
+        clientId: q.clientId,
+        bookingId: q.bookingId,
+        issueDate: new Date(),
+        validUntil: q.validUntil,
+        subtotalCents: q.subtotalCents,
+        discountType: q.discountType,
+        discountValue: q.discountValue,
+        discountCents: q.discountCents,
+        totalCents: q.totalCents,
+        status: "draft",
+        notes: q.notes,
+        terms: q.terms,
+        createdByUserId: userId ?? null,
+      })
+      .returning();
+
+    if (items.length > 0) {
+      await tx.insert(quotationLineItems).values(
+        items.map((item, i) => ({
+          quotationId: duplicate.id,
+          serviceId: item.serviceId,
+          description: item.description,
+          quantity: item.quantity,
+          unitPriceCents: item.unitPriceCents,
+          discountCents: item.discountCents,
+          sortOrder: i,
+        })),
+      );
+    }
+
+    await recordActivity(userId ?? undefined, "quotation.duplicated", "quotation", duplicate.id, `Quotation ${quotationNumber} duplicated from ${q.quotationNumber}`);
+
+    return { ok: true as const, id: duplicate.id, quotationNumber, totalCents: q.totalCents };
+  });
+
+  if (result.ok) {
+    await notifyStaff("quotation.created", `Quotation ${result.quotationNumber}`, `Quotation ${result.quotationNumber} duplicated — N$${(result.totalCents / 100).toFixed(2)}`, "quotation", result.id);
+  }
+  return result;
+}
+
 export async function voidQuotation(quotationId: string, reason: string, userId: string): Promise<QuotationResult> {
   const db = getDb();
   const [q] = await db.select().from(quotations).where(eq(quotations.id, quotationId)).limit(1);

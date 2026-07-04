@@ -1,14 +1,18 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
 import { getDashboardReports } from "@/dashboard/data";
-import { logoutAction } from "../actions";
 
 export const dynamic = "force-dynamic";
 
+export const metadata: Metadata = {
+  title: "Reports — Swakop Wellness Centre",
+};
+
 function money(cents: number) {
-  return `N$${(cents / 100).toLocaleString("en-NA", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `N$${(cents / 100).toFixed(2)}`;
 }
 
 function label(value: string) {

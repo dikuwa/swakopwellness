@@ -595,6 +595,27 @@ export async function deleteServiceFaq(id: string) {
   revalidateServiceManagement();
 }
 
+export async function reorderServiceGalleryImage(serviceId: string, mediaAssetId: string, newSortOrder: number) {
+  await requirePermission("services:manage");
+  const db = getDb();
+
+  const [current] = await db
+    .select({ sortOrder: serviceImages.sortOrder })
+    .from(serviceImages)
+    .where(and(eq(serviceImages.serviceId, serviceId), eq(serviceImages.mediaAssetId, mediaAssetId)))
+    .limit(1);
+
+  if (current) {
+    await db
+      .update(serviceImages)
+      .set({ sortOrder: newSortOrder })
+      .where(and(eq(serviceImages.serviceId, serviceId), eq(serviceImages.mediaAssetId, mediaAssetId)));
+  }
+
+  revalidateServiceManagement();
+  revalidatePath(`/dashboard/services/${serviceId}/edit`);
+}
+
 export async function addServiceGalleryImage(serviceId: string, mediaAssetId: string) {
   await requirePermission("services:manage");
   const db = getDb();

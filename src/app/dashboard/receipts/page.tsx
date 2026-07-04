@@ -1,17 +1,21 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
-import { logoutAction } from "../actions";
 import { getReceipts } from "@/dashboard/data";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Receipts — Swakop Wellness Centre",
+};
 
 function formatCurrency(cents: number) {
   return `N$${(cents / 100).toFixed(2)}`;
 }
 
 function formatDate(d: Date) {
-  return d.toLocaleDateString("en-NA", { year: "numeric", month: "short", day: "numeric" });
+  return d.toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric" });
 }
 
 export default async function ReceiptsPage() {

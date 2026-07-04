@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import type { Metadata } from "next";
 import { requireAuth } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { faqs } from "@/db/schema";
@@ -6,6 +7,10 @@ import { updateFaq } from "@/faqs/actions";
 import { FaqForm } from "../../faq-form";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Edit FAQ — Dashboard",
+};
 
 interface PageProps {
   params: Promise<{ id: string }>;

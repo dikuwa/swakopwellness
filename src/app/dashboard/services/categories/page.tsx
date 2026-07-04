@@ -1,9 +1,9 @@
 import { asc } from "drizzle-orm";
+import type { Metadata } from "next";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { serviceCategories } from "@/db/schema";
 import { DashboardShell } from "@/dashboard/shell";
-import { logoutAction } from "../../actions";
 import {
   createServiceCategory,
   deleteOrArchiveServiceCategory,
@@ -12,6 +12,10 @@ import {
 } from "@/services/actions";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Service Categories — Dashboard",
+};
 
 export default async function ServiceCategoriesPage() {
   await requirePermission("services:manage");

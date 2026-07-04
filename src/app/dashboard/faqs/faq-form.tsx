@@ -4,8 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect } from "react";
 import toast from "react-hot-toast";
-import { DashboardLayoutWithSignOut } from "@/dashboard/components";
-import { logoutAction } from "../actions";
 
 interface FaqFormData {
   question: string;
@@ -38,8 +36,8 @@ export function FaqForm({ action, initialData }: Props) {
   }, [state, router, isEdit]);
 
   return (
-    <DashboardLayoutWithSignOut signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
-      <h1 className="text-3xl font-semibold tracking-[-0.035em]">
+      <>
+        <h1 className="text-3xl font-semibold tracking-[-0.035em]">
           {isEdit ? "Edit FAQ" : "New FAQ"}
         </h1>
 
@@ -129,6 +127,6 @@ export function FaqForm({ action, initialData }: Props) {
             </Link>
           </div>
         </form>
-    </DashboardLayoutWithSignOut>
+    </>
   );
 }

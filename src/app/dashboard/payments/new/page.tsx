@@ -1,10 +1,15 @@
+import type { Metadata } from "next";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
-import { logoutAction } from "../../actions";
 import { getClients } from "@/dashboard/data";
 import { createPaymentAction } from "./actions";
+import { InvoiceSelector } from "./invoice-selector";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Record Payment — Dashboard",
+};
 
 export default async function NewPaymentPage(props: { searchParams: Promise<{ invoice_id?: string }> }) {
   await requirePermission("payments:record");
@@ -16,22 +21,10 @@ export default async function NewPaymentPage(props: { searchParams: Promise<{ in
       <h1 className="text-3xl font-semibold tracking-[-0.035em]">Record Payment</h1>
         <p className="mt-3 text-sm text-muted-foreground">Record a payment and optionally link it to an invoice.</p>
         <form action={createPaymentAction} className="mt-6 space-y-5">
-          <div>
-            <label htmlFor="clientId" className="mb-2 block text-sm font-semibold">Client</label>
-            <select
-              id="clientId"
-              name="clientId"
-              required
-              className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="">Select client</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.fullName}
-                </option>
-              ))}
-            </select>
-          </div>
+          <InvoiceSelector
+            clients={clients}
+            preselectedInvoiceId={sp.invoice_id}
+          />
 
           <div>
             <label htmlFor="amount" className="mb-2 block text-sm font-semibold">Amount (N$)</label>
@@ -77,15 +70,17 @@ export default async function NewPaymentPage(props: { searchParams: Promise<{ in
           </div>
 
           <div>
-            <label htmlFor="invoiceId" className="mb-2 block text-sm font-semibold">Linked Invoice (optional)</label>
-            <input
-              id="invoiceId"
-              name="invoiceId"
-              type="text"
-              defaultValue={sp.invoice_id ?? ""}
-              className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="Invoice ID"
-            />
+            <label htmlFor="generateReceipt" className="mb-2 block text-sm font-semibold">Receipt</label>
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm transition-colors hover:bg-surface-muted">
+              <input
+                type="checkbox"
+                id="generateReceipt"
+                name="generateReceipt"
+                defaultChecked
+                className="h-4 w-4 rounded border-border accent-primary"
+              />
+              Generate receipt now
+            </label>
           </div>
 
           <div>

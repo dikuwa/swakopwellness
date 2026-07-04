@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { asc, desc, eq } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
@@ -8,6 +9,10 @@ import { ServiceForm } from "../../service-form";
 import { GalleryManager } from "./gallery-manager";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Edit Service — Dashboard",
+};
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -99,7 +104,7 @@ export default async function EditServicePage({ params }: PageProps) {
         <h2 className="text-lg font-semibold">Service FAQs</h2>
         <p className="mt-2 text-sm text-muted-foreground">These appear on this service detail page.</p>
 
-        <form action={async (formData) => { "use server"; await createServiceFaq(id, formData); }} className="mt-5 grid gap-4 rounded-2xl bg-surface-muted p-4 md:grid-cols-[1fr_1fr_6rem_auto]">
+        <form action={createServiceFaq.bind(null, id) as unknown as (fd: FormData) => Promise<void>} className="mt-5 grid gap-4 rounded-2xl bg-surface-muted p-4 md:grid-cols-[1fr_1fr_6rem_auto]">
           <label className="text-sm font-medium">
             Question
             <input name="question" required className="mt-2 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
@@ -119,7 +124,7 @@ export default async function EditServicePage({ params }: PageProps) {
           {faqs.length === 0 ? <p className="rounded-2xl bg-surface-muted p-4 text-sm text-muted-foreground">No service FAQs yet.</p> : null}
           {faqs.map((faq) => (
             <article key={faq.id} className="rounded-2xl border border-border p-4">
-              <form action={async (formData) => { "use server"; await updateServiceFaq(faq.id, formData); }} className="grid gap-4 md:grid-cols-[1fr_1fr_6rem_auto]">
+              <form action={updateServiceFaq.bind(null, faq.id) as unknown as (fd: FormData) => Promise<void>} className="grid gap-4 md:grid-cols-[1fr_1fr_6rem_auto]">
                 <label className="text-sm font-medium">
                   Question
                   <input name="question" required defaultValue={faq.question} className="mt-2 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
@@ -135,10 +140,10 @@ export default async function EditServicePage({ params }: PageProps) {
                 <button type="submit" className="mt-7 h-11 rounded-xl border border-border px-4 text-sm font-semibold hover:bg-surface-muted">Save</button>
               </form>
               <div className="mt-3 flex flex-wrap gap-2">
-                <form action={async () => { "use server"; await toggleServiceFaqActive(faq.id); }}>
+                <form action={toggleServiceFaqActive.bind(null, faq.id)}>
                   <button type="submit" className="h-9 rounded-xl border border-border px-3 text-xs font-semibold hover:bg-surface-muted">{faq.active ? "Deactivate" : "Activate"}</button>
                 </form>
-                <form action={async () => { "use server"; await deleteServiceFaq(faq.id); }}>
+                <form action={deleteServiceFaq.bind(null, faq.id)}>
                   <button type="submit" className="h-9 rounded-xl border border-destructive/30 px-3 text-xs font-semibold text-destructive hover:bg-destructive/10">Delete</button>
                 </form>
                 <span className={`inline-flex h-9 items-center rounded-xl px-3 text-xs font-semibold ${faq.active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>{faq.active ? "Active" : "Inactive"}</span>

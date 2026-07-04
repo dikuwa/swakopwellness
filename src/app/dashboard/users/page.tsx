@@ -1,13 +1,17 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { users, userRoles, roles } from "@/db/schema";
 import { DashboardShell } from "@/dashboard/shell";
-import { logoutAction } from "../actions";
 import { toggleUserActive } from "@/users/actions";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Users — Swakop Wellness Centre",
+};
 
 export default async function UsersPage() {
   await requirePermission("users:manage");
@@ -70,7 +74,7 @@ export default async function UsersPage() {
                       {u.active ? "Yes" : "No"}
                     </span>
                   </td>
-                  <td>{u.createdAt.toLocaleDateString("en-NA")}</td>
+                  <td>{u.createdAt.toLocaleDateString("en-GB")}</td>
                   <td>
                     <div className="flex items-center gap-2">
                       <Link

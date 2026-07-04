@@ -1,12 +1,16 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
 import { getDashboardBookings } from "@/dashboard/data";
 import { confirmBooking, cancelBooking, markCompleted, markNoShow, changeBookingStatus } from "@/booking/actions";
 import { getAvailableActions } from "@/booking/status";
-import { logoutAction } from "../actions";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Bookings — Swakop Wellness Centre",
+};
 
 const statusStyles: Record<string, string> = {
   new_request: "bg-blue-100 text-blue-700",

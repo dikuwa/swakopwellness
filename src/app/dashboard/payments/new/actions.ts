@@ -14,6 +14,7 @@ export async function createPaymentAction(formData: FormData) {
   const reference = (formData.get("reference") as string) || null;
   const notes = (formData.get("notes") as string) || null;
   const invoiceId = (formData.get("invoiceId") as string) || null;
+  const generateReceipt = formData.get("generateReceipt") === "on";
 
   if (!clientId || !amountDollars || !paymentDateStr || !method) {
     throw new Error("clientId, amount, paymentDate and method are required.");
@@ -36,12 +37,13 @@ export async function createPaymentAction(formData: FormData) {
     notes,
     invoiceId,
     recordedByUserId: user.id,
-    generateReceipt: false,
+    generateReceipt,
   });
 
   if (!result.ok) {
     throw new Error(result.message);
   }
 
-  redirect(`/dashboard/payments/${result.id}`);
+  const destId = result.receiptId ? `/dashboard/receipts/${result.receiptId}` : `/dashboard/payments/${result.id}`;
+  redirect(destId);
 }

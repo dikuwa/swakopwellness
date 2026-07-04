@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { eq, isNull } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
@@ -9,9 +10,12 @@ import {
   toggleServiceActive,
   toggleServicePublic,
 } from "@/services/actions";
-import { logoutAction } from "../actions";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Services — Swakop Wellness Centre",
+};
 
 export default async function ServicesPage() {
   await requirePermission("services:manage");

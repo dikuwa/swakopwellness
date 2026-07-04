@@ -1,10 +1,14 @@
+import type { Metadata } from "next";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
-import { logoutAction } from "../../actions";
 import { getClients } from "@/dashboard/data";
 import { createReceiptAction } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "New Receipt — Dashboard",
+};
 
 export default async function NewReceiptPage() {
   await requirePermission("documents:create");

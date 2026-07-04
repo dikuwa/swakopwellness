@@ -1,19 +1,38 @@
-import Link from "next/link";
-import { requirePermission } from "@/auth/session";
+import type { Metadata } from "next";
+import { requireAuth } from "@/auth/session";
+import { hasPermission } from "@/auth/permissions";
+import { getDb } from "@/db/client";
+import { businessSettings, communicationSettings, bookingRules, documentNumberSequences } from "@/db/schema";
+import { asc } from "drizzle-orm";
+import { getMediaAssets } from "@/media/actions";
 import { DashboardShell } from "@/dashboard/shell";
-import { logoutAction } from "../actions";
+import { SettingsTabs } from "./settings-tabs";
 
 export const dynamic = "force-dynamic";
 
-const cards = [
-  { href: "/dashboard/settings/business", title: "Business Settings", description: "Business name, address, contact details, currency, and disclaimer." },
-  { href: "/dashboard/settings/communication", title: "Communication Settings", description: "Phone, email, WhatsApp and notification preferences." },
-  { href: "/dashboard/settings/booking-rules", title: "Booking Rules", description: "Opening hours, timezone, request mode, and duplicate detection." },
-  { href: "/dashboard/settings/document-numbering", title: "Document Numbering", description: "Prefixes, starting numbers, and padding for invoices, receipts, and quotations." },
-];
+export const metadata: Metadata = {
+  title: "Settings — Swakop Wellness Centre",
+};
 
-export default async function SettingsIndexPage() {
-  await requirePermission("settings:manage");
+export default async function SettingsPage() {
+  const user = await requireAuth();
+  const db = getDb();
+  const canManage = hasPermission(user.permissions, "settings:manage");
+
+  if (!canManage) {
+    return (
+      <DashboardShell>
+        <h1 className="text-3xl font-semibold tracking-[-0.035em]">Settings</h1>
+        <p className="mt-6 text-muted-foreground">You do not have permission to manage settings.</p>
+      </DashboardShell>
+    );
+  }
+
+  const [bs] = await db.select().from(businessSettings).limit(1);
+  const [cs] = await db.select().from(communicationSettings).limit(1);
+  const [br] = await db.select().from(bookingRules).limit(1);
+  const seqs = await db.select().from(documentNumberSequences).orderBy(asc(documentNumberSequences.documentType));
+  const mediaAssets = await getMediaAssets();
 
   return (
     <DashboardShell>
@@ -21,19 +40,13 @@ export default async function SettingsIndexPage() {
         <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">Management</p>
         <h1 className="text-3xl font-semibold tracking-[-0.035em]">Settings</h1>
       </div>
-        <p className="mt-2 text-sm text-muted-foreground">Manage business configuration, communication channels, booking rules, and document numbering.</p>
-        <div className="mt-8 grid gap-4 sm:grid-cols-2">
-          {cards.map((card) => (
-            <Link
-              key={card.href}
-              href={card.href}
-              className="rounded-xl border border-border bg-surface-muted p-5 transition-colors hover:bg-surface"
-            >
-              <h2 className="text-lg font-semibold">{card.title}</h2>
-              <p className="mt-1 text-sm leading-5 text-muted-foreground">{card.description}</p>
-            </Link>
-          ))}
-        </div>
+      <SettingsTabs
+        businessSettings={bs}
+        communicationSettings={cs}
+        bookingRules={br}
+        documentSequences={seqs}
+        mediaAssets={mediaAssets}
+      />
     </DashboardShell>
   );
 }

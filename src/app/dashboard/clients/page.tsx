@@ -1,10 +1,14 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
 import { getClients } from "@/dashboard/data";
-import { logoutAction } from "../actions";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Clients — Swakop Wellness Centre",
+};
 
 export default async function DashboardClientsPage() {
   await requirePermission("clients:view");
@@ -39,8 +43,8 @@ export default async function DashboardClientsPage() {
                 <td>{client.phone ?? "—"}</td>
                 <td>{client.email ?? "—"}</td>
                 <td>{client.preferredContactMethod.replaceAll("_", " ")}</td>
-                <td>{client.lastBookingAt ? client.lastBookingAt.toLocaleString("en-NA") : "—"}</td>
-                <td>{client.createdAt.toLocaleString("en-NA")}</td>
+                <td>{client.lastBookingAt ? client.lastBookingAt.toLocaleDateString("en-GB") : "—"}</td>
+                <td>{client.createdAt.toLocaleDateString("en-GB")}</td>
               </tr>
             ))}
           </tbody>

@@ -3,6 +3,7 @@ import Image from "next/image";
 import { CalendarDays, Mail, MapPin, Phone } from "lucide-react";
 import { getPublicServices } from "@/public/data";
 import { MobileNavDrawer, PrimaryNavLinks, type NavLink } from "@/public/nav";
+import { ChatWidget } from "./chat-widget";
 
 type Business = {
   businessName: string;
@@ -143,7 +144,10 @@ export function PublicFooter({ business, communication, services }: { business: 
         <div className="mt-10 grid gap-4 border-t border-primary-foreground/20 pt-6 text-sm leading-6 text-primary-foreground/70 md:grid-cols-[1fr_auto_1fr]">
           <p>&copy; {new Date().getFullYear()} {business.businessName}. All rights reserved.</p>
           <p className="text-center">Services are complementary wellness support and do not replace medical diagnosis or treatment.</p>
-          <Link href="/policies" className="md:text-right hover:text-primary-foreground">Policies &amp; Disclaimers</Link>
+          <div className="flex gap-4 md:text-right">
+            <Link href="/login" className="hover:text-primary-foreground">Staff Login</Link>
+            <Link href="/policies" className="hover:text-primary-foreground">Policies &amp; Disclaimers</Link>
+          </div>
         </div>
       </div>
     </footer>
@@ -169,6 +173,7 @@ export async function PageShell({
       <div className={flushTop ? "" : "pt-20"}>{children}</div>
       <PublicFooter business={business} communication={communication} services={services} />
       <MobileActionBar communication={communication} />
+      <ChatWidget />
     </>
   );
 }

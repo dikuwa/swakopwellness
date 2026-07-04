@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { addServiceGalleryImage, removeServiceGalleryImage } from "@/services/actions";
+import { addServiceGalleryImage, removeServiceGalleryImage, reorderServiceGalleryImage } from "@/services/actions";
+import { ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 
 interface MediaAsset {
   id: string;
@@ -37,6 +38,29 @@ export function GalleryManager({
     null,
   );
 
+  const moveImage = async (index: number, direction: "up" | "down") => {
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= images.length) return;
+
+    const currentAsset = images[index];
+    const swapAsset = images[newIndex];
+
+    // Update local state immediately
+    const updated = [...images];
+    updated[index] = swapAsset;
+    updated[newIndex] = currentAsset;
+    setImages(updated);
+
+    // Persist to DB
+    await reorderServiceGalleryImage(serviceId, currentAsset.id, newIndex);
+    await reorderServiceGalleryImage(serviceId, swapAsset.id, index);
+  };
+
+  const removeImage = async (assetId: string) => {
+    await removeServiceGalleryImage(serviceId, assetId);
+    setImages((prev) => prev.filter((i) => i.id !== assetId));
+  };
+
   return (
     <section className="mt-8 rounded-xl border border-border bg-background p-6">
       <h2 className="text-lg font-semibold">Gallery Images</h2>
@@ -48,7 +72,7 @@ export function GalleryManager({
           required
           className="h-11 flex-1 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary"
         >
-          <option value="">Select an image\u2026</option>
+          <option value="">Select an image&hellip;</option>
           {unusedMedia.map((asset) => (
             <option key={asset.id} value={asset.id}>
               {asset.altText || asset.id.slice(0, 8)}
@@ -68,7 +92,7 @@ export function GalleryManager({
         <p className="mt-5 rounded-2xl bg-surface-muted p-4 text-sm text-muted-foreground">No gallery images yet.</p>
       ) : (
         <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {images.map((asset) => (
+          {images.map((asset, index) => (
             <div key={asset.id} className="group relative overflow-hidden rounded-2xl border border-border">
               <div className="aspect-square overflow-hidden bg-surface">
                 {asset.publicUrl ? (
@@ -83,20 +107,36 @@ export function GalleryManager({
                   <div className="flex h-full items-center justify-center text-xs text-muted-foreground">No URL</div>
                 )}
               </div>
-              <div className="p-2">
-                <form
-                  action={async () => {
-                    await removeServiceGalleryImage(serviceId, asset.id);
-                    setImages((prev) => prev.filter((i) => i.id !== asset.id));
-                  }}
-                >
+              <div className="flex items-center justify-between border-t border-border p-2">
+                <div className="flex items-center gap-1">
                   <button
-                    type="submit"
-                    className="w-full rounded-lg border border-destructive/30 px-2 py-1 text-xs font-semibold text-destructive hover:bg-destructive/10"
+                    type="button"
+                    onClick={() => moveImage(index, "up")}
+                    disabled={index === 0}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+                    aria-label="Move up"
                   >
-                    Remove
+                    <ArrowUp className="h-3.5 w-3.5" aria-hidden="true" />
                   </button>
-                </form>
+                  <button
+                    type="button"
+                    onClick={() => moveImage(index, "down")}
+                    disabled={index === images.length - 1}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground disabled:opacity-30 disabled:cursor-not-allowed"
+                    aria-label="Move down"
+                  >
+                    <ArrowDown className="h-3.5 w-3.5" aria-hidden="true" />
+                  </button>
+                  <span className="ml-1 text-[10px] text-muted-foreground">{index + 1}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeImage(asset.id)}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg text-destructive/70 transition-colors hover:bg-destructive/10 hover:text-destructive"
+                  aria-label="Remove"
+                >
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                </button>
               </div>
             </div>
           ))}

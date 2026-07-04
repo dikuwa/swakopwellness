@@ -1,8 +1,13 @@
+import type { Metadata } from "next";
 import { requirePermission } from "@/auth/session";
 import { getClients, getBookableServicesForManualUse } from "@/dashboard/data";
 import { InvoiceForm } from "./invoice-form";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "New Invoice — Dashboard",
+};
 
 export default async function NewInvoicePage() {
   await requirePermission("documents:create");

@@ -1,4 +1,5 @@
 import { eq } from "drizzle-orm";
+import type { Metadata } from "next";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { policies } from "@/db/schema";
@@ -6,6 +7,10 @@ import { updatePolicy } from "@/policies/actions";
 import { PolicyForm } from "../../policy-form";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Edit Policy — Dashboard",
+};
 
 interface PageProps {
   params: Promise<{ id: string }>;

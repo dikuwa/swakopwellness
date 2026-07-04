@@ -1,12 +1,16 @@
+import type { Metadata } from "next";
 import { requirePermission } from "@/auth/session";
 import { hasPermission } from "@/auth/permissions";
 import { DashboardShell } from "@/dashboard/shell";
-import { logoutAction } from "../actions";
 import { getClients, getFollowUpBookingOptions, getFollowUps } from "@/dashboard/data";
 import { cancelFollowUp, completeFollowUp, createFollowUp } from "@/followups/actions";
 import { formatFollowUpStatus, getFollowUpDisplayStatus, type FollowUpStatus } from "@/followups/status";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Follow-ups — Swakop Wellness Centre",
+};
 
 export default async function DashboardFollowUpsPage() {
   const user = await requirePermission("bookings:view");
@@ -87,7 +91,7 @@ export default async function DashboardFollowUpsPage() {
                   </div>
                   <div className="text-sm sm:text-right">
                     <p className="font-medium text-primary">{formatFollowUpStatus(status)}</p>
-                    <p className="mt-1 text-muted-foreground">{followUp.dueAt.toLocaleString("en-NA")}</p>
+                    <p className="mt-1 text-muted-foreground">{followUp.dueAt.toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric" })}</p>
                     {canChangeStatus ? (
                       <div className="mt-3 flex gap-2 sm:justify-end">
                         <form action={async () => { "use server"; await completeFollowUp(followUp.id); }}>

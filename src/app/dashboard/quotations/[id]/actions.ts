@@ -1,7 +1,8 @@
 "use server";
 
 import { requirePermission } from "@/auth/session";
-import { acceptQuotation, convertQuotationToInvoice, issueQuotation, rejectQuotation, voidQuotation } from "@/quotations/create";
+import { acceptQuotation, convertQuotationToInvoice, duplicateQuotation, issueQuotation, rejectQuotation, voidQuotation } from "@/quotations/create";
+import { sendQuotationEmail } from "@/email/send";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -40,6 +41,27 @@ export async function convertToInvoiceAction(formData: FormData) {
   const result = await convertQuotationToInvoice(quotationId, user.id);
   if (!result.ok) throw new Error(result.message);
   redirect(`/dashboard/invoices/${result.invoiceId}`);
+}
+
+export async function emailQuotationAction(formData: FormData) {
+  await requirePermission("financials:view");
+  const quotationId = formData.get("quotation_id") as string;
+
+  if (!quotationId) throw new Error("Quotation ID is required.");
+
+  const result = await sendQuotationEmail(quotationId);
+  if (!result.ok) throw new Error(result.error);
+
+  revalidatePath(`/dashboard/quotations/${quotationId}`);
+}
+
+export async function duplicateQuotationAction(formData: FormData) {
+  const user = await requirePermission("documents:create");
+  const quotationId = formData.get("quotation_id") as string;
+  if (!quotationId) throw new Error("Quotation ID is required.");
+  const result = await duplicateQuotation(quotationId, user.id);
+  if (!result.ok) throw new Error(result.message);
+  redirect(`/dashboard/quotations/${result.id}`);
 }
 
 export async function voidQuotationAction(formData: FormData) {

@@ -1,10 +1,14 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
 import { getInvoices } from "@/dashboard/data";
-import { logoutAction } from "../actions";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Invoices — Swakop Wellness Centre",
+};
 
 const statusStyles: Record<string, string> = {
   draft: "bg-gray-100 text-gray-700",
@@ -65,8 +69,8 @@ export default async function InvoicesPage() {
                   </Link>
                 </td>
                 <td>{inv.clientName}</td>
-                <td>{inv.issueDate.toLocaleDateString("en-NA")}</td>
-                <td>{inv.dueDate.toLocaleDateString("en-NA")}</td>
+                <td>{inv.issueDate.toLocaleDateString("en-GB")}</td>
+                <td>{inv.dueDate.toLocaleDateString("en-GB")}</td>
                 <td>N${(inv.totalCents / 100).toFixed(2)}</td>
                 <td><StatusBadge status={inv.status} /></td>
                 <td>N${(inv.balanceCents / 100).toFixed(2)}</td>

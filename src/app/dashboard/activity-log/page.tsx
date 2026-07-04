@@ -1,11 +1,15 @@
+import type { Metadata } from "next";
 import { desc, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
-import { logoutAction } from "../actions";
 import { activityLog, users } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Activity Log — Swakop Wellness Centre",
+};
 
 export default async function ActivityLogPage() {
   await requirePermission("activity:view");
@@ -53,7 +57,7 @@ export default async function ActivityLogPage() {
                     <td className="py-3 pr-4 capitalize">{entry.entityType.replaceAll("_", " ")}</td>
                     <td className="py-3 pr-4 text-muted-foreground">{entry.summary}</td>
                     <td className="py-3 whitespace-nowrap text-muted-foreground">
-                      {entry.createdAt.toLocaleString("en-NA")}
+                      {entry.createdAt.toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                     </td>
                   </tr>
                 ))}

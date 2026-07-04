@@ -1,11 +1,11 @@
 "use server";
 
-import { count, desc, eq, sql, and, asc } from "drizzle-orm";
+import { count, desc, eq, and, asc, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { mediaAssets, serviceImages, services } from "@/db/schema";
-import { r2Configured, uploadFile, deleteFile } from "@/lib/storage";
+import { uploadFile, deleteFile } from "@/lib/storage";
 import sizeOf from "image-size";
 
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"];
@@ -84,7 +84,7 @@ export async function getMediaWithUsage(): Promise<MediaWithUsage[]> {
       serviceName: services.name,
     })
     .from(services)
-    .where(sql`${services.featuredImageId} = ANY(${mediaIds}::uuid[])`);
+    .where(inArray(services.featuredImageId, mediaIds));
 
   // Find which services use each media in gallery
   const galleryServices = await db
@@ -95,7 +95,7 @@ export async function getMediaWithUsage(): Promise<MediaWithUsage[]> {
     })
     .from(serviceImages)
     .innerJoin(services, eq(serviceImages.serviceId, services.id))
-    .where(sql`${serviceImages.mediaAssetId} = ANY(${mediaIds}::uuid[])`);
+    .where(inArray(serviceImages.mediaAssetId, mediaIds));
 
   const featuredMap = new Map<string, { serviceId: string; serviceName: string }>();
   for (const fs of featuredServices) {

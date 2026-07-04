@@ -1,13 +1,18 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import { asc } from "drizzle-orm";
 import { requireAuth } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { faqs } from "@/db/schema";
 import { DashboardShell } from "@/dashboard/shell";
-import { logoutAction } from "../actions";
 import { deleteFaq, toggleFaqPublic, reorderFaqs } from "@/faqs/actions";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "FAQs — Swakop Wellness Centre",
+};
 
 export default async function FaqsPage() {
   await requireAuth();
@@ -103,7 +108,7 @@ export default async function FaqsPage() {
                             className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-xs transition-colors hover:bg-surface-muted"
                             title="Move up"
                           >
-                            \u25B2
+                            <ChevronUp className="h-4 w-4" />
                           </button>
                         </form>
                       )}
@@ -116,7 +121,7 @@ export default async function FaqsPage() {
                             className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-xs transition-colors hover:bg-surface-muted"
                             title="Move down"
                           >
-                            \u25BC
+                            <ChevronDown className="h-4 w-4" />
                           </button>
                         </form>
                       )}

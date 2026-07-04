@@ -1,14 +1,18 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { hasPermission } from "@/auth/permissions";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
-import { logoutAction } from "../../actions";
 import { getDashboardChatConversationById } from "@/dashboard/data";
 import { updateChatConversationStatus } from "../actions";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Chat Conversation — Dashboard",
+};
 
 const statusStyles: Record<string, string> = {
   open: "bg-green-100 text-green-700",
@@ -47,7 +51,7 @@ export default async function ChatConversationDetailPage(props: { params: Promis
           <div>
             <p className="text-sm font-semibold text-primary">Chat conversation</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">{conversation.clientName ?? "Unknown client"}</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Updated {conversation.updatedAt.toLocaleString("en-NA")}</p>
+            <p className="mt-2 text-sm text-muted-foreground">Updated {conversation.updatedAt.toLocaleString("en-GB")}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={conversation.status} />
@@ -64,8 +68,8 @@ export default async function ChatConversationDetailPage(props: { params: Promis
         </div>
 
         <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          <DetailItem label="Created" value={conversation.createdAt.toLocaleString("en-NA")} />
-          <DetailItem label="Updated" value={conversation.updatedAt.toLocaleString("en-NA")} />
+          <DetailItem label="Created" value={conversation.createdAt.toLocaleString("en-GB")} />
+          <DetailItem label="Updated" value={conversation.updatedAt.toLocaleString("en-GB")} />
           <DetailItem
             label="Linked booking"
             value={conversation.bookingId && conversation.bookingReference ? <Link href={`/dashboard/bookings/${conversation.bookingId}`} className="text-primary hover:underline">{conversation.bookingReference}</Link> : "None"}
@@ -93,7 +97,7 @@ export default async function ChatConversationDetailPage(props: { params: Promis
                     <p className="font-medium">{event.toolName}</p>
                     <span className="text-xs font-semibold capitalize text-muted-foreground">{event.status.replaceAll("_", " ")}</span>
                   </div>
-                  <p className="mt-1 text-xs text-muted-foreground">{event.createdAt.toLocaleString("en-NA")}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">{event.createdAt.toLocaleString("en-GB")}</p>
                   {event.summary ? <p className="mt-2 text-muted-foreground">{event.summary}</p> : null}
                 </div>
               ))}
@@ -109,7 +113,7 @@ export default async function ChatConversationDetailPage(props: { params: Promis
               <div key={message.id} className="rounded-xl border border-border p-4 text-sm">
                 <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
                   <p className="font-semibold capitalize">{message.role.replaceAll("_", " ")}</p>
-                  <p className="text-xs text-muted-foreground">{message.createdAt.toLocaleString("en-NA")}</p>
+                  <p className="text-xs text-muted-foreground">{message.createdAt.toLocaleString("en-GB")}</p>
                 </div>
                 <p className="mt-3 whitespace-pre-wrap text-muted-foreground">{message.content}</p>
               </div>

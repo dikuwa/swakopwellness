@@ -1,10 +1,14 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
-import { logoutAction } from "../actions";
 import { getQuotations } from "@/dashboard/data";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Quotations — Swakop Wellness Centre",
+};
 
 const statusStyles: Record<string, string> = {
   draft: "bg-gray-100 text-gray-700",
@@ -65,8 +69,8 @@ export default async function QuotationsPage() {
                     </Link>
                   </td>
                   <td>{q.clientName}</td>
-                  <td>{q.issueDate.toLocaleDateString("en-NA")}</td>
-                  <td>{q.validUntil ? q.validUntil.toLocaleDateString("en-NA") : "—"}</td>
+                  <td>{q.issueDate.toLocaleDateString("en-GB")}</td>
+                  <td>{q.validUntil ? q.validUntil.toLocaleDateString("en-GB") : "—"}</td>
                   <td>N${(q.totalCents / 100).toFixed(2)}</td>
                   <td><StatusBadge status={q.status} /></td>
                   <td className="text-right">

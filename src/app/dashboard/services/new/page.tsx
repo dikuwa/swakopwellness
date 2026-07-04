@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { serviceCategories } from "@/db/schema";
@@ -6,6 +7,10 @@ import { createService } from "@/services/actions";
 import { ServiceForm } from "../service-form";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "New Service — Dashboard",
+};
 
 export default async function NewServicePage() {
   await requirePermission("services:manage");

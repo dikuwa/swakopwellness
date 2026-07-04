@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
-import { logoutAction } from "../actions";
 import { getDashboardChatConversations } from "@/dashboard/data";
 
 export const dynamic = "force-dynamic";
@@ -61,8 +60,8 @@ export default async function ChatConversationsPage() {
                         <span className="text-muted-foreground">Unknown</span>
                       )}
                     </td>
-                    <td className="py-3 pr-4 whitespace-nowrap text-muted-foreground">{conversation.createdAt.toLocaleString("en-NA")}</td>
-                    <td className="py-3 whitespace-nowrap text-muted-foreground">{conversation.updatedAt.toLocaleString("en-NA")}</td>
+                    <td className="py-3 pr-4 whitespace-nowrap text-muted-foreground">{conversation.createdAt.toLocaleString("en-GB")}</td>
+                    <td className="py-3 whitespace-nowrap text-muted-foreground">{conversation.updatedAt.toLocaleString("en-GB")}</td>
                   </tr>
                 ))}
               </tbody>

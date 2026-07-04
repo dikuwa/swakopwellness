@@ -6,8 +6,7 @@ import { useActionState, useEffect, useRef, useState, type ReactNode } from "rea
 import toast from "react-hot-toast";
 import { Loader2, Upload } from "lucide-react";
 import { uploadMediaAndReturnAction } from "@/media/actions";
-import { DashboardLayoutWithSignOut } from "@/dashboard/components";
-import { logoutAction } from "../actions";
+
 
 interface Category {
   id: string;
@@ -65,6 +64,7 @@ export function ServiceForm({ categories, action, initialData, mediaAssets, chil
   const [localMediaAssets, setLocalMediaAssets] = useState<MediaAsset[]>(mediaAssets ?? []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing local state with prop on change
     if (mediaAssets) setLocalMediaAssets(mediaAssets);
   }, [mediaAssets]);
 
@@ -113,7 +113,7 @@ export function ServiceForm({ categories, action, initialData, mediaAssets, chil
   }, [state, router, isEdit]);
 
   return (
-    <DashboardLayoutWithSignOut signOutForm={<form action={logoutAction}><button type="submit" className="flex w-full cursor-pointer items-center justify-center rounded-xl border border-border px-3 py-2 text-sm font-semibold transition-colors hover:bg-surface-muted">Sign out</button></form>}>
+    <>
       <h1 className="text-3xl font-semibold tracking-[-0.035em]">
           {isEdit ? "Edit Service" : "New Service"}
         </h1>
@@ -482,6 +482,6 @@ export function ServiceForm({ categories, action, initialData, mediaAssets, chil
           </div>
         </form>
         {children}
-    </DashboardLayoutWithSignOut>
+    </>
   );
 }

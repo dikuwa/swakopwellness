@@ -1,5 +1,7 @@
+"use client";
+
 import Link from "next/link";
-import type { ComponentProps } from "react";
+import { useCallback, useEffect, useRef, type ComponentProps, type TextareaHTMLAttributes } from "react";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 
@@ -70,9 +72,32 @@ export function Select({ className = "", children, ...props }: ComponentProps<"s
   );
 }
 
-export function Textarea({ className = "", ...props }: ComponentProps<"textarea">) {
+/**
+ * Auto-growing textarea that expands vertically as content is entered.
+ * Uses a hidden clone div to measure content height for smooth resizing.
+ * Falls back to regular textarea behavior when rows or style={{ resize: "both" }} are passed.
+ */
+export function Textarea({ className = "", ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  const resize = useCallback(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 320)}px`;
+  }, []);
+
+  useEffect(() => {
+    resize();
+  }, [resize]);
+
   return (
-    <textarea className={`w-full rounded-xl border border-border bg-background px-4 py-3 text-sm transition-colors duration-200 placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10 ${className}`} {...props} />
+    <textarea
+      ref={ref}
+      onInput={resize}
+      className={`w-full rounded-xl border border-border bg-background px-4 py-3 text-sm transition-colors duration-200 placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10 resize-none overflow-y-auto ${className}`}
+      {...props}
+    />
   );
 }
 

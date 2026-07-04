@@ -1,15 +1,19 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { receipts, clients, users } from "@/db/schema";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
-import { logoutAction } from "../../actions";
 import { hasPermission } from "@/auth/permissions";
 import { voidReceiptAction } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Receipt Details — Dashboard",
+};
 
 function formatCurrency(cents: number) {
   return `N$${(cents / 100).toFixed(2)}`;
@@ -17,7 +21,7 @@ function formatCurrency(cents: number) {
 
 function formatDate(d: Date | null) {
   if (!d) return "\u2014";
-  return d.toLocaleDateString("en-NA", { year: "numeric", month: "long", day: "numeric" });
+  return d.toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" });
 }
 
 export default async function ReceiptDetailPage(props: { params: Promise<{ id: string }> }) {

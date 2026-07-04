@@ -1,11 +1,15 @@
+import type { Metadata } from "next";
 import { requireAuth } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
-import { logoutAction } from "../actions";
 import { getMediaWithUsage, getServicesList } from "@/media/actions";
 import { UploadForm } from "./upload-form";
 import { MediaGrid } from "./media-grid";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Media Library — Swakop Wellness Centre",
+};
 
 export default async function MediaPage() {
   await requireAuth();

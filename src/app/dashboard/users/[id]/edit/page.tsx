@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
@@ -7,6 +8,10 @@ import { updateUser } from "@/users/actions";
 import { UserForm } from "../../user-form";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Edit User — Dashboard",
+};
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -46,7 +51,7 @@ export default async function EditUserPage({ params }: PageProps) {
   return (
     <UserForm
       roles={allRoles}
-      action={async (data) => updateUser(data)}
+      action={updateUser}
       initialData={{
         userId: user.id,
         name: user.name,

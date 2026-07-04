@@ -1,13 +1,17 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { asc } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { policies } from "@/db/schema";
 import { DashboardShell } from "@/dashboard/shell";
-import { logoutAction } from "../actions";
 import { deletePolicy, togglePolicyPublic } from "@/policies/actions";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Policies — Swakop Wellness Centre",
+};
 
 export default async function PoliciesPage() {
   await requirePermission("settings:manage");

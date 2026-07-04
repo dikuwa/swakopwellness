@@ -1,12 +1,16 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { eq } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
-import { logoutAction } from "../../actions";
 import { getDb } from "@/db/client";
 import { payments, clients, invoices, bookings, users } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Payment Details — Dashboard",
+};
 
 export default async function PaymentDetailPage(props: { params: Promise<{ id: string }> }) {
   await requirePermission("financials:view");
@@ -66,7 +70,7 @@ export default async function PaymentDetailPage(props: { params: Promise<{ id: s
 
         {payment.voidedAt && (
           <div className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-            <p className="font-semibold">This payment was voided on {payment.voidedAt.toLocaleString("en-NA")}.</p>
+            <p className="font-semibold">This payment was voided on {payment.voidedAt.toLocaleString("en-GB")}.</p>
             {payment.voidReason ? <p className="mt-1">Reason: {payment.voidReason}</p> : null}
           </div>
         )}
@@ -74,7 +78,7 @@ export default async function PaymentDetailPage(props: { params: Promise<{ id: s
         <div className="mt-6 grid gap-6 sm:grid-cols-2">
           <div>
             <p className="text-sm text-muted-foreground">Date</p>
-            <p className="mt-1">{payment.paymentDate.toLocaleString("en-NA")}</p>
+            <p className="mt-1">{payment.paymentDate.toLocaleString("en-GB")}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Client</p>
@@ -139,7 +143,7 @@ export default async function PaymentDetailPage(props: { params: Promise<{ id: s
 
         <div className="mt-8 border-t border-border pt-6">
           <p className="text-xs text-muted-foreground">
-            Recorded at {payment.createdAt.toLocaleString("en-NA")}
+            Recorded at {payment.createdAt.toLocaleString("en-GB")}
           </p>
         </div>
     </DashboardShell>

@@ -1,14 +1,12 @@
 import { requireAuth } from "@/auth/session";
-import { getUnreadNotificationCount } from "@/notifications/create";
-import { DashboardLayout } from "./components";
 
+/**
+ * DashboardShell is a thin wrapper that ensures the user is authenticated.
+ * The shared dashboard layout (src/app/dashboard/layout.tsx) handles the
+ * sidebar, header, notifications, and avatar rendering for all child routes.
+ * Individual pages should only render their page content.
+ */
 export async function DashboardShell({ children }: { children: React.ReactNode }) {
-  const user = await requireAuth();
-  const unreadCount = await getUnreadNotificationCount(user.id);
-
-  return (
-    <DashboardLayout userName={user.name} userEmail={user.email} unreadCount={unreadCount}>
-      {children}
-    </DashboardLayout>
-  );
+  await requireAuth();
+  return <>{children}</>;
 }

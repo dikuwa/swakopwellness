@@ -1,12 +1,16 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { desc, eq } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
-import { logoutAction } from "../actions";
 import { getDb } from "@/db/client";
 import { payments, clients, invoices, bookings, users } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Payments — Swakop Wellness Centre",
+};
 
 export default async function PaymentsPage() {
   await requirePermission("financials:view");
@@ -64,7 +68,7 @@ export default async function PaymentsPage() {
                 <tr key={p.id} className="border-t border-border hover:bg-surface-muted/50">
                   <td className="whitespace-nowrap py-3">
                     <Link href={`/dashboard/payments/${p.id}`} className="block font-medium hover:text-primary">
-                      {p.paymentDate.toLocaleString("en-NA")}
+                      {p.paymentDate.toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric" })}
                     </Link>
                   </td>
                   <td className="whitespace-nowrap">

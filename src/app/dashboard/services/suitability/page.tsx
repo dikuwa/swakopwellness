@@ -1,9 +1,9 @@
 import { asc, eq, isNull } from "drizzle-orm";
+import type { Metadata } from "next";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { serviceQuestions, services } from "@/db/schema";
 import { DashboardShell } from "@/dashboard/shell";
-import { logoutAction } from "../../actions";
 import {
   createSuitabilityQuestion,
   deleteSuitabilityQuestion,
@@ -12,6 +12,10 @@ import {
 } from "@/services/actions";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Suitability Questions — Dashboard",
+};
 
 export default async function ServiceSuitabilityPage() {
   await requirePermission("services:manage");

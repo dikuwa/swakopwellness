@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, isNull, or } from "drizzle-orm";
+import { and, desc, eq, gte, isNull, lt, or, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { bookingAnswers, bookingRules, bookings, bookingStatusHistory, clients, communicationSettings, serviceQuestions, services } from "@/db/schema";
 import { normalizeEmail, normalizePhone } from "./contact";
@@ -57,6 +57,7 @@ export async function createBookingRequest(input: unknown, source: BookingSource
       normalizedWhatsapp ? eq(clients.normalizedWhatsapp, normalizedWhatsapp) : undefined,
     ].filter((condition) => condition !== undefined);
 
+    // Check for duplicate submissions
     if (duplicateConditions.length > 0) {
       const [duplicate] = await tx
         .select({ reference: bookings.reference })
@@ -67,6 +68,33 @@ export async function createBookingRequest(input: unknown, source: BookingSource
         .limit(1);
 
       if (duplicate) return { ok: true, reference: duplicate.reference, status: "duplicate_returned" } satisfies CreateBookingResult;
+    }
+
+    // Conflict detection: check for overlapping time ranges across all services
+    // (single-practitioner clinic — any booking at the same time conflicts)
+    const serviceDuration = service.durationMinutes ?? 30;
+    const conflictStatuses = ["new_request", "requires_review", "contacting_client", "awaiting_client_response", "confirmed", "rescheduled"];
+    const newEnd = new Date(preferredAt.getTime() + serviceDuration * 60 * 1000);
+
+    const [conflict] = await tx
+      .select({ reference: bookings.reference, status: bookings.status })
+      .from(bookings)
+      .where(
+        and(
+          or(...conflictStatuses.map((s) => eq(bookings.status, s))),
+          // existing.start < new.end
+          lt(bookings.preferredAt, newEnd),
+          // new.start < existing.end  (using coalesce for null duration -> 30 min default)
+          sql`${preferredAt} < ${bookings.preferredAt} + coalesce(${bookings.serviceDurationMinutes}, 30) * interval '1 minute'`,
+        ),
+      )
+      .limit(1);
+
+    if (conflict) {
+      if (source === "manual_admin") {
+        return { ok: false, message: `Time conflict: there is already a ${conflict.status.replaceAll("_", " ")} booking (${conflict.reference}) overlapping with this time slot.` } satisfies CreateBookingResult;
+      }
+      // For public bookings, proceed but mark for review so staff can handle the conflict
     }
 
     const [existingClient] = duplicateConditions.length > 0

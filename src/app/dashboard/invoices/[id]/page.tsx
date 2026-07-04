@@ -1,12 +1,17 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
-import { logoutAction } from "../../actions";
 import { getInvoiceById, getClientById } from "@/dashboard/data";
 import { emailInvoiceAction, issueInvoiceAction, voidInvoiceAction } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  return { title: `Invoice ${id.slice(0, 8)} — Dashboard` };
+}
 
 const statusStyles: Record<string, string> = {
   draft: "bg-gray-100 text-gray-700",
@@ -56,16 +61,16 @@ export default async function InvoiceDetailPage(props: { params: Promise<{ id: s
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Issue Date</p>
-            <p className="mt-1">{invoice.issueDate.toLocaleDateString("en-NA")}</p>
+            <p className="mt-1">{invoice.issueDate.toLocaleDateString("en-GB")}</p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Due Date</p>
-            <p className="mt-1">{invoice.dueDate.toLocaleDateString("en-NA")}</p>
+            <p className="mt-1">{invoice.dueDate.toLocaleDateString("en-GB")}</p>
           </div>
           {invoice.issuedAt && (
             <div>
               <p className="text-sm text-muted-foreground">Issued At</p>
-              <p className="mt-1">{new Date(invoice.issuedAt).toLocaleDateString("en-NA")}</p>
+              <p className="mt-1">{new Date(invoice.issuedAt).toLocaleDateString("en-GB")}</p>
             </div>
           )}
         </div>

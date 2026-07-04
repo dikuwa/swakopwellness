@@ -55,7 +55,8 @@ export async function updateBusinessSettings(formData: FormData) {
 
     await recordActivity(user.id, "update_settings", "business_settings", existing.id, "Updated business settings");
 
-    revalidatePath("/dashboard/settings/business");
+    revalidatePath("/dashboard/settings");
+    revalidatePath("/");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed to update business settings." };
@@ -101,7 +102,8 @@ export async function updateCommunicationSettings(formData: FormData) {
 
     await recordActivity(user.id, "update_settings", "communication_settings", existing.id, "Updated communication settings");
 
-    revalidatePath("/dashboard/settings/communication");
+    revalidatePath("/dashboard/settings");
+    revalidatePath("/");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed to update communication settings." };
@@ -150,7 +152,7 @@ export async function updateBookingRules(formData: FormData) {
 
     await recordActivity(user.id, "update_settings", "booking_rules", existing.id, "Updated booking rules");
 
-    revalidatePath("/dashboard/settings/booking-rules");
+    revalidatePath("/dashboard/settings");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed to update booking rules." };
@@ -193,7 +195,7 @@ export async function updateDocumentSequence(formData: FormData) {
 
     await recordActivity(user.id, "update_settings", "document_number_sequence", existing.id, `Updated ${documentType} numbering sequence`);
 
-    revalidatePath("/dashboard/settings/document-numbering");
+    revalidatePath("/dashboard/settings");
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed to update document sequence." };

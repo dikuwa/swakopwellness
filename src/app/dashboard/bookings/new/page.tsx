@@ -1,12 +1,16 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
-import { logoutAction } from "../../actions";
 import { getActiveSuitabilityQuestionsForDashboard, getBookableServicesForManualUse } from "@/dashboard/data";
 import { getBookingRules, getCommunicationSettings } from "@/public/data";
 import { createManualBookingAction } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "New Booking — Dashboard",
+};
 
 export default async function NewManualBookingPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   await requirePermission("bookings:create");

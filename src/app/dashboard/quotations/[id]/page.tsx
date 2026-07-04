@@ -1,12 +1,17 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
-import { logoutAction } from "../../actions";
 import { getClientById, getQuotationById } from "@/dashboard/data";
-import { acceptQuotationAction, convertToInvoiceAction, issueQuotationAction, rejectQuotationAction, voidQuotationAction } from "./actions";
+import { acceptQuotationAction, convertToInvoiceAction, duplicateQuotationAction, emailQuotationAction, issueQuotationAction, rejectQuotationAction, voidQuotationAction } from "./actions";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const { id } = await params;
+  return { title: `Quotation ${id.slice(0, 8)} — Dashboard` };
+}
 
 const statusStyles: Record<string, string> = {
   draft: "bg-gray-100 text-gray-700",
@@ -44,6 +49,7 @@ export default async function QuotationDetailPage(props: { params: Promise<{ id:
   const canConvert = isAccepted;
   const canVoid = !["voided", "converted"].includes(quotation.status);
   const canDownload = !["draft", "voided"].includes(quotation.status);
+  const canEmail = !["draft", "voided"].includes(quotation.status);
 
   return (
     <DashboardShell>
@@ -62,24 +68,24 @@ export default async function QuotationDetailPage(props: { params: Promise<{ id:
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Issue Date</p>
-            <p className="mt-1">{quotation.issueDate.toLocaleDateString("en-NA")}</p>
+            <p className="mt-1">{quotation.issueDate.toLocaleDateString("en-GB")}</p>
           </div>
           {quotation.validUntil && (
             <div>
               <p className="text-sm text-muted-foreground">Valid Until</p>
-              <p className="mt-1">{quotation.validUntil.toLocaleDateString("en-NA")}</p>
+              <p className="mt-1">{quotation.validUntil.toLocaleDateString("en-GB")}</p>
             </div>
           )}
           {quotation.issuedAt && (
             <div>
               <p className="text-sm text-muted-foreground">Issued At</p>
-              <p className="mt-1">{new Date(quotation.issuedAt).toLocaleDateString("en-NA")}</p>
+              <p className="mt-1">{new Date(quotation.issuedAt).toLocaleDateString("en-GB")}</p>
             </div>
           )}
           {quotation.acceptedAt && (
             <div>
               <p className="text-sm text-muted-foreground">Accepted At</p>
-              <p className="mt-1">{new Date(quotation.acceptedAt).toLocaleDateString("en-NA")}</p>
+              <p className="mt-1">{new Date(quotation.acceptedAt).toLocaleDateString("en-GB")}</p>
             </div>
           )}
           {quotation.convertedToInvoiceId && (
@@ -227,6 +233,26 @@ export default async function QuotationDetailPage(props: { params: Promise<{ id:
                 className="h-11 rounded-xl bg-purple-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-purple-700"
               >
                 Convert to Invoice
+              </button>
+            </form>
+          )}
+          <form action={duplicateQuotationAction}>
+            <input type="hidden" name="quotation_id" value={quotation.id} />
+            <button
+              type="submit"
+              className="h-11 rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted"
+            >
+              Duplicate
+            </button>
+          </form>
+          {canEmail && (
+            <form action={emailQuotationAction}>
+              <input type="hidden" name="quotation_id" value={quotation.id} />
+              <button
+                type="submit"
+                className="h-11 rounded-xl border border-border px-5 text-sm font-semibold transition-colors hover:bg-surface-muted"
+              >
+                Email Quotation
               </button>
             </form>
           )}

@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { bookings, businessSettings, clients, communicationSettings, followUps, invoiceLineItems, invoices, services, users } from "@/db/schema";
+import { bookings, businessSettings, clients, communicationSettings, followUps, invoiceLineItems, invoices, quotationLineItems, quotations, services, users } from "@/db/schema";
 import { env } from "@/lib/env";
 
 function formatCents(cents: number): string {
@@ -302,6 +302,91 @@ export async function sendBookingNotificationToStaff(
     await sendNotificationEmail(to, `New Booking — ${booking.reference} — ${business.businessName}`, html);
   } catch (err) {
     console.error("[email] Failed to send staff notification:", err);
+  }
+}
+
+export async function sendQuotationEmail(
+  quotationId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  try {
+    const db = getDb();
+    const [quotation] = await db
+      .select()
+      .from(quotations)
+      .where(eq(quotations.id, quotationId))
+      .limit(1);
+    if (!quotation) return { ok: false, error: "Quotation not found." };
+
+    const [client] = await db
+      .select()
+      .from(clients)
+      .where(eq(clients.id, quotation.clientId))
+      .limit(1);
+    if (!client) return { ok: false, error: "Client not found." };
+    if (!client.email) return { ok: false, error: "Client has no email address." };
+
+    const items = await db
+      .select()
+      .from(quotationLineItems)
+      .where(eq(quotationLineItems.quotationId, quotationId))
+      .orderBy(quotationLineItems.sortOrder);
+
+    const business = await getBusinessDetails();
+
+    const itemsHtml = items
+      .map(
+        (item) =>
+          `<tr><td style="padding:6px 0;border-bottom:1px solid #eee">${item.description}</td><td style="padding:6px 0;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td><td style="padding:6px 0;border-bottom:1px solid #eee;text-align:right">${formatCents(item.unitPriceCents)}</td><td style="padding:6px 0;border-bottom:1px solid #eee;text-align:right">${item.discountCents > 0 ? formatCents(item.discountCents) : "—"}</td><td style="padding:6px 0;border-bottom:1px solid #eee;text-align:right">${formatCents(item.quantity * item.unitPriceCents - item.discountCents)}</td></tr>`,
+      )
+      .join("");
+
+    const validUntilHtml = quotation.validUntil
+      ? `<tr><td style="padding:8px 0;color:#888;width:120px">Valid Until</td><td style="padding:8px 0">${formatDate(quotation.validUntil)}</td></tr>`
+      : "";
+
+    const html = wrapHtml(
+      `
+<h1 style="margin:0 0 8px;font-size:22px;font-weight:600">Quotation ${quotation.quotationNumber}</h1>
+<p style="margin:0 0 24px;font-size:15px;color:#555">Thank you for your interest in ${business.businessName}.</p>
+
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:14px">
+<tr><td style="padding:8px 0;color:#888;width:120px">Quotation</td><td style="padding:8px 0;font-weight:600">${quotation.quotationNumber}</td></tr>
+<tr><td style="padding:8px 0;color:#888">Issue Date</td><td style="padding:8px 0">${formatDate(quotation.issueDate)}</td></tr>
+${validUntilHtml}
+<tr><td style="padding:8px 0;color:#888">Client</td><td style="padding:8px 0">${client.fullName}</td></tr>
+</table>
+
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:24px 0;font-size:14px">
+<thead>
+<tr style="font-weight:600;color:#888;font-size:13px">
+<th style="padding:8px 0;border-bottom:2px solid #eee;text-align:left">Description</th>
+<th style="padding:8px 0;border-bottom:2px solid #eee;text-align:center">Qty</th>
+<th style="padding:8px 0;border-bottom:2px solid #eee;text-align:right">Unit Price</th>
+<th style="padding:8px 0;border-bottom:2px solid #eee;text-align:right">Discount</th>
+<th style="padding:8px 0;border-bottom:2px solid #eee;text-align:right">Total</th>
+</tr>
+</thead>
+<tbody>
+${itemsHtml}
+</tbody>
+</table>
+
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:14px">
+<tr><td style="padding:6px 0;text-align:right;color:#888">Subtotal</td><td style="padding:6px 0;text-align:right;width:100px">${formatCents(quotation.subtotalCents)}</td></tr>
+${quotation.discountCents > 0 ? `<tr><td style="padding:6px 0;text-align:right;color:#888">Discount</td><td style="padding:6px 0;text-align:right;color:#d32f2f">-${formatCents(quotation.discountCents)}</td></tr>` : ""}
+<tr><td style="padding:8px 0;text-align:right;font-weight:600;border-top:2px solid #333;font-size:16px">Total</td><td style="padding:8px 0;text-align:right;font-weight:600;border-top:2px solid #333;font-size:16px">${formatCents(quotation.totalCents)}</td></tr>
+</table>
+
+${quotation.notes ? `<p style="margin:24px 0 0;font-size:14px;color:#555">${quotation.notes}</p>` : ""}
+<p style="margin:12px 0 0;font-size:14px;color:#555">This quotation is valid until ${quotation.validUntil ? formatDate(quotation.validUntil) : "the stated date"}.${business.telephone ? ` If you have any questions, please call us at ${business.telephone}.` : ""}</p>
+`.trim(),
+      business,
+    );
+
+    return sendNotificationEmail(client.email, `Quotation ${quotation.quotationNumber} — ${business.businessName}`, html);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return { ok: false, error: message };
   }
 }
 

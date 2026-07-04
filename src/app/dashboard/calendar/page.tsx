@@ -1,12 +1,16 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { and, asc, eq, gte, lte } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
 import { getDb } from "@/db/client";
-import { logoutAction } from "../actions";
 import { bookings, clients } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
+
+export const metadata: Metadata = {
+  title: "Calendar — Swakop Wellness Centre",
+};
 
 const statusStyles: Record<string, string> = {
   new_request: "bg-blue-100 text-blue-700",
@@ -30,7 +34,7 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function formatDateHeader(date: Date) {
-  return date.toLocaleDateString("en-NA", {
+  return date.toLocaleDateString("en-GB", {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -39,7 +43,7 @@ function formatDateHeader(date: Date) {
 }
 
 function formatTime(date: Date) {
-  return date.toLocaleTimeString("en-NA", {
+  return date.toLocaleTimeString("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
   });

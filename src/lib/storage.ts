@@ -9,7 +9,24 @@ let client: S3ClientType | null = null;
 const LOCAL_UPLOAD_DIR = join(process.cwd(), "public", "uploads");
 
 function getEndpoint(): string {
-  if (env.R2_ENDPOINT) return env.R2_ENDPOINT;
+  if (env.R2_ENDPOINT) {
+    const ep = env.R2_ENDPOINT.replace(/\/+$/, "");
+    // Validate that the endpoint looks like a URL, not a malformed string
+    if (!ep.startsWith("https://") && !ep.startsWith("http://")) {
+      throw new Error(
+        `Invalid R2_ENDPOINT: "${ep}". Must start with https:// or http://. ` +
+        "Check your environment variables. Expected format: https://<account-id>.r2.cloudflarestorage.com"
+      );
+    }
+    // Reject endpoints that look like they concatenated malformed values
+    if (ep.includes(".https") || ep.includes("..")) {
+      throw new Error(
+        `Malformed R2_ENDPOINT: "${ep}". Endpoint contains unexpected dots or protocol concatenation. ` +
+        "Check that R2_ENDPOINT is a clean URL without embedded bucket names or extra protocols."
+      );
+    }
+    return ep;
+  }
   return `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
 }
 
