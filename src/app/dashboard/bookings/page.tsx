@@ -5,6 +5,7 @@ import { DashboardShell } from "@/dashboard/shell";
 import { getDashboardBookings } from "@/dashboard/data";
 import { confirmBooking, cancelBooking, markCompleted, markNoShow, changeBookingStatus } from "@/booking/actions";
 import { getAvailableActions } from "@/booking/status";
+import { Pagination } from "@/ui/pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -131,9 +132,12 @@ function ActionsCell({ bookingId, status }: { bookingId: string; status: string 
   );
 }
 
-export default async function DashboardBookingsPage() {
+export default async function DashboardBookingsPage(props: { searchParams: Promise<{ page?: string }> }) {
   await requirePermission("bookings:view");
-  const bookings = await getDashboardBookings();
+  const searchParams = await props.searchParams;
+  const page = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
+  const { rows: bookings, total } = await getDashboardBookings(page);
+  const totalPages = Math.ceil(total / 25);
 
   return (
     <DashboardShell>
@@ -179,8 +183,8 @@ export default async function DashboardBookingsPage() {
               </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+        </table>        </div>
+      <Pagination currentPage={page} totalPages={totalPages} basePath="/dashboard/bookings" />
     </DashboardShell>
   );
 }

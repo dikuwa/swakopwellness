@@ -1,10 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { desc, eq } from "drizzle-orm";
+import { count, desc, eq } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
 import { getDb } from "@/db/client";
 import { payments, clients, invoices, bookings, users } from "@/db/schema";
+import { Pagination } from "@/ui/pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -12,35 +13,46 @@ export const metadata: Metadata = {
   title: "Payments — Swakop Wellness Centre",
 };
 
-export default async function PaymentsPage() {
+export default async function PaymentsPage(props: { searchParams: Promise<{ page?: string }> }) {
   await requirePermission("financials:view");
   const db = getDb();
 
-  const allPayments = await db
-    .select({
-      id: payments.id,
-      clientId: payments.clientId,
-      invoiceId: payments.invoiceId,
-      bookingId: payments.bookingId,
-      amountCents: payments.amountCents,
-      paymentDate: payments.paymentDate,
-      method: payments.method,
-      reference: payments.reference,
-      notes: payments.notes,
-      voidedAt: payments.voidedAt,
-      createdAt: payments.createdAt,
-      clientName: clients.fullName,
-      invoiceNumber: invoices.invoiceNumber,
-      bookingRef: bookings.reference,
-      recordedByName: users.name,
-    })
-    .from(payments)
-    .leftJoin(clients, eq(payments.clientId, clients.id))
-    .leftJoin(invoices, eq(payments.invoiceId, invoices.id))
-    .leftJoin(bookings, eq(payments.bookingId, bookings.id))
-    .leftJoin(users, eq(payments.recordedByUserId, users.id))
-    .orderBy(desc(payments.createdAt))
-    .limit(100);
+  const searchParams = await props.searchParams;
+  const page = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
+  const pageSize = 25;
+  const offset = (page - 1) * pageSize;
+
+  const [allPayments, [{ count: total }]] = await Promise.all([
+    db
+      .select({
+        id: payments.id,
+        clientId: payments.clientId,
+        invoiceId: payments.invoiceId,
+        bookingId: payments.bookingId,
+        amountCents: payments.amountCents,
+        paymentDate: payments.paymentDate,
+        method: payments.method,
+        reference: payments.reference,
+        notes: payments.notes,
+        voidedAt: payments.voidedAt,
+        createdAt: payments.createdAt,
+        clientName: clients.fullName,
+        invoiceNumber: invoices.invoiceNumber,
+        bookingRef: bookings.reference,
+        recordedByName: users.name,
+      })
+      .from(payments)
+      .leftJoin(clients, eq(payments.clientId, clients.id))
+      .leftJoin(invoices, eq(payments.invoiceId, invoices.id))
+      .leftJoin(bookings, eq(payments.bookingId, bookings.id))
+      .leftJoin(users, eq(payments.recordedByUserId, users.id))
+      .orderBy(desc(payments.createdAt))
+      .limit(pageSize)
+      .offset(offset),
+    db.select({ count: count() }).from(payments),
+  ]);
+
+  const totalPages = Math.ceil(total / pageSize);
 
   return (
     <DashboardShell>
@@ -117,6 +129,7 @@ export default async function PaymentsPage() {
             </tbody>
           </table>
         </div>
+      <Pagination currentPage={page} totalPages={totalPages} basePath="/dashboard/payments" />
     </DashboardShell>
   );
 }

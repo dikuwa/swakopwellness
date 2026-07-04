@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 export default async function DashboardFollowUpsPage() {
   const user = await requirePermission("bookings:view");
   const canUpdateFollowUps = hasPermission(user.permissions, "bookings:update");
-  const [followUps, clients, bookingOptions] = await Promise.all([getFollowUps(), getClients(), getFollowUpBookingOptions()]);
+  const [followUps, { rows: clients }, bookingOptions] = await Promise.all([getFollowUps(), getClients(), getFollowUpBookingOptions()]);
 
   return (
     <DashboardShell>

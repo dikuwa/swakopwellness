@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default async function NewReceiptPage() {
   await requirePermission("documents:create");
-  const clients = await getClients();
+  const { rows: clients } = await getClients();
 
   return (
     <DashboardShell>

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
 import { getReceipts } from "@/dashboard/data";
+import { Pagination } from "@/ui/pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +19,12 @@ function formatDate(d: Date) {
   return d.toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric" });
 }
 
-export default async function ReceiptsPage() {
+export default async function ReceiptsPage(props: { searchParams: Promise<{ page?: string }> }) {
   await requirePermission("financials:view");
-  const receipts = await getReceipts();
+  const searchParams = await props.searchParams;
+  const page = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
+  const { rows: receipts, total } = await getReceipts(page);
+  const totalPages = Math.ceil(total / 25);
 
   return (
     <DashboardShell>
@@ -90,6 +94,7 @@ export default async function ReceiptsPage() {
             </table>
           )}
         </div>
+      <Pagination currentPage={page} totalPages={totalPages} basePath="/dashboard/receipts" />
     </DashboardShell>
   );
 }

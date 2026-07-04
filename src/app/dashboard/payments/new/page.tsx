@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 export default async function NewPaymentPage(props: { searchParams: Promise<{ invoice_id?: string }> }) {
   await requirePermission("payments:record");
-  const clients = await getClients();
+  const { rows: clients } = await getClients();
   const sp = await props.searchParams;
 
   return (

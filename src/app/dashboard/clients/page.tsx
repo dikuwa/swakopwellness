@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
 import { getClients } from "@/dashboard/data";
+import { Pagination } from "@/ui/pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -10,9 +11,12 @@ export const metadata: Metadata = {
   title: "Clients — Swakop Wellness Centre",
 };
 
-export default async function DashboardClientsPage() {
+export default async function DashboardClientsPage(props: { searchParams: Promise<{ page?: string }> }) {
   await requirePermission("clients:view");
-  const clients = await getClients();
+  const searchParams = await props.searchParams;
+  const page = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
+  const { rows: clients, total } = await getClients(page);
+  const totalPages = Math.ceil(total / 25);
 
   return (
     <DashboardShell>
@@ -51,6 +55,7 @@ export default async function DashboardClientsPage() {
         </table>
       </div>
       {clients.length === 0 ? <p className="mt-6 text-muted-foreground">No clients found.</p> : null}
+      <Pagination currentPage={page} totalPages={totalPages} basePath="/dashboard/clients" />
     </DashboardShell>
   );
 }

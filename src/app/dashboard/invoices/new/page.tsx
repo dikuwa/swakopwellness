@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 export default async function NewInvoicePage() {
   await requirePermission("documents:create");
-  const [clients, services] = await Promise.all([
+  const [{ rows: clients }, services] = await Promise.all([
     getClients(),
     getBookableServicesForManualUse(),
   ]);

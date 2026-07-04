@@ -2,23 +2,29 @@ import { and, asc, count, desc, eq, gte, inArray, isNull, sql } from "drizzle-or
 import { getDb } from "@/db/client";
 import { bookingAnswers, bookingStatusHistory, bookings, chatConversations, chatMessages, chatToolEvents, clients, followUps, invoiceLineItems, invoices, payments, quotationLineItems, quotations, receipts, serviceQuestions, services, users } from "@/db/schema";
 
-export async function getDashboardBookings() {
+export async function getDashboardBookings(page: number = 1, pageSize: number = 25) {
   const db = getDb();
-  return db
-    .select({
-      id: bookings.id,
-      reference: bookings.reference,
-      serviceName: bookings.serviceName,
-      preferredAt: bookings.preferredAt,
-      status: bookings.status,
-      source: bookings.source,
-      clientName: clients.fullName,
-      clientPhone: clients.phone,
-    })
-    .from(bookings)
-    .innerJoin(clients, eq(bookings.clientId, clients.id))
-    .orderBy(desc(bookings.createdAt))
-    .limit(50);
+  const offset = (page - 1) * pageSize;
+  const [rows, [{ count: total }]] = await Promise.all([
+    db
+      .select({
+        id: bookings.id,
+        reference: bookings.reference,
+        serviceName: bookings.serviceName,
+        preferredAt: bookings.preferredAt,
+        status: bookings.status,
+        source: bookings.source,
+        clientName: clients.fullName,
+        clientPhone: clients.phone,
+      })
+      .from(bookings)
+      .innerJoin(clients, eq(bookings.clientId, clients.id))
+      .orderBy(desc(bookings.createdAt))
+      .limit(pageSize)
+      .offset(offset),
+    db.select({ count: count() }).from(bookings),
+  ]);
+  return { rows, total };
 }
 
 export async function getDashboardChatConversations() {
@@ -246,9 +252,14 @@ export async function getActiveSuitabilityQuestionsForDashboard() {
   return db.select({ id: serviceQuestions.id, question: serviceQuestions.question }).from(serviceQuestions).where(and(eq(serviceQuestions.active, true), isNull(serviceQuestions.serviceId))).orderBy(asc(serviceQuestions.sortOrder));
 }
 
-export async function getClients() {
+export async function getClients(page: number = 1, pageSize: number = 25) {
   const db = getDb();
-  return db.select().from(clients).orderBy(desc(clients.createdAt)).limit(100);
+  const offset = (page - 1) * pageSize;
+  const [rows, [{ count: total }]] = await Promise.all([
+    db.select().from(clients).orderBy(desc(clients.createdAt)).limit(pageSize).offset(offset),
+    db.select({ count: count() }).from(clients),
+  ]);
+  return { rows, total };
 }
 
 export async function getClientById(id: string) {
@@ -257,24 +268,30 @@ export async function getClientById(id: string) {
   return client ?? null;
 }
 
-export async function getInvoices() {
+export async function getInvoices(page: number = 1, pageSize: number = 25) {
   const db = getDb();
-  return db
-    .select({
-      id: invoices.id,
-      invoiceNumber: invoices.invoiceNumber,
-      clientName: clients.fullName,
-      issueDate: invoices.issueDate,
-      dueDate: invoices.dueDate,
-      totalCents: invoices.totalCents,
-      amountPaidCents: invoices.amountPaidCents,
-      balanceCents: invoices.balanceCents,
-      status: invoices.status,
-    })
-    .from(invoices)
-    .innerJoin(clients, eq(invoices.clientId, clients.id))
-    .orderBy(desc(invoices.createdAt))
-    .limit(100);
+  const offset = (page - 1) * pageSize;
+  const [rows, [{ count: total }]] = await Promise.all([
+    db
+      .select({
+        id: invoices.id,
+        invoiceNumber: invoices.invoiceNumber,
+        clientName: clients.fullName,
+        issueDate: invoices.issueDate,
+        dueDate: invoices.dueDate,
+        totalCents: invoices.totalCents,
+        amountPaidCents: invoices.amountPaidCents,
+        balanceCents: invoices.balanceCents,
+        status: invoices.status,
+      })
+      .from(invoices)
+      .innerJoin(clients, eq(invoices.clientId, clients.id))
+      .orderBy(desc(invoices.createdAt))
+      .limit(pageSize)
+      .offset(offset),
+    db.select({ count: count() }).from(invoices),
+  ]);
+  return { rows, total };
 }
 
 export async function getInvoiceById(id: string) {
@@ -291,23 +308,29 @@ export async function getInvoiceById(id: string) {
   return { ...invoice, lineItems: items };
 }
 
-export async function getQuotations() {
+export async function getQuotations(page: number = 1, pageSize: number = 25) {
   const db = getDb();
-  return db
-    .select({
-      id: quotations.id,
-      quotationNumber: quotations.quotationNumber,
-      clientName: clients.fullName,
-      issueDate: quotations.issueDate,
-      validUntil: quotations.validUntil,
-      totalCents: quotations.totalCents,
-      status: quotations.status,
-      convertedToInvoiceId: quotations.convertedToInvoiceId,
-    })
-    .from(quotations)
-    .innerJoin(clients, eq(quotations.clientId, clients.id))
-    .orderBy(desc(quotations.createdAt))
-    .limit(100);
+  const offset = (page - 1) * pageSize;
+  const [rows, [{ count: total }]] = await Promise.all([
+    db
+      .select({
+        id: quotations.id,
+        quotationNumber: quotations.quotationNumber,
+        clientName: clients.fullName,
+        issueDate: quotations.issueDate,
+        validUntil: quotations.validUntil,
+        totalCents: quotations.totalCents,
+        status: quotations.status,
+        convertedToInvoiceId: quotations.convertedToInvoiceId,
+      })
+      .from(quotations)
+      .innerJoin(clients, eq(quotations.clientId, clients.id))
+      .orderBy(desc(quotations.createdAt))
+      .limit(pageSize)
+      .offset(offset),
+    db.select({ count: count() }).from(quotations),
+  ]);
+  return { rows, total };
 }
 
 export async function getQuotationById(id: string) {
@@ -322,22 +345,28 @@ export async function getQuotationById(id: string) {
   return { ...quotation, lineItems: items };
 }
 
-export async function getReceipts() {
+export async function getReceipts(page: number = 1, pageSize: number = 25) {
   const db = getDb();
-  return db
-    .select({
-      id: receipts.id,
-      receiptNumber: receipts.receiptNumber,
-      clientName: clients.fullName,
-      amountCents: receipts.amountCents,
-      paymentDate: receipts.paymentDate,
-      paymentMethod: receipts.paymentMethod,
-      voidedAt: receipts.voidedAt,
-    })
-    .from(receipts)
-    .innerJoin(clients, eq(receipts.clientId, clients.id))
-    .orderBy(desc(receipts.createdAt))
-    .limit(100);
+  const offset = (page - 1) * pageSize;
+  const [rows, [{ count: total }]] = await Promise.all([
+    db
+      .select({
+        id: receipts.id,
+        receiptNumber: receipts.receiptNumber,
+        clientName: clients.fullName,
+        amountCents: receipts.amountCents,
+        paymentDate: receipts.paymentDate,
+        paymentMethod: receipts.paymentMethod,
+        voidedAt: receipts.voidedAt,
+      })
+      .from(receipts)
+      .innerJoin(clients, eq(receipts.clientId, clients.id))
+      .orderBy(desc(receipts.createdAt))
+      .limit(pageSize)
+      .offset(offset),
+    db.select({ count: count() }).from(receipts),
+  ]);
+  return { rows, total };
 }
 
 
