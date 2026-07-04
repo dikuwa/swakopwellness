@@ -86,7 +86,7 @@ interface NavGroup {
 
 const linkGroups: NavGroup[] = [
   {
-    label: "Operations",
+    label: "OPERATIONS",
     links: [
       { href: "/dashboard", label: "Overview" },
       { href: "/dashboard/bookings", label: "Bookings" },
@@ -96,7 +96,7 @@ const linkGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Content",
+    label: "CONTENT",
     links: [
       {
         href: "/dashboard/services",
@@ -112,7 +112,7 @@ const linkGroups: NavGroup[] = [
     ],
   },
   {
-    label: "Finance & Documents",
+    label: "FINANCE & DOCUMENTS",
     links: [
       { href: "/dashboard/invoices", label: "Invoices" },
       { href: "/dashboard/quotations", label: "Quotations" },
@@ -122,7 +122,7 @@ const linkGroups: NavGroup[] = [
     ],
   },
   {
-    label: "System",
+    label: "SYSTEM",
     links: [
       { href: "/dashboard/notifications", label: "Notifications" },
       { href: "/dashboard/activity-log", label: "Activity Log" },
@@ -301,7 +301,8 @@ function DashboardSidebar({
                 type="button"
                 onClick={() => toggleGroup(group.label)}
                 aria-expanded={groupOpen}
-                className="mb-1 flex w-full items-center justify-between rounded-lg px-2 py-1 text-left text-[11px] font-semibold tracking-widest text-muted-foreground uppercase transition-colors hover:text-foreground"
+                aria-controls={`nav-group-${group.label}`}
+                className="mb-2 flex w-full items-center justify-between rounded-lg px-2 py-1 text-left text-xs font-bold tracking-tight text-muted-foreground uppercase transition-colors hover:text-foreground"
               >
                 <span>{group.label}</span>
                 <ChevronDown
@@ -314,6 +315,7 @@ function DashboardSidebar({
             )}
 
             <div
+              id={!collapsed ? `nav-group-${group.label}` : undefined}
               className={`flex flex-col gap-0.5 overflow-hidden transition-all duration-200 ${
                 collapsed ? "" : groupOpen ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"
               }`}
@@ -372,19 +374,20 @@ function DashboardSidebar({
             </div>
           </div>
         );
-      })}        {/* View Website link */}
-        <Link
-          href="/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`mt-4 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground ${
-            collapsed ? "justify-center px-2" : ""
-          }`}
-        >
-          <ExternalLink className="h-4 w-4 shrink-0" aria-hidden="true" />
-          {!collapsed && <span className="truncate">View Website</span>}
-        </Link>
-      </nav>
+      })}
+      {/* View Website link */}
+      <Link
+        href="/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className={`mt-4 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground ${
+          collapsed ? "justify-center px-2" : ""
+        }`}
+      >
+        <ExternalLink className="h-4 w-4 shrink-0" aria-hidden="true" />
+        {!collapsed && <span className="truncate">View Website</span>}
+      </Link>
+    </nav>
   );
 }
 
@@ -674,5 +677,3 @@ export function DashboardLayout({
     </div>
   );
 }
-
-
