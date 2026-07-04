@@ -1,7 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { loginAction } from "./actions";
 import { Card, Input, Label } from "@/ui/components";
+
+export const metadata: Metadata = {
+  title: "Staff Sign In — Swakop Wellness Centre",
+};
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const params = await searchParams;
