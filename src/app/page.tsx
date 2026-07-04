@@ -25,36 +25,33 @@ export default async function Home() {
   return (
     <PageShell business={business} communication={communication} flushTop>
       <main>
-        <section className="relative bg-primary text-primary-foreground">
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,oklch(0.235_0.025_158_/_0.72),oklch(0.235_0.025_158_/_0.18)),url('/images/wellness-room.png')] bg-cover bg-center" />
-          <div className="relative mx-auto max-w-7xl px-3 pb-4 pt-24 sm:px-5">
-          <div className="relative overflow-hidden rounded-2xl">
-            <div className="absolute inset-0 bg-[linear-gradient(90deg,oklch(0.235_0.025_158_/_0.72),oklch(0.235_0.025_158_/_0.18)),url('/images/wellness-room.png')] bg-cover bg-center" />
-            <div className="relative min-h-[560px] px-6 py-16 sm:px-12 lg:px-20">
+        <section className="relative overflow-hidden bg-primary text-primary-foreground">
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,oklch(0.235_0.025_158_/_0.75),oklch(0.235_0.025_158_/_0.15)),url('/images/wellness-room.png')] bg-cover bg-center" />
+          <div className="relative mx-auto max-w-7xl px-3 pb-8 pt-24 sm:px-5 sm:pb-12">
+            <div className="min-h-[520px] px-6 py-16 sm:px-12 lg:px-20">
               <div className="max-w-2xl">
-                <p className="text-sm font-semibold uppercase text-primary-foreground/75">By appointment only</p>
-                <h1 className="display-tight mt-5 text-5xl font-semibold sm:text-6xl">Wellness support, guided by careful assessment.</h1>
-                <p className="mt-5 max-w-xl text-sm leading-7 text-primary-foreground/85 sm:text-base">
+                <p className="text-sm font-semibold uppercase tracking-[0.12em] text-primary-foreground/75">By appointment only</p>
+                <h1 className="display-tight mt-5 text-5xl font-semibold leading-[0.95] sm:text-7xl">Wellness support, guided by careful assessment.</h1>
+                <p className="mt-6 max-w-xl text-sm leading-7 text-primary-foreground/85 sm:text-base">
                   Using the Diacom Lite Freq Utium, an FCC‑certified bioresonance scanner, we gently scan your body to uncover root causes of imbalance and guide personalised wellness support. All appointments are by request and confirmed by our team.
                 </p>
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                  <Link href="/book" className="inline-flex h-12 items-center justify-center rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[0_10px_24px_oklch(0.235_0.025_158_/_0.18)] ring-1 ring-primary-foreground/10">
+                  <Link href="/book" className="inline-flex h-12 min-w-[160px] items-center justify-center rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-[0_10px_24px_oklch(0.235_0.025_158_/_0.18)] ring-1 ring-primary-foreground/15 transition-all duration-200 hover:shadow-[0_14px_32px_oklch(0.235_0.025_158_/_0.28)]">
                     Book appointment
                   </Link>
                   {communication.enableCalls ? (
-                    <a href={`tel:${communication.mainPhone.replaceAll(" ", "")}`} className="inline-flex h-12 items-center justify-center rounded-xl bg-primary-foreground px-6 text-sm font-semibold text-primary">
-                      Call now
+                    <a href={`tel:${communication.mainPhone.replaceAll(" ", "")}`} className="inline-flex h-12 min-w-[130px] items-center justify-center gap-2 rounded-xl bg-primary-foreground/15 px-6 text-sm font-semibold text-primary-foreground ring-1 ring-primary-foreground/10 backdrop-blur transition-all duration-200 hover:bg-primary-foreground/25">
+                      <Phone className="h-4 w-4" /> Call now
                     </a>
                   ) : null}
                 </div>
-                <div className="mt-8 grid gap-2 rounded-2xl bg-primary-foreground/12 p-4 text-xs text-primary-foreground/85 backdrop-blur sm:grid-cols-3">
-                  <span className="flex items-center gap-2"><Clock className="h-4 w-4" />{business.operatingHours}</span>
-                  <span className="flex items-center gap-2"><CalendarDays className="h-4 w-4" />{business.appointmentModel}</span>
-                  <span className="flex items-center gap-2"><MapPin className="h-4 w-4" />{business.address}</span>
+                <div className="mt-8 flex flex-wrap gap-3">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-primary-foreground/12 px-4 py-2 text-xs text-primary-foreground/85 backdrop-blur"><Clock className="h-3.5 w-3.5" />{business.operatingHours}</span>
+                  <span className="inline-flex items-center gap-2 rounded-full bg-primary-foreground/12 px-4 py-2 text-xs text-primary-foreground/85 backdrop-blur"><CalendarDays className="h-3.5 w-3.5" />{business.appointmentModel}</span>
+                  <span className="inline-flex items-center gap-2 rounded-full bg-primary-foreground/12 px-4 py-2 text-xs text-primary-foreground/85 backdrop-blur"><MapPin className="h-3.5 w-3.5" />{business.address}</span>
                 </div>
               </div>
             </div>
-          </div>
           </div>
         </section>
 
