@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { count, desc, eq } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
-import { getDashboardChatConversations } from "@/dashboard/data";
+import { getDb } from "@/db/client";
+import { bookings, chatConversations, clients } from "@/db/schema";
+import { Pagination } from "@/ui/pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -15,9 +18,34 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${cls}`}>{status.replaceAll("_", " ")}</span>;
 }
 
-export default async function ChatConversationsPage() {
+export default async function ChatConversationsPage(props: { searchParams: Promise<{ page?: string }> }) {
   await requirePermission("bookings:view");
-  const conversations = await getDashboardChatConversations();
+  const { page: pageStr } = await props.searchParams;
+  const page = Math.max(1, parseInt(pageStr ?? "1", 10) || 1);
+  const pageSize = 25;
+  const offset = (page - 1) * pageSize;
+  const db = getDb();
+  const [conversations, [{ count: total }]] = await Promise.all([
+    db
+      .select({
+        id: chatConversations.id,
+        status: chatConversations.status,
+        createdAt: chatConversations.createdAt,
+        updatedAt: chatConversations.updatedAt,
+        bookingId: bookings.id,
+        bookingReference: bookings.reference,
+        clientId: clients.id,
+        clientName: clients.fullName,
+      })
+      .from(chatConversations)
+      .leftJoin(bookings, eq(chatConversations.bookingId, bookings.id))
+      .leftJoin(clients, eq(chatConversations.clientId, clients.id))
+      .orderBy(desc(chatConversations.updatedAt))
+      .limit(pageSize)
+      .offset(offset),
+    db.select({ count: count() }).from(chatConversations),
+  ]);
+  const totalPages = Math.ceil(total / pageSize);
 
   return (
     <DashboardShell>
@@ -68,6 +96,7 @@ export default async function ChatConversationsPage() {
             </table>
           </div>
         )}
+      <Pagination currentPage={page} totalPages={totalPages} basePath="/dashboard/chat-conversations" />
     </DashboardShell>
   );
 }

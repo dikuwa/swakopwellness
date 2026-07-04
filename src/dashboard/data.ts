@@ -1,10 +1,17 @@
-import { and, asc, count, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { bookingAnswers, bookingStatusHistory, bookings, chatConversations, chatMessages, chatToolEvents, clients, followUps, invoiceLineItems, invoices, payments, quotationLineItems, quotations, receipts, serviceQuestions, services, users } from "@/db/schema";
 
-export async function getDashboardBookings(page: number = 1, pageSize: number = 25) {
+export async function getDashboardBookings(page: number = 1, pageSize: number = 25, q?: string) {
   const db = getDb();
   const offset = (page - 1) * pageSize;
+  const where = q
+    ? or(
+        ilike(bookings.reference, `%${q}%`),
+        ilike(bookings.serviceName, `%${q}%`),
+        ilike(clients.fullName, `%${q}%`),
+      )
+    : undefined;
   const [rows, [{ count: total }]] = await Promise.all([
     db
       .select({
@@ -19,32 +26,13 @@ export async function getDashboardBookings(page: number = 1, pageSize: number = 
       })
       .from(bookings)
       .innerJoin(clients, eq(bookings.clientId, clients.id))
+      .where(where)
       .orderBy(desc(bookings.createdAt))
       .limit(pageSize)
       .offset(offset),
-    db.select({ count: count() }).from(bookings),
+    db.select({ count: count() }).from(bookings).where(where),
   ]);
   return { rows, total };
-}
-
-export async function getDashboardChatConversations() {
-  const db = getDb();
-  return db
-    .select({
-      id: chatConversations.id,
-      status: chatConversations.status,
-      createdAt: chatConversations.createdAt,
-      updatedAt: chatConversations.updatedAt,
-      bookingId: bookings.id,
-      bookingReference: bookings.reference,
-      clientId: clients.id,
-      clientName: clients.fullName,
-    })
-    .from(chatConversations)
-    .leftJoin(bookings, eq(chatConversations.bookingId, bookings.id))
-    .leftJoin(clients, eq(chatConversations.clientId, clients.id))
-    .orderBy(desc(chatConversations.updatedAt))
-    .limit(100);
 }
 
 export async function getDashboardReports() {
@@ -252,12 +240,19 @@ export async function getActiveSuitabilityQuestionsForDashboard() {
   return db.select({ id: serviceQuestions.id, question: serviceQuestions.question }).from(serviceQuestions).where(and(eq(serviceQuestions.active, true), isNull(serviceQuestions.serviceId))).orderBy(asc(serviceQuestions.sortOrder));
 }
 
-export async function getClients(page: number = 1, pageSize: number = 25) {
+export async function getClients(page: number = 1, pageSize: number = 25, q?: string) {
   const db = getDb();
   const offset = (page - 1) * pageSize;
+  const where = q
+    ? or(
+        ilike(clients.fullName, `%${q}%`),
+        ilike(clients.phone, `%${q}%`),
+        ilike(clients.email, `%${q}%`),
+      )
+    : undefined;
   const [rows, [{ count: total }]] = await Promise.all([
-    db.select().from(clients).orderBy(desc(clients.createdAt)).limit(pageSize).offset(offset),
-    db.select({ count: count() }).from(clients),
+    db.select().from(clients).where(where).orderBy(desc(clients.createdAt)).limit(pageSize).offset(offset),
+    db.select({ count: count() }).from(clients).where(where),
   ]);
   return { rows, total };
 }
@@ -268,9 +263,15 @@ export async function getClientById(id: string) {
   return client ?? null;
 }
 
-export async function getInvoices(page: number = 1, pageSize: number = 25) {
+export async function getInvoices(page: number = 1, pageSize: number = 25, q?: string) {
   const db = getDb();
   const offset = (page - 1) * pageSize;
+  const where = q
+    ? or(
+        ilike(invoices.invoiceNumber, `%${q}%`),
+        ilike(clients.fullName, `%${q}%`),
+      )
+    : undefined;
   const [rows, [{ count: total }]] = await Promise.all([
     db
       .select({
@@ -286,10 +287,11 @@ export async function getInvoices(page: number = 1, pageSize: number = 25) {
       })
       .from(invoices)
       .innerJoin(clients, eq(invoices.clientId, clients.id))
+      .where(where)
       .orderBy(desc(invoices.createdAt))
       .limit(pageSize)
       .offset(offset),
-    db.select({ count: count() }).from(invoices),
+    db.select({ count: count() }).from(invoices).where(where),
   ]);
   return { rows, total };
 }

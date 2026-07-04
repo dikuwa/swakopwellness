@@ -1,9 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
 import { getInvoices } from "@/dashboard/data";
 import { Pagination } from "@/ui/pagination";
+import { SearchInput } from "@/ui/search-input";
 
 export const dynamic = "force-dynamic";
 
@@ -29,11 +31,11 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-export default async function InvoicesPage(props: { searchParams: Promise<{ page?: string }> }) {
+export default async function InvoicesPage(props: { searchParams: Promise<{ page?: string; q?: string }> }) {
   await requirePermission("financials:view");
-  const searchParams = await props.searchParams;
-  const page = Math.max(1, parseInt(searchParams.page ?? "1", 10) || 1);
-  const { rows: invoices, total } = await getInvoices(page);
+  const { page: pageStr, q } = await props.searchParams;
+  const page = Math.max(1, parseInt(pageStr ?? "1", 10) || 1);
+  const { rows: invoices, total } = await getInvoices(page, 25, q);
   const totalPages = Math.ceil(total / 25);
 
   return (
@@ -43,12 +45,19 @@ export default async function InvoicesPage(props: { searchParams: Promise<{ page
           <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">Finance</p>
           <h1 className="mt-2 text-2xl sm:text-3xl tracking-[-0.03em]">Invoices</h1>
         </div>
-        <Link
-          href="/dashboard/invoices/new"
-          className="flex h-11 shrink-0 items-center rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted"
-        >
-          New Invoice
-        </Link>
+        <div className="flex items-center gap-2">
+          <div className="w-64">
+            <Suspense fallback={<div className="h-10 w-full animate-pulse rounded-xl bg-surface-muted" />}>
+              <SearchInput placeholder="Search by number or client..." />
+            </Suspense>
+          </div>
+          <Link
+            href="/dashboard/invoices/new"
+            className="flex h-10 shrink-0 items-center rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted"
+          >
+            New Invoice
+          </Link>
+        </div>
       </div>
       <div className="mt-6 overflow-x-auto">
         <table className="w-full min-w-[760px] text-left text-sm">
