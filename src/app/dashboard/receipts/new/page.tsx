@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
 import { getClients } from "@/dashboard/data";
+import { DatePicker, Select } from "@/ui/components";
 import { createReceiptAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,19 @@ export default async function NewReceiptPage() {
   await requirePermission("documents:create");
   const { rows: clients } = await getClients();
 
+  const methodOptions = [
+    { value: "cash", label: "Cash" },
+    { value: "card", label: "Card" },
+    { value: "bank_transfer", label: "Bank Transfer" },
+    { value: "mobile", label: "Mobile Payment" },
+    { value: "other", label: "Other" },
+  ];
+
+  const clientOptions = clients.map((c) => ({
+    value: c.id,
+    label: c.fullName,
+  }));
+
   return (
     <DashboardShell>
       <h1 className="text-3xl font-semibold tracking-[-0.035em]">New Receipt</h1>
@@ -21,19 +35,13 @@ export default async function NewReceiptPage() {
         <form action={createReceiptAction} className="mt-6 space-y-5">
           <div>
             <label htmlFor="clientId" className="mb-2 block text-sm font-semibold">Client</label>
-            <select
+            <Select
               id="clientId"
               name="clientId"
               required
-              className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="">Select client</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.fullName}
-                </option>
-              ))}
-            </select>
+              options={clientOptions}
+              placeholder="Select client"
+            />
           </div>
 
           <div>
@@ -52,30 +60,23 @@ export default async function NewReceiptPage() {
 
           <div>
             <label htmlFor="paymentDate" className="mb-2 block text-sm font-semibold">Payment Date</label>
-            <input
+            <DatePicker
               id="paymentDate"
               name="paymentDate"
-              type="date"
               required
-              className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="Select date"
             />
           </div>
 
           <div>
             <label htmlFor="method" className="mb-2 block text-sm font-semibold">Payment Method</label>
-            <select
+            <Select
               id="method"
               name="method"
               required
-              className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="">Select method</option>
-              <option value="cash">Cash</option>
-              <option value="card">Card</option>
-              <option value="bank_transfer">Bank Transfer</option>
-              <option value="mobile">Mobile Payment</option>
-              <option value="other">Other</option>
-            </select>
+              options={methodOptions}
+              placeholder="Select method"
+            />
           </div>
 
           <div>

@@ -30,13 +30,12 @@ export function ChatBookingForm({
 }: ChatBookingFormProps) {
   const [state, formAction, isPending] = useActionState(
     async (_prev: unknown, formData: FormData) => submitChatBookingRequest(formData),
-    null as { ok: boolean; message?: string; reference?: string } | null
+    null
   );
 
   const serviceOptions = bookableServices.map((service) => ({
     value: service.id,
     label: service.name,
-  .name,
   }));
 
   return (

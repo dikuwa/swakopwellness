@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps } from "react";
 import { Clock, ChevronUp, ChevronDown, X } from "lucide-react";
 import { createPortal } from "react-dom";
 
-type TimePickerProps = ComponentProps<"input"> & {
+type TimePickerProps = Omit<ComponentProps<"input">, "value" | "onChange" | "type" | "readOnly"> & {
   value?: string;
   onChange?: (value: string) => void;
   placeholder?: string;
@@ -60,8 +60,8 @@ function isTimeInRange(timeStr: string, minTime?: string, maxTime?: string): boo
 function generateTimeSlots(minTime?: string, maxTime?: string, stepMinutes = 30): string[] {
   const slots: string[] = [];
 
-  const min = minTime ? parseTimeString(minTime) : { hours: 0, minutes: 0 };
-  const max = maxTime ? parseTimeString(maxTime) : { hours: 23, minutes: 59 };
+  const min = minTime ? (parseTimeString(minTime) ?? { hours: 0, minutes: 0 }) : { hours: 0, minutes: 0 };
+  const max = maxTime ? (parseTimeString(maxTime) ?? { hours: 23, minutes: 59 }) : { hours: 23, minutes: 59 };
 
   let currentMinutes = min.hours * 60 + min.minutes;
   const maxMinutes = max.hours * 60 + max.minutes;
@@ -93,6 +93,7 @@ export function TimePicker({
 }: TimePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const optionsRef = useRef<HTMLDivElement>(null);
@@ -125,24 +126,61 @@ export function TimePicker({
     };
   }, []);
 
-  const handleInputClick = useCallback(() => {
-    if (!disabled) {
-      setIsOpen(true);
-      setHighlightedIndex(selectedIndex >= 0 ? selectedIndex : 0);
+  const positionPopover = useCallback(() => {
+    if (!inputRef.current) return;
+    const rect = inputRef.current.getBoundingClientRect();
+    const estimatedHeight = 260;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    if (spaceBelow < estimatedHeight && spaceAbove > spaceBelow) {
+      setPopoverStyle({
+        top: rect.top - 4,
+        left: rect.left,
+        minWidth: rect.width,
+        transform: "translateY(-100%)",
+      });
+    } else {
+      setPopoverStyle({
+        top: rect.bottom + 4,
+        left: rect.left,
+        minWidth: rect.width,
+      });
     }
-  }, [disabled, selectedIndex]);
+  }, []);
+
+  // Reposition on scroll/resize while open
+  useEffect(() => {
+    if (!isOpen) return;
+    positionPopover();
+    const onScroll = () => positionPopover();
+    const onResize = () => positionPopover();
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [isOpen, positionPopover]);
+
+  const openPopover = useCallback(() => {
+    if (disabled) return;
+    positionPopover();
+    setIsOpen(true);
+    setHighlightedIndex(selectedIndex >= 0 ? selectedIndex : 0);
+  }, [disabled, selectedIndex, positionPopover]);
+
+  const handleInputClick = useCallback(() => {
+    openPopover();
+  }, [openPopover]);
 
   const handleInputKeyDown = useCallback((event: React.KeyboardEvent) => {
     if (event.key === "Enter" || event.key === " " || event.key === "ArrowDown") {
       event.preventDefault();
-      if (!disabled) {
-        setIsOpen(true);
-        setHighlightedIndex(selectedIndex >= 0 ? selectedIndex : 0);
-      }
+      openPopover();
     } else if (event.key === "Escape") {
       setIsOpen(false);
     }
-  }, [disabled, selectedIndex]);
+  }, [openPopover]);
 
   const handleOptionClick = useCallback((time: string) => {
     onChange?.(time);
@@ -198,6 +236,7 @@ export function TimePicker({
   const popoverContent = (
     <div
       ref={popoverRef}
+      style={popoverStyle}
       className="fixed z-50 rounded-2xl border border-border bg-surface p-2 shadow-[0_20px_40px_oklch(0.235_0.025_158_/_0.15)] max-h-64 overflow-hidden"
       role="dialog"
       aria-label="Choose time"
@@ -241,6 +280,8 @@ export function TimePicker({
 
   return (
     <div className="relative" style={{ zIndex: isOpen ? 50 : "auto" }}>
+      {/* Hidden input to submit the actual time value with forms */}
+      {name && <input type="hidden" name={name} value={value ?? ""} />}
       <div className="relative">
         <Clock className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" aria-hidden="true" />
         <input
@@ -250,14 +291,12 @@ export function TimePicker({
           value={displayValue}
           placeholder={placeholder}
           disabled={disabled}
-          required={required}
-          name={name}
           id={id}
           onClick={handleInputClick}
           onKeyDown={handleInputKeyDown}
           aria-haspopup="dialog"
           aria-expanded={isOpen}
-          aria-controls={isOpen ? popoverRef.current?.id : undefined}
+          aria-required={required || undefined}
           className={`h-11 w-full rounded-xl border border-border bg-background pl-10 pr-10 text-sm transition-colors duration-200 placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10 ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"} ${className}`}
           {...props}
         />
@@ -265,7 +304,7 @@ export function TimePicker({
           <button
             type="button"
             onClick={handleClear}
-            className="absolute right-3 top-1/2 -translate-y-1/2 right-3 text-muted-foreground hover:text-foreground transition-colors"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Clear time"
           >
             <X className="h-5 w-5" aria-hidden="true" />
@@ -277,6 +316,3 @@ export function TimePicker({
     </div>
   );
 }
-
-// Need to import useMemo
-import { useMemo } from "react";

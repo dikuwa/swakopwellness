@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ComponentProps } from "react";
 import { ChevronLeft, ChevronRight, Calendar, X } from "lucide-react";
 import { createPortal } from "react-dom";
 
-type DatePickerProps = ComponentProps<"input"> & {
+type DatePickerProps = Omit<ComponentProps<"input">, "value" | "onChange" | "type" | "readOnly"> & {
   value?: string;
   onChange?: (value: string) => void;
   placeholder?: string;
@@ -97,23 +97,18 @@ export function DatePicker({
     return date ? { year: date.getFullYear(), month: date.getMonth() } : { year: new Date().getFullYear(), month: new Date().getMonth() };
   });
   const [focusedDay, setFocusedDay] = useState<Date | null>(null);
+  const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
-  const monthYearId = `datepicker-monthyear-${id || Math.random().toString(36).slice(2)}`;
+  const uid = useId();
+  const monthYearId = `datepicker-monthyear-${id || uid}`;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
   const selectedDate = value ? parseDateString(value) : null;
 
-  useEffect(() => {
-    if (value) {
-      const parsed = parseDateString(value);
-      if (parsed) {
-        setDisplayMonth({ year: parsed.getFullYear(), month: parsed.getMonth() });
-      }
-    }
-  }, [value]);
+
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -139,20 +134,67 @@ export function DatePicker({
     };
   }, []);
 
-  const handleInputClick = useCallback(() => {
-    if (!disabled) {
-      setIsOpen(true);
+  const positionPopover = useCallback(() => {
+    if (!inputRef.current) return;
+    const rect = inputRef.current.getBoundingClientRect();
+    const estimatedHeight = 340;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    if (spaceBelow < estimatedHeight && spaceAbove > spaceBelow) {
+      setPopoverStyle({
+        top: rect.top - 4,
+        left: rect.left,
+        minWidth: rect.width,
+        transform: "translateY(-100%)",
+      });
+    } else {
+      setPopoverStyle({
+        top: rect.bottom + 4,
+        left: rect.left,
+        minWidth: rect.width,
+      });
     }
-  }, [disabled]);
+  }, []);
+
+  // Reposition on scroll/resize while open
+  useEffect(() => {
+    if (!isOpen) return;
+    positionPopover();
+    const onScroll = () => positionPopover();
+    const onResize = () => positionPopover();
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [isOpen, positionPopover]);
+
+  const openPopover = useCallback(() => {
+    if (disabled) return;
+    // Sync display month from current value when opening
+    if (value) {
+      const parsed = parseDateString(value);
+      if (parsed) {
+        setDisplayMonth({ year: parsed.getFullYear(), month: parsed.getMonth() });
+      }
+    }
+    positionPopover();
+    setIsOpen(true);
+  }, [disabled, value, positionPopover]);
+
+  const handleInputClick = useCallback(() => {
+    openPopover();
+  }, [openPopover]);
 
   const handleInputKeyDown = useCallback((event: React.KeyboardEvent) => {
     if (event.key === "Enter" || event.key === " " || event.key === "ArrowDown") {
       event.preventDefault();
-      if (!disabled) setIsOpen(true);
+      openPopover();
     } else if (event.key === "Escape") {
       setIsOpen(false);
     }
-  }, [disabled]);
+  }, [openPopover]);
 
   const handleClear = useCallback((event: React.MouseEvent) => {
     event.stopPropagation();
@@ -236,6 +278,7 @@ export function DatePicker({
   const popoverContent = (
     <div
       ref={popoverRef}
+      style={popoverStyle}
       className="fixed z-50 rounded-2xl border border-border bg-surface p-3 shadow-[0_20px_40px_oklch(0.235_0.025_158_/_0.15)]"
       role="dialog"
       aria-label="Choose date"
@@ -272,7 +315,7 @@ export function DatePicker({
         {days.map((day, index) => {
           const isCurrentMonth = day.getMonth() === displayMonth.month;
           const isToday = isSameDay(day, today);
-          const isSelected = selectedDate && isSameDay(day, selectedDate);
+          const isSelected = !!selectedDate && isSameDay(day, selectedDate);
           const isDisabled = isDateDisabled(day, minDate, maxDate);
           const isFocused = focusedDay && isSameDay(day, focusedDay);
 
@@ -326,6 +369,8 @@ export function DatePicker({
 
   return (
     <div className="relative" style={{ zIndex: isOpen ? 50 : "auto" }}>
+      {/* Hidden input to submit the ISO date value with forms */}
+      {name && <input type="hidden" name={name} value={value ?? ""} />}
       <div className="relative">
         <Calendar className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" aria-hidden="true" />
         <input
@@ -335,14 +380,12 @@ export function DatePicker({
           value={displayValue}
           placeholder={placeholder}
           disabled={disabled}
-          required={required}
-          name={name}
           id={id}
           onClick={handleInputClick}
           onKeyDown={handleInputKeyDown}
           aria-haspopup="dialog"
           aria-expanded={isOpen}
-          aria-controls={isOpen ? popoverRef.current?.id : undefined}
+          aria-required={required || undefined}
           className={`h-11 w-full rounded-xl border border-border bg-background pl-10 pr-10 text-sm transition-colors duration-200 placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10 ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"} ${className}`}
           {...props}
         />

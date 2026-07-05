@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   Store, MessageSquare, CalendarRange, FileText,
 } from "lucide-react";
+import { Select, DatePicker, TimePicker, Checkbox } from "@/ui/components";
 import { updateBusinessSettings, updateCommunicationSettings, updateBookingRules, updateDocumentSequence } from "@/settings/actions";
 
 const TABS = [
@@ -57,6 +58,8 @@ export function SettingsTabs({
   const [activeTab, setActiveTab] = useState<TabId>("general");
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [openingTime, setOpeningTime] = useState(br?.openingTime ?? "08:00");
+  const [closingTime, setClosingTime] = useState(br?.closingTime ?? "17:00");
 
   const handleAction = async (action: (fd: FormData) => Promise<{ ok: boolean; error?: string }>, formData: FormData, label: string) => {
     setSaving(label);
@@ -176,12 +179,17 @@ export function SettingsTabs({
               <div className="rounded-xl border border-border p-5 space-y-3">
                 <h2 className="text-lg font-semibold">Technology Image</h2>
                 <p className="text-sm text-muted-foreground">Image shown in the Diacom Technology section on the homepage.</p>
-                <select name="technologyImageId" defaultValue={bs.technologyImageId ?? ""} className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-foreground">
-                  <option value="">None</option>
-                  {mediaAssets.map((a) => (
-                    <option key={a.id} value={a.id}>{a.altText || a.storageKey.split("/").pop()}</option>
-                  ))}
-                </select>
+                <Select
+                  name="technologyImageId"
+                  options={[
+                    { value: "", label: "None" },
+                    ...mediaAssets.map((a) => ({
+                      value: a.id,
+                      label: a.altText || a.storageKey.split("/").pop() || "Untitled",
+                    })),
+                  ]}
+                  placeholder="None"
+                />
               </div>
             )}
 
@@ -205,10 +213,11 @@ export function SettingsTabs({
           >
             <fieldset className="space-y-4 rounded-xl border border-border p-5">
               <legend className="text-sm font-semibold tracking-[0.08em] text-muted-foreground uppercase">Phone</legend>
-              <label className="flex items-center gap-3">
-                <input type="checkbox" defaultChecked={cs.enableCalls} name="enableCalls" className="h-5 w-5 rounded border-border accent-primary" />
-                <span className="text-sm">Enable calls</span>
-              </label>
+              <Checkbox
+                defaultChecked={cs.enableCalls}
+                name="enableCalls"
+                label="Enable calls"
+              />
               <div>
                 <label htmlFor="cs-phone" className="mb-1.5 block text-sm font-medium">Main Phone</label>
                 <input id="cs-phone" name="mainPhone" defaultValue={cs.mainPhone} className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-foreground" />
@@ -217,10 +226,11 @@ export function SettingsTabs({
 
             <fieldset className="space-y-4 rounded-xl border border-border p-5">
               <legend className="text-sm font-semibold tracking-[0.08em] text-muted-foreground uppercase">Email</legend>
-              <label className="flex items-center gap-3">
-                <input type="checkbox" defaultChecked={cs.enableEmailContact} name="enableEmailContact" className="h-5 w-5 rounded border-border accent-primary" />
-                <span className="text-sm">Enable email contact</span>
-              </label>
+              <Checkbox
+                defaultChecked={cs.enableEmailContact}
+                name="enableEmailContact"
+                label="Enable email contact"
+              />
               <div>
                 <label htmlFor="cs-email" className="mb-1.5 block text-sm font-medium">Business Email</label>
                 <input id="cs-email" name="businessEmail" type="email" defaultValue={cs.businessEmail} className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-foreground" />
@@ -241,10 +251,11 @@ export function SettingsTabs({
 
             <fieldset className="space-y-4 rounded-xl border border-border p-5">
               <legend className="text-sm font-semibold tracking-[0.08em] text-muted-foreground uppercase">WhatsApp</legend>
-              <label className="flex items-center gap-3">
-                <input type="checkbox" defaultChecked={cs.enableWhatsapp} name="enableWhatsapp" className="h-5 w-5 rounded border-border accent-primary" />
-                <span className="text-sm">Enable WhatsApp</span>
-              </label>
+              <Checkbox
+                defaultChecked={cs.enableWhatsapp}
+                name="enableWhatsapp"
+                label="Enable WhatsApp"
+              />
               <div>
                 <label htmlFor="cs-wa" className="mb-1.5 block text-sm font-medium">WhatsApp Number</label>
                 <input id="cs-wa" name="whatsappNumber" defaultValue={cs.whatsappNumber ?? ""} className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-foreground" />
@@ -276,11 +287,11 @@ export function SettingsTabs({
             <div className="flex gap-4">
               <div className="flex-1">
                 <label htmlFor="br-open" className="mb-1.5 block text-sm font-medium">Opening Time</label>
-                <input id="br-open" name="openingTime" type="time" defaultValue={br.openingTime} required className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-foreground" />
+                <TimePicker id="br-open" name="openingTime" stepMinutes={30} value={openingTime} onChange={(v) => setOpeningTime(v)} placeholder="Opening time" />
               </div>
               <div className="flex-1">
                 <label htmlFor="br-close" className="mb-1.5 block text-sm font-medium">Closing Time</label>
-                <input id="br-close" name="closingTime" type="time" defaultValue={br.closingTime} required className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-foreground" />
+                <TimePicker id="br-close" name="closingTime" stepMinutes={30} value={closingTime} onChange={(v) => setClosingTime(v)} placeholder="Closing time" />
               </div>
             </div>
             <div>
@@ -290,10 +301,17 @@ export function SettingsTabs({
             </div>
             <div>
               <label htmlFor="br-mode" className="mb-1.5 block text-sm font-medium">Request Mode</label>
-              <select id="br-mode" name="requestMode" defaultValue={br.requestMode} required className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-foreground">
-                <option value="booking_request">Booking Request (requires confirmation)</option>
-                <option value="confirmed">Auto-confirmed</option>
-              </select>
+              <Select
+                id="br-mode"
+                name="requestMode"
+                required
+                value={br.requestMode}
+                options={[
+                  { value: "booking_request", label: "Booking Request (requires confirmation)" },
+                  { value: "confirmed", label: "Auto-confirmed" },
+                ]}
+                placeholder="Select mode"
+              />
             </div>
             <div>
               <label htmlFor="br-dup" className="mb-1.5 block text-sm font-medium">Duplicate Window (minutes)</label>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Select } from "@/ui/components";
 import { addServiceGalleryImage, removeServiceGalleryImage, reorderServiceGalleryImage } from "@/services/actions";
 import { ArrowUp, ArrowDown, Trash2 } from "lucide-react";
 
@@ -67,18 +68,20 @@ export function GalleryManager({
       <p className="mt-2 text-sm text-muted-foreground">Additional images displayed on the service detail page.</p>
 
       <form action={addAction} className="mt-5 flex gap-3">
-        <select
-          name="assetId"
-          required
-          className="h-11 flex-1 rounded-xl border border-border bg-surface px-3 text-sm outline-none focus:border-primary"
-        >
-          <option value="">Select an image&hellip;</option>
-          {unusedMedia.map((asset) => (
-            <option key={asset.id} value={asset.id}>
-              {asset.altText || asset.id.slice(0, 8)}
-            </option>
-          ))}
-        </select>
+        <div className="flex-1">
+          <Select
+            name="assetId"
+            required
+            options={[
+              { value: "", label: "Select an image…" },
+              ...unusedMedia.map((asset) => ({
+                value: asset.id,
+                label: asset.altText || asset.id.slice(0, 8),
+              })),
+            ]}
+            placeholder="Select an image…"
+          />
+        </div>
         <button
           type="submit"
           disabled={addPending}

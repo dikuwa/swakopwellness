@@ -4,6 +4,7 @@ import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { serviceQuestions, services } from "@/db/schema";
 import { DashboardShell } from "@/dashboard/shell";
+import { Select } from "@/ui/components";
 import {
   createSuitabilityQuestion,
   deleteSuitabilityQuestion,
@@ -66,18 +67,15 @@ export default async function ServiceSuitabilityPage() {
             >
               Service
             </label>
-            <select
+            <Select
               id="serviceId"
               name="serviceId"
-              className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-            >
-              <option value="">All services</option>
-              {serviceOptions.map((service) => (
-                <option key={service.id} value={service.id}>
-                  {service.name}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: "", label: "All services" },
+                ...serviceOptions.map((s) => ({ value: s.id, label: s.name })),
+              ]}
+              placeholder="All services"
+            />
           </div>
           <div>
             <label
@@ -100,15 +98,16 @@ export default async function ServiceSuitabilityPage() {
             >
               Flagged answer
             </label>
-            <select
+            <Select
               id="flaggedAnswer"
               name="flaggedAnswer"
-              defaultValue="yes"
-              className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-            >
-              <option value="yes">Yes</option>
-              <option value="no">No</option>
-            </select>
+              value="yes"
+              options={[
+                { value: "yes", label: "Yes" },
+                { value: "no", label: "No" },
+              ]}
+              placeholder="Yes"
+            />
           </div>
           <div>
             <label
@@ -145,19 +144,14 @@ export default async function ServiceSuitabilityPage() {
                 action={async (formData) => { "use server"; await updateSuitabilityQuestion(question.id, formData); }}
                 className="grid gap-4 lg:grid-cols-[1.5fr_3fr_140px_100px_auto]"
               >
-                <select
+                <Select
                   name="serviceId"
-                  defaultValue={question.serviceId ?? ""}
-                  aria-label="Question service"
-                  className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                >
-                  <option value="">All services</option>
-                  {serviceOptions.map((service) => (
-                    <option key={service.id} value={service.id}>
-                      {service.name}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { value: "", label: "All services" },
+                    ...serviceOptions.map((s) => ({ value: s.id, label: s.name })),
+                  ]}
+                  placeholder="All services"
+                />
                 <input
                   name="question"
                   defaultValue={question.question}
@@ -165,15 +159,15 @@ export default async function ServiceSuitabilityPage() {
                   aria-label="Suitability question"
                   className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
-                <select
+                <Select
                   name="flaggedAnswer"
-                  defaultValue={question.flaggedAnswer}
-                  aria-label="Flagged answer"
-                  className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                >
-                  <option value="yes">Yes</option>
-                  <option value="no">No</option>
-                </select>
+                  value={question.flaggedAnswer}
+                  options={[
+                    { value: "yes", label: "Yes" },
+                    { value: "no", label: "No" },
+                  ]}
+                  placeholder="Yes"
+                />
                 <input
                   name="sortOrder"
                   type="number"

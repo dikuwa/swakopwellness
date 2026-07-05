@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
 import toast from "react-hot-toast";
 import { Loader2, Upload } from "lucide-react";
+import { Select } from "@/ui/components";
 import { uploadMediaAndReturnAction } from "@/media/actions";
 
 
@@ -171,19 +172,15 @@ export function ServiceForm({ categories, action, initialData, mediaAssets, chil
                 >
                   Category
                 </label>
-                <select
+                <Select
                   id="categoryId"
                   name="categoryId"
-                  defaultValue={initialData?.categoryId ?? ""}
-                  className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                >
-                  <option value="">No category</option>
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { value: "", label: "No category" },
+                    ...categories.map((c) => ({ value: c.id, label: c.name })),
+                  ]}
+                  placeholder="No category"
+                />
               </div>
               <div>
                 <label

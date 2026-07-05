@@ -10,7 +10,7 @@ interface SelectOption {
   disabled?: boolean;
 }
 
-type SelectProps = ComponentProps<"select"> & {
+type SelectProps = Omit<ComponentProps<"input">, "value" | "onChange" | "type" | "readOnly"> & {
   value?: string;
   onChange?: (value: string) => void;
   placeholder?: string;
@@ -42,6 +42,7 @@ export function Select({
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [popoverStyle, setPopoverStyle] = useState<React.CSSProperties>({});
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const optionsRef = useRef<HTMLDivElement>(null);
@@ -81,26 +82,63 @@ export function Select({
     };
   }, []);
 
-  const handleInputClick = useCallback(() => {
-    if (!disabled) {
-      setIsOpen(true);
-      setHighlightedIndex(selectedIndex >= 0 ? selectedIndex : 0);
+  const positionPopover = useCallback(() => {
+    if (!inputRef.current) return;
+    const rect = inputRef.current.getBoundingClientRect();
+    const estimatedHeight = 280;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const spaceAbove = rect.top;
+    if (spaceBelow < estimatedHeight && spaceAbove > spaceBelow) {
+      setPopoverStyle({
+        top: rect.top - 4,
+        left: rect.left,
+        minWidth: rect.width,
+        transform: "translateY(-100%)",
+      });
+    } else {
+      setPopoverStyle({
+        top: rect.bottom + 4,
+        left: rect.left,
+        minWidth: rect.width,
+      });
     }
-  }, [disabled, selectedIndex]);
+  }, []);
+
+  // Reposition on scroll/resize while open
+  useEffect(() => {
+    if (!isOpen) return;
+    positionPopover();
+    const onScroll = () => positionPopover();
+    const onResize = () => positionPopover();
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
+    };
+  }, [isOpen, positionPopover]);
+
+  const openPopover = useCallback(() => {
+    if (disabled) return;
+    positionPopover();
+    setIsOpen(true);
+    setHighlightedIndex(selectedIndex >= 0 ? selectedIndex : 0);
+  }, [disabled, selectedIndex, positionPopover]);
+
+  const handleInputClick = useCallback(() => {
+    openPopover();
+  }, [openPopover]);
 
   const handleInputKeyDown = useCallback((event: React.KeyboardEvent) => {
     if (event.key === "Enter" || event.key === " " || event.key === "ArrowDown") {
       event.preventDefault();
-      if (!disabled) {
-        setIsOpen(true);
-        setHighlightedIndex(selectedIndex >= 0 ? selectedIndex : 0);
-      }
+      openPopover();
     } else if (event.key === "Escape") {
       setIsOpen(false);
       setSearchQuery("");
       setHighlightedIndex(-1);
     }
-  }, [disabled, selectedIndex]);
+  }, [openPopover]);
 
   const handleOptionClick = useCallback((optionValue: string) => {
     onChange?.(optionValue);
@@ -165,10 +203,10 @@ export function Select({
   const popoverContent = (
     <div
       ref={popoverRef}
-      className="fixed z-50 rounded-2xl border border-border bg-surface shadow-[0_20px_40px_oklch(0.235_0.025_158_/_0.15)] w-full max-w-md"
+      style={{ ...popoverStyle, maxHeight }}
+      className="fixed z-50 rounded-2xl border border-border bg-surface shadow-[0_20px_40px_oklch(0.235_0.025_158_/_0.15)] max-w-md"
       role="dialog"
       aria-label="Choose option"
-      style={{ maxHeight }}
     >
       {searchable && (
         <div className="p-2 border-b border-border">
@@ -241,6 +279,8 @@ export function Select({
 
   return (
     <div className="relative" style={{ zIndex: isOpen ? 50 : "auto" }}>
+      {/* Hidden input to submit the actual value with forms */}
+      {name && <input type="hidden" name={name} value={value ?? ""} />}
       <div className="relative">
         <input
           ref={inputRef}
@@ -249,14 +289,12 @@ export function Select({
           value={displayValue}
           placeholder={placeholder}
           disabled={disabled}
-          required={required}
-          name={name}
           id={id}
           onClick={handleInputClick}
           onKeyDown={handleInputKeyDown}
           aria-haspopup="dialog"
           aria-expanded={isOpen}
-          aria-controls={isOpen ? popoverRef.current?.id : undefined}
+          aria-required={required || undefined}
           className={`h-11 w-full rounded-xl border border-border bg-background pl-4 pr-10 text-sm transition-colors duration-200 placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10 ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"} ${className}`}
           {...props}
         />

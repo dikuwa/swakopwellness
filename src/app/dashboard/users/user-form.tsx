@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useActionState, useEffect } from "react";
 import toast from "react-hot-toast";
+import { Select } from "@/ui/components";
 
 interface Role {
   id: string;
@@ -114,19 +115,13 @@ export function UserForm({ roles, action, initialData }: Props) {
               <label htmlFor="role" className="mb-1.5 block text-sm font-semibold">
                 Role *
               </label>
-              <select
+              <Select
                 id="role"
                 name="role"
                 required
-                defaultValue={initialData?.roleName ?? "Staff"}
-                className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-              >
-                {roles.map((r) => (
-                  <option key={r.id} value={r.name}>
-                    {r.name}
-                  </option>
-                ))}
-              </select>
+                options={roles.map((r) => ({ value: r.name, label: r.name }))}
+                placeholder="Select role"
+              />
             </div>
 
             {isEdit && (

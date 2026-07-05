@@ -2,11 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-
+import { Select, DatePicker } from "@/ui/components";
 import { createQuotationAction } from "./actions";
-
-const today = new Date().toISOString().slice(0, 10);
-const defaultValidUntil = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
 
 interface Client {
   id: string;
@@ -34,6 +31,8 @@ export function QuotationForm({
   clients: Client[];
   services: Service[];
 }) {
+  const [issueDate, setIssueDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [validUntil, setValidUntil] = useState(() => new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10));
   const [items, setItems] = useState<LineItem[]>([
     { description: "", quantity: 1, unitPrice: "", serviceId: "", discount: "" },
   ]);
@@ -68,37 +67,34 @@ export function QuotationForm({
           <div className="grid gap-6 sm:grid-cols-3">
             <div>
               <label htmlFor="client_id" className="block text-sm font-semibold mb-1.5">Client *</label>
-              <select
+              <Select
                 id="client_id"
                 name="client_id"
                 required
-                className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-              >
-                <option value="">Select a client</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>{c.fullName}</option>
-                ))}
-              </select>
+                searchable
+                options={clients.map((c) => ({ value: c.id, label: c.fullName }))}
+                placeholder="Select a client"
+              />
             </div>
             <div>
               <label htmlFor="issue_date" className="block text-sm font-semibold mb-1.5">Issue Date *</label>
-              <input
+              <DatePicker
                 id="issue_date"
                 name="issue_date"
-                type="date"
                 required
-                defaultValue={today}
-                className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                value={issueDate}
+                onChange={(v) => setIssueDate(v)}
+                placeholder="Select date"
               />
             </div>
             <div>
               <label htmlFor="valid_until" className="block text-sm font-semibold mb-1.5">Valid Until</label>
-              <input
+              <DatePicker
                 id="valid_until"
                 name="valid_until"
-                type="date"
-                defaultValue={defaultValidUntil}
-                className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                value={validUntil}
+                onChange={(v) => setValidUntil(v)}
+                placeholder="Select date"
               />
             </div>
           </div>
@@ -120,16 +116,15 @@ export function QuotationForm({
                   <input type="hidden" name={`service_id_${i}`} value={item.serviceId} />
                   <div className="flex-1 min-w-[180px]">
                     <label className="block text-xs font-semibold text-muted-foreground mb-1">Service or custom item</label>
-                    <select
+                    <Select
                       value={item.serviceId}
-                      onChange={(e) => handleServiceSelect(i, e.target.value)}
-                      className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    >
-                      <option value="">Custom item</option>
-                      {services.map((s) => (
-                        <option key={s.id} value={s.id}>{s.name}</option>
-                      ))}
-                    </select>
+                      onChange={(val) => handleServiceSelect(i, val)}
+                      options={[
+                        { value: "", label: "Custom item" },
+                        ...services.map((s) => ({ value: s.id, label: s.name })),
+                      ]}
+                      placeholder="Custom item"
+                    />
                   </div>
                   <div className="flex-1 min-w-[180px]">
                     <label className="block text-xs font-semibold text-muted-foreground mb-1">Description *</label>
@@ -206,16 +201,16 @@ export function QuotationForm({
           <div className="grid gap-6 sm:grid-cols-2">
             <div>
               <label htmlFor="discount_type" className="block text-sm font-semibold mb-1.5">Discount Type</label>
-              <select
+              <Select
                 id="discount_type"
                 name="discount_type"
-                defaultValue="none"
-                className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-              >
-                <option value="none">No discount</option>
-                <option value="percentage">Percentage (%)</option>
-                <option value="fixed">Fixed (N$)</option>
-              </select>
+                options={[
+                  { value: "none", label: "No discount" },
+                  { value: "percentage", label: "Percentage (%)" },
+                  { value: "fixed", label: "Fixed (N$)" },
+                ]}
+                placeholder="Discount type"
+              />
             </div>
             <div>
               <label htmlFor="discount_value" className="block text-sm font-semibold mb-1.5">Discount Value</label>

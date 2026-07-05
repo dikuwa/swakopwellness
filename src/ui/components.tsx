@@ -64,19 +64,16 @@ export function Input({ className = "", ...props }: ComponentProps<"input">) {
   );
 }
 
-export function Select({ className = "", children, ...props }: ComponentProps<"select">) {
+export function NumberInput({ className = "", ...props }: ComponentProps<"input">) {
   return (
-    <select className={`h-11 w-full rounded-xl border border-border bg-background px-4 text-sm transition-colors duration-200 focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10 ${className}`} {...props}>
-      {children}
-    </select>
+    <input
+      type="number"
+      className={`h-11 w-full rounded-xl border border-border bg-background px-4 text-sm transition-colors duration-200 placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${className}`}
+      {...props}
+    />
   );
 }
 
-/**
- * Auto-growing textarea that expands vertically as content is entered.
- * Uses a hidden clone div to measure content height for smooth resizing.
- * Falls back to regular textarea behavior when rows or style={{ resize: "both" }} are passed.
- */
 export function Textarea({ className = "", ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   const ref = useRef<HTMLTextAreaElement>(null);
 

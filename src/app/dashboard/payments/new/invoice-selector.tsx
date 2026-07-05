@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import { Select } from "@/ui/components";
 
 interface Client {
   id: string;
@@ -27,6 +28,11 @@ export function InvoiceSelector({
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState(preselectedInvoiceId ?? "");
+
+  const clientOptions = clients.map((c) => ({
+    value: c.id,
+    label: c.fullName,
+  }));
 
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect -- async data fetching on client change with cleanup */
@@ -65,24 +71,19 @@ export function InvoiceSelector({
     <>
       <div>
         <label htmlFor="clientId" className="mb-2 block text-sm font-semibold">Client</label>
-        <select
+        <Select
           id="clientId"
           name="clientId"
           required
           value={clientId}
-          onChange={(e) => {
-            setClientId(e.target.value);
+          onChange={(val) => {
+            setClientId(val);
             setSelectedInvoiceId("");
           }}
-          className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-        >
-          <option value="">Select client</option>
-          {clients.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.fullName}
-            </option>
-          ))}
-        </select>
+          searchable
+          options={clientOptions}
+          placeholder="Select client"
+        />
       </div>
 
       <div>

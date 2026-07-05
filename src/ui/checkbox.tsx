@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, type ComponentProps } from "react";
-import { Check } from "lucide-react";
+import { useCallback, useId, type ComponentProps } from "react";
 
-type CheckboxProps = ComponentProps<"input"> & {
+type CheckboxProps = Omit<ComponentProps<"input">, "onChange" | "checked"> & {
   label?: string;
   description?: string;
+  checked?: boolean;
+  onChange?: (checked: boolean) => void;
 };
 
 export function Checkbox({
@@ -20,7 +21,8 @@ export function Checkbox({
   required = false,
   ...props
 }: CheckboxProps) {
-  const inputId = id || name || `checkbox-${Math.random().toString(36).slice(2)}`;
+  const uid = useId();
+  const inputId = id || name || `checkbox-${uid}`;
 
   const handleChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     onChange?.(event.target.checked);

@@ -14,7 +14,7 @@ interface FollowUpFormProps {
 export function FollowUpForm({ clients, bookingOptions }: FollowUpFormProps) {
   const [state, formAction, isPending] = useActionState(
     async (_prev: unknown, formData: FormData) => createFollowUp(formData),
-    null as { ok: boolean; error?: string } | null
+    null as { ok: true } | { ok: false; error: string } | null
   );
 
   const clientOptions = clients.map((client) => ({

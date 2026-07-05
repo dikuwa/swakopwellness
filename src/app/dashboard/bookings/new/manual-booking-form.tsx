@@ -32,7 +32,7 @@ export function ManualBookingForm({
 }: ManualBookingFormProps) {
   const [state, formAction, isPending] = useActionState(
     async (_prev: unknown, formData: FormData) => createManualBookingAction(formData),
-    null as { ok: boolean; error?: string } | null
+    null
   );
 
   const serviceOptions = services.map((service) => ({

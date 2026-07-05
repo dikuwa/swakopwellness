@@ -2,9 +2,11 @@
 
 import { useCallback, type ComponentProps } from "react";
 
-type RadioProps = ComponentProps<"input"> & {
+type RadioProps = Omit<ComponentProps<"input">, "onChange" | "checked"> & {
   label?: string;
   description?: string;
+  checked?: boolean;
+  onChange?: (value: string) => void;
 };
 
 export function Radio({
@@ -151,21 +153,21 @@ export function RadioButtonGroup({
         {options.map((option) => (
           <label
             key={option.value}
-            type="radio"
-            name={name}
-            value={option.value}
-            checked={value === option.value}
-            onChange={() => handleChange(option.value)}
-            disabled={disabled}
-            className="sr-only"
-          />
-          <label
-            className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
+            className={`inline-flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
               value === option.value
                 ? "border-primary bg-primary text-primary-foreground shadow-[0_2px_8px_oklch(0.355_0.074_159_/_0.16)]"
                 : "border-border bg-background text-foreground hover:bg-surface-muted"
             } ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
           >
+            <input
+              type="radio"
+              name={name}
+              value={option.value}
+              checked={value === option.value}
+              onChange={() => handleChange(option.value)}
+              disabled={disabled}
+              className="sr-only peer"
+            />
             {option.icon && <span className="flex h-4 w-4" aria-hidden="true">{option.icon}</span>}
             {option.label}
           </label>

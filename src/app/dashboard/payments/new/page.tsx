@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
 import { getClients } from "@/dashboard/data";
+import { DatePicker, Select, Checkbox } from "@/ui/components";
 import { createPaymentAction } from "./actions";
 import { InvoiceSelector } from "./invoice-selector";
 
@@ -15,6 +16,14 @@ export default async function NewPaymentPage(props: { searchParams: Promise<{ in
   await requirePermission("payments:record");
   const { rows: clients } = await getClients();
   const sp = await props.searchParams;
+
+  const methodOptions = [
+    { value: "cash", label: "Cash" },
+    { value: "card", label: "Card" },
+    { value: "bank_transfer", label: "Bank Transfer" },
+    { value: "mobile", label: "Mobile Payment" },
+    { value: "other", label: "Other" },
+  ];
 
   return (
     <DashboardShell>
@@ -42,45 +51,33 @@ export default async function NewPaymentPage(props: { searchParams: Promise<{ in
 
           <div>
             <label htmlFor="paymentDate" className="mb-2 block text-sm font-semibold">Payment Date</label>
-            <input
+            <DatePicker
               id="paymentDate"
               name="paymentDate"
-              type="date"
               required
-              defaultValue={new Date().toISOString().split("T")[0]}
-              className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              placeholder="Select date"
             />
           </div>
 
           <div>
             <label htmlFor="method" className="mb-2 block text-sm font-semibold">Payment Method</label>
-            <select
+            <Select
               id="method"
               name="method"
               required
-              className="h-11 w-full rounded-xl border border-border bg-background px-4 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="">Select method</option>
-              <option value="cash">Cash</option>
-              <option value="card">Card</option>
-              <option value="bank_transfer">Bank Transfer</option>
-              <option value="mobile">Mobile Payment</option>
-              <option value="other">Other</option>
-            </select>
+              options={methodOptions}
+              placeholder="Select method"
+            />
           </div>
 
           <div>
-            <label htmlFor="generateReceipt" className="mb-2 block text-sm font-semibold">Receipt</label>
-            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm transition-colors hover:bg-surface-muted">
-              <input
-                type="checkbox"
-                id="generateReceipt"
-                name="generateReceipt"
-                defaultChecked
-                className="h-4 w-4 rounded border-border accent-primary"
-              />
-              Generate receipt now
-            </label>
+            <label className="mb-2 block text-sm font-semibold">Receipt</label>
+            <Checkbox
+              id="generateReceipt"
+              name="generateReceipt"
+              defaultChecked
+              label="Generate receipt now"
+            />
           </div>
 
           <div>
