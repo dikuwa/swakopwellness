@@ -105,3 +105,94 @@ export async function changeBookingStatus(formData: FormData): Promise<void> {
   const newStatus = formData.get("newStatus") as string;
   await transitionBookingStatus(bookingId, newStatus);
 }
+
+export async function rescheduleBooking(formData: FormData): Promise<TxResult> {
+  try {
+    const user = await requirePermission("bookings:update");
+    const db = getDb();
+    
+    const bookingId = formData.get("bookingId") as string;
+    const newDate = formData.get("newDate") as string; // Expect ISO date string YYYY-MM-DD
+    const newTime = formData.get("newTime") as string; // Expect HH:mm
+    const reason = formData.get("reason") as string;
+
+    if (!bookingId || !newDate || !newTime) {
+      return { ok: false, error: "Missing required fields for rescheduling." };
+    }
+
+    // Construct a new Date object. IMPORTANT: This assumes server and client are in the same timezone
+    // or that the date/time are passed in a timezone-aware format.
+    // For Namibia (UTC+2), this should be handled carefully.
+    // new Date('YYYY-MM-DDTHH:mm:ss') creates a date in local timezone.
+    const newPreferredAt = new Date(`${newDate}T${newTime}`);
+    if (isNaN(newPreferredAt.getTime())) {
+      return { ok: false, error: "Invalid date or time format provided." };
+    }
+
+    let fromStatus: string | undefined;
+    let reference: string | undefined;
+
+    const result: TxResult = await db.transaction(async (tx) => {
+      const [booking] = await tx
+        .select({ id: bookings.id, status: bookings.status, reference: bookings.reference })
+        .from(bookings)
+        .where(eq(bookings.id, bookingId))
+        .limit(1);
+
+      if (!booking) return { ok: false, error: "Booking not found." };
+
+      await tx
+        .update(bookings)
+        .set({ 
+          status: "rescheduled", 
+          preferredAt: newPreferredAt,
+          updatedAt: new Date() 
+        })
+        .where(eq(bookings.id, bookingId));
+
+      await tx.insert(bookingStatusHistory).values({
+        bookingId,
+        fromStatus: booking.status,
+        toStatus: "rescheduled",
+        actorUserId: user.id,
+        note: `Rescheduled to ${newPreferredAt.toLocaleString("en-GB")}. Reason: ${reason || "Not specified"}`,
+      });
+
+      fromStatus = booking.status;
+      reference = booking.reference;
+
+      return { ok: true };
+    });
+
+    if (!result.ok) {
+      return { ok: false, error: result.error };
+    }
+
+    if (reference && fromStatus) {
+      recordActivity(
+        user.id,
+        `booking.status.rescheduled`,
+        "booking",
+        bookingId,
+        `Booking ${reference} rescheduled from ${fromStatus} to rescheduled`,
+      );
+
+      await notifyStaff(
+        `booking.status.rescheduled`,
+        `Booking ${reference} Rescheduled`,
+        `Booking ${reference} was rescheduled.`,
+        "booking",
+        bookingId,
+      );
+
+      revalidatePath("/dashboard/bookings");
+      revalidatePath(`/dashboard/bookings/${bookingId}`);
+      revalidatePath("/dashboard/calendar");
+      revalidatePath("/dashboard"); // For overview stats
+    }
+    return { ok: true };
+  } catch (e) {
+    const error = e instanceof Error ? e.message : "An unknown error occurred.";
+    return { ok: false, error };
+  }
+}

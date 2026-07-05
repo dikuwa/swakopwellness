@@ -1,8 +1,10 @@
 import { and, asc, count, desc, eq, gte, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { bookingAnswers, bookingStatusHistory, bookings, chatConversations, chatMessages, chatToolEvents, clients, followUps, invoiceLineItems, invoices, payments, quotationLineItems, quotations, receipts, serviceQuestions, services, users } from "@/db/schema";
+import { requirePermission } from "@/auth/session";
 
 export async function getDashboardBookings(page: number = 1, pageSize: number = 25, q?: string) {
+  await requirePermission("bookings:view");
   const db = getDb();
   const offset = (page - 1) * pageSize;
   const where = q
