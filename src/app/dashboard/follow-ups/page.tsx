@@ -5,6 +5,7 @@ import { DashboardShell } from "@/dashboard/shell";
 import { getClients, getFollowUpBookingOptions, getFollowUps } from "@/dashboard/data";
 import { cancelFollowUp, completeFollowUp, createFollowUp } from "@/followups/actions";
 import { formatFollowUpStatus, getFollowUpDisplayStatus, type FollowUpStatus } from "@/followups/status";
+import { FollowUpForm } from "./follow-up-form";
 
 export const dynamic = "force-dynamic";
 
@@ -26,54 +27,7 @@ export default async function DashboardFollowUpsPage() {
         <p className="mt-3 text-sm text-muted-foreground">Due today, overdue and upcoming client follow-ups.</p>
 
         {canUpdateFollowUps ? (
-          <form action={async (formData) => { "use server"; await createFollowUp(formData); }} className="mt-8 rounded-2xl border border-border bg-background p-4">
-            <h2 className="text-lg font-semibold">Create Follow-up</h2>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="clientId" className="mb-1.5 block text-sm font-semibold">Client *</label>
-              <select id="clientId" name="clientId" required className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
-                <option value="">Select a client</option>
-                {clients.map((client) => (
-                  <option key={client.id} value={client.id}>{client.fullName}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="bookingId" className="mb-1.5 block text-sm font-semibold">Booking</label>
-              <select id="bookingId" name="bookingId" className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
-                <option value="">No booking linked</option>
-                {bookingOptions.map((booking) => (
-                  <option key={booking.id} value={booking.id}>
-                    {booking.reference} - {booking.clientName} - {booking.serviceName}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="dueDate" className="mb-1.5 block text-sm font-semibold">Due date *</label>
-              <input id="dueDate" name="dueDate" type="date" required className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-            </div>
-            <div>
-              <label htmlFor="dueTime" className="mb-1.5 block text-sm font-semibold">Due time *</label>
-              <input id="dueTime" name="dueTime" type="time" required className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-            </div>
-            <div>
-              <label htmlFor="method" className="mb-1.5 block text-sm font-semibold">Method *</label>
-              <select id="method" name="method" required className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
-                <option value="">Select a method</option>
-                <option value="phone">Phone</option>
-                <option value="email">Email</option>
-                <option value="in_person">In person</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            <div>
-              <label htmlFor="internalNote" className="mb-1.5 block text-sm font-semibold">Internal note</label>
-              <input id="internalNote" name="internalNote" type="text" className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-            </div>
-            </div>
-            <button type="submit" className="mt-4 h-11 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90">Create follow-up</button>
-          </form>
+          <FollowUpForm clients={clients} bookingOptions={bookingOptions} />
         ) : null}
 
         <div className="mt-6 space-y-3">

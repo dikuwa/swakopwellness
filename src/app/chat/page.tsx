@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/public/components";
 import { getActiveSuitabilityQuestions, getBookingRules, getBusinessSettings, getCommunicationSettings, getPublicServices } from "@/public/data";
-import { submitChatBookingRequest } from "./actions";
+import { ChatBookingForm } from "./chat-booking-form";
 
 export const dynamic = "force-dynamic";
 
@@ -55,44 +55,12 @@ export default async function ChatPage({ searchParams }: { searchParams: Promise
 
             {params.error ? <p className="mb-6 rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive" role="alert">{params.error}</p> : null}
 
-            <form action={submitChatBookingRequest} className="space-y-5">
-              <label className="block text-sm font-medium">
-                Service
-                <select name="serviceId" required className="mt-2 h-11 w-full rounded-xl border border-border bg-background px-3 text-sm">
-                  <option value="">Choose a service</option>
-                  {bookableServices.map((service) => <option key={service.id} value={service.id}>{service.name}</option>)}
-                </select>
-              </label>
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="text-sm font-medium">Preferred date<input name="preferredDate" type="date" required className="mt-2 h-11 w-full rounded-xl border border-border bg-background px-3 text-sm" /></label>
-                <label className="text-sm font-medium">Preferred time<input name="preferredTime" type="time" min={rules.openingTime} max={rules.closingTime} required className="mt-2 h-11 w-full rounded-xl border border-border bg-background px-3 text-sm" /></label>
-              </div>
-              <label className="block text-sm font-medium">Full name<input name="fullName" required className="mt-2 h-11 w-full rounded-xl border border-border bg-background px-3 text-sm" /></label>
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="text-sm font-medium">Phone<input name="phone" type="tel" className="mt-2 h-11 w-full rounded-xl border border-border bg-background px-3 text-sm" /></label>
-                <label className="text-sm font-medium">Email<input name="email" type="email" className="mt-2 h-11 w-full rounded-xl border border-border bg-background px-3 text-sm" /></label>
-              </div>
-              <input type="hidden" name="clientType" value="new" />
-              <fieldset>
-                <legend className="text-sm font-medium">Preferred contact method</legend>
-                <div className="mt-2 flex flex-wrap gap-3 text-sm">
-                  {communication.enableCalls ? <label className="flex items-center gap-2 rounded-xl border border-border px-3 py-2"><input name="preferredContactMethod" type="radio" value="phone" defaultChecked /> Phone</label> : null}
-                  {communication.enableEmailContact ? <label className="flex items-center gap-2 rounded-xl border border-border px-3 py-2"><input name="preferredContactMethod" type="radio" value="email" /> Email</label> : null}
-                </div>
-              </fieldset>
-              <div className="space-y-3">
-                {questions.map((question) => (
-                  <fieldset key={question.id} className="rounded-2xl bg-surface-muted p-4">
-                    <legend className="text-sm font-medium">{question.question}</legend>
-                    <div className="mt-3 flex gap-3 text-sm">
-                      <label className="flex items-center gap-2"><input name={`answer:${question.id}`} type="radio" value="yes" /> Yes</label>
-                      <label className="flex items-center gap-2"><input name={`answer:${question.id}`} type="radio" value="no" defaultChecked /> No</label>
-                    </div>
-                  </fieldset>
-                ))}
-              </div>
-              <button type="submit" className="h-12 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Save booking request</button>
-            </form>
+            <ChatBookingForm
+              bookableServices={bookableServices}
+              questions={questions}
+              communication={communication}
+              rules={rules}
+            />
           </section>
         </div>
       </main>
