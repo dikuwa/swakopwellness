@@ -1,13 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ComponentProps } from "react";
+import { useCallback, useEffect, useRef, useState, type ComponentProps, ReactNode } from "react";
 import { ChevronDown, ChevronUp, X, Search, Check } from "lucide-react";
 import { createPortal } from "react-dom";
 
-interface SelectOption {
+export interface SelectOption {
   value: string;
   label: string;
   disabled?: boolean;
+  [key: string]: unknown; // Allow other data
 }
 
 type SelectProps = Omit<ComponentProps<"input">, "value" | "onChange" | "type" | "readOnly"> & {
@@ -22,6 +23,7 @@ type SelectProps = Omit<ComponentProps<"input">, "value" | "onChange" | "type" |
   searchable?: boolean;
   showClear?: boolean;
   maxHeight?: string;
+  renderOption?: (option: SelectOption) => ReactNode;
 };
 
 export function Select({
@@ -36,6 +38,7 @@ export function Select({
   searchable = false,
   showClear = false,
   maxHeight = "240px",
+  renderOption,
   className = "",
   ...props
 }: SelectProps) {
@@ -204,7 +207,7 @@ export function Select({
     <div
       ref={popoverRef}
       style={{ ...popoverStyle, maxHeight }}
-      className="fixed z-50 rounded-2xl border border-border bg-surface shadow-[0_20px_40px_oklch(0.235_0.025_158_/_0.15)] max-w-md"
+      className="fixed z-50 rounded-2xl border border-border bg-surface shadow-[0_20px_40px_oklch(0.235_0.025_158_/_0.15)] w-full max-w-[90vw] sm:max-w-md"
       role="dialog"
       aria-label="Choose option"
     >
@@ -244,7 +247,7 @@ export function Select({
               role="option"
               aria-selected={option.value === value}
               aria-disabled={option.disabled}
-              className={`w-full h-10 rounded-xl px-3 text-sm font-medium text-left transition-all duration-150 ${
+              className={`w-full rounded-xl p-3 text-sm font-medium text-left transition-all duration-150 ${
                 option.disabled
                   ? "text-muted-foreground/30 cursor-not-allowed"
                   : option.value === value
@@ -254,10 +257,12 @@ export function Select({
                   : "text-foreground hover:bg-surface-muted"
               }`}
             >
-              <span className="flex items-center justify-between">
-                {option.label}
-                {option.value === value && <Check className="h-4 w-4" aria-hidden="true" />}
-              </span>
+              {renderOption ? renderOption(option) : (
+                <span className="flex items-center justify-between">
+                  {option.label}
+                  {option.value === value && <Check className="h-4 w-4" aria-hidden="true" />}
+                </span>
+              )}
             </button>
           ))
         )}

@@ -23,53 +23,66 @@ function parseDueAt(data: FormData) {
   return Number.isNaN(dueAt.getTime()) ? null : dueAt;
 }
 
-export async function createFollowUp(data: FormData): Promise<FollowUpActionResult> {
-  const user = await requirePermission("bookings:update");
-  const db = getDb();
+interface ActionResult {
+  success: boolean;
+  error?: string;
+}
 
-  const clientId = readText(data, "clientId");
-  const bookingId = readText(data, "bookingId") || null;
-  const dueAt = parseDueAt(data);
-  const method = readText(data, "method");
-  const internalNote = readText(data, "internalNote") || null;
+export async function createFollowUp(
+  _prevState: unknown,
+  formData: FormData,
+): Promise<ActionResult> {
+  try {
+    const user = await requirePermission("bookings:update");
+    const db = getDb();
 
-  if (!clientId) return { ok: false, error: "Client is required." };
-  if (!dueAt) return { ok: false, error: "A valid due date and time is required." };
-  if (!method) return { ok: false, error: "Method is required." };
+    const clientId = readText(formData, "clientId");
+    const bookingId = readText(formData, "bookingId") || null;
+    const dueAt = parseDueAt(formData);
+    const method = readText(formData, "method");
+    const internalNote = readText(formData, "internalNote") || null;
 
-  const [client] = await db.select({ id: clients.id, fullName: clients.fullName }).from(clients).where(eq(clients.id, clientId)).limit(1);
-  if (!client) return { ok: false, error: "Client not found." };
+    if (!clientId) return { success: false, error: "Client is required." };
+    if (!dueAt) return { success: false, error: "A valid due date and time is required." };
+    if (!method) return { success: false, error: "Method is required." };
+    if (!internalNote) return { success: false, error: "Internal note is required." };
 
-  if (bookingId) {
-    const [booking] = await db
-      .select({ id: bookings.id })
-      .from(bookings)
-      .where(and(eq(bookings.id, bookingId), eq(bookings.clientId, clientId)))
-      .limit(1);
+    const [client] = await db.select({ id: clients.id, fullName: clients.fullName }).from(clients).where(eq(clients.id, clientId)).limit(1);
+    if (!client) return { success: false, error: "Client not found." };
 
-    if (!booking) return { ok: false, error: "Booking not found for this client." };
+    if (bookingId) {
+      const [booking] = await db
+        .select({ id: bookings.id })
+        .from(bookings)
+        .where(and(eq(bookings.id, bookingId), eq(bookings.clientId, clientId)))
+        .limit(1);
+
+      if (!booking) return { success: false, error: "Booking not found for this client." };
+    }
+
+    const [followUp] = await db
+      .insert(followUps)
+      .values({
+        clientId,
+        bookingId,
+        dueAt,
+        method,
+        assignedUserId: user.id,
+        internalNote,
+        status: "pending",
+        reminderAt: null,
+        completedAt: null,
+        cancelledAt: null,
+      })
+      .returning({ id: followUps.id });
+
+    await recordActivity(user.id, "follow_up.create", "follow_up", followUp.id, `Created follow-up for ${client.fullName}`);
+    revalidatePath("/dashboard/follow-ups");
+
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e instanceof Error ? e.message : "An unknown error occurred." };
   }
-
-  const [followUp] = await db
-    .insert(followUps)
-    .values({
-      clientId,
-      bookingId,
-      dueAt,
-      method,
-      assignedUserId: user.id,
-      internalNote,
-      status: "pending",
-      reminderAt: null,
-      completedAt: null,
-      cancelledAt: null,
-    })
-    .returning({ id: followUps.id });
-
-  await recordActivity(user.id, "follow_up.create", "follow_up", followUp.id, `Created follow-up for ${client.fullName}`);
-  revalidatePath("/dashboard/follow-ups");
-
-  return { ok: true };
 }
 
 

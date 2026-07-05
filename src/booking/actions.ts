@@ -79,6 +79,8 @@ async function transitionBookingStatus(
 
     revalidatePath("/dashboard/bookings");
     revalidatePath(`/dashboard/bookings/${bookingId}`);
+    revalidatePath("/dashboard/calendar");
+    revalidatePath("/dashboard");
   }
 }
 

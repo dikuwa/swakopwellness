@@ -16,52 +16,43 @@ export const metadata: Metadata = {
 export default async function DashboardFollowUpsPage() {
   const user = await requirePermission("bookings:view");
   const canUpdateFollowUps = hasPermission(user.permissions, "bookings:update");
-  const [followUps, { rows: clients }, bookingOptions] = await Promise.all([getFollowUps(), getClients(), getFollowUpBookingOptions()]);
+  const [followUps, clients, bookingOptions] = await Promise.all([
+    getFollowUps(),
+    getClients(1, 1000), // Fetch all clients for the select dropdown
+    getFollowUpBookingOptions(),
+  ]);
+
+  const clientOptions = clients.rows.map((c: { id: string; fullName: string }) => ({ value: c.id, label: c.fullName }));
 
   return (
     <DashboardShell>
-      <div>
-        <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">Management</p>
-        <h1 className="text-3xl font-semibold tracking-[-0.035em]">Follow-ups</h1>
-      </div>
-        <p className="mt-3 text-sm text-muted-foreground">Due today, overdue and upcoming client follow-ups.</p>
-
-        {canUpdateFollowUps ? (
-          <FollowUpForm clients={clients} bookingOptions={bookingOptions} />
-        ) : null}
-
-        <div className="mt-6 space-y-3">
-          {followUps.length === 0 ? <p className="rounded-2xl bg-surface-muted p-5 text-sm text-muted-foreground">No follow-ups scheduled yet.</p> : null}
-          {followUps.map((followUp) => {
-            const status = getFollowUpDisplayStatus(followUp.dueAt, new Date(), followUp.status as FollowUpStatus);
-            const canChangeStatus = canUpdateFollowUps && followUp.status === "pending";
-            return (
-              <article key={followUp.id} className="rounded-2xl border border-border bg-background p-4">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="font-semibold">{followUp.clientName}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">{followUp.method}, {followUp.bookingReference ?? "no booking linked"}</p>
-                    {followUp.internalNote ? <p className="mt-2 text-sm text-muted-foreground">{followUp.internalNote}</p> : null}
-                  </div>
-                  <div className="text-sm sm:text-right">
-                    <p className="font-medium text-primary">{formatFollowUpStatus(status)}</p>
-                    <p className="mt-1 text-muted-foreground">{followUp.dueAt.toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric" })}</p>
-                    {canChangeStatus ? (
-                      <div className="mt-3 flex gap-2 sm:justify-end">
-                        <form action={async () => { "use server"; await completeFollowUp(followUp.id); }}>
-                          <button type="submit" className="h-9 rounded-xl border border-border px-3 text-xs font-semibold transition-colors hover:bg-surface-muted">Complete</button>
-                        </form>
-                        <form action={async () => { "use server"; await cancelFollowUp(followUp.id); }}>
-                          <button type="submit" className="h-9 rounded-xl border border-border px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-surface-muted">Cancel</button>
-                        </form>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              </article>
-            );
-          })}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">Operations</p>
+          <h1 className="mt-2 text-2xl sm:text-3xl tracking-[-0.03em]">Follow-ups</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Manage client follow-up actions and reminders.</p>
         </div>
+      </div>
+      <FollowUpForm clients={clientOptions} bookingOptions={bookingOptions} />
+      <div className="mt-6">
+        <h2 className="text-lg font-semibold">Upcoming Follow-ups</h2>
+        <div className="mt-4 space-y-3">
+          {followUps.map((fu) => (
+            <div key={fu.id} className="rounded-xl border border-border p-4">
+              <div className="flex justify-between">
+                <div>
+                  <p className="font-semibold">{fu.clientName}</p>
+                  <p className="text-sm text-muted-foreground">{fu.internalNote}</p>
+                </div>
+                <div className="text-right text-sm">
+                  <p className="font-medium">{fu.dueAt.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</p>
+                  <p className="text-muted-foreground">{fu.method}</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </DashboardShell>
   );
 }
