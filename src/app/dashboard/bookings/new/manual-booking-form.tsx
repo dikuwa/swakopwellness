@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { Phone, Mail, MessageCircle } from "lucide-react";
-import { DatePicker, TimePicker, Select, RadioButtonGroup } from "@/ui/components";
-import { useActionState } from "react";
+import { useState, useActionState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Phone, Mail, MessageCircle, Loader2 } from "lucide-react";
+import { DatePicker, TimePicker, Select, RadioButtonGroup, Textarea, Label, Input } from "@/ui/components";
 import toast from "react-hot-toast";
 import { createManualBookingAction } from "./actions";
 
@@ -30,10 +30,36 @@ export function ManualBookingForm({
   rules,
   error,
 }: ManualBookingFormProps) {
-  const [state, formAction, isPending] = useActionState(
-    async (_prev: unknown, formData: FormData) => createManualBookingAction(formData),
-    null
-  );
+  const [state, formAction, isPending] = useActionState(createManualBookingAction, null);
+  const router = useRouter();
+
+  const [serviceId, setServiceId] = useState("");
+  const [preferredDate, setPreferredDate] = useState<string | undefined>();
+  const [preferredTime, setPreferredTime] = useState<string | undefined>();
+  const [alternativeDate, setAlternativeDate] = useState<string | undefined>();
+  const [alternativeTime, setAlternativeTime] = useState<string | undefined>();
+  const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [whatsappNumber, setWhatsappNumber] = useState("");
+  const [clientType, setClientType] = useState("new");
+  const [preferredContactMethod, setPreferredContactMethod] = useState(communication.enableCalls ? "phone" : communication.enableEmailContact ? "email" : "whatsapp");
+  const [note, setNote] = useState("");
+  
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+
+  const handleAnswerChange = (questionId: string, answer: string) => {
+    setAnswers(prev => ({ ...prev, [questionId]: answer }));
+  };
+
+  useEffect(() => {
+    if (state?.success && state.bookingId) {
+      toast.success("Booking request created successfully!");
+      router.push(`/dashboard/bookings/${state.bookingId}`);
+    } else if (state?.error) {
+      toast.error(state.error);
+    }
+  }, [state, router]);
 
   const serviceOptions = services.map((service) => ({
     value: service.id,
@@ -49,100 +75,61 @@ export function ManualBookingForm({
   return (
     <form action={formAction} className="mt-8 grid gap-6 lg:grid-cols-[1fr_18rem]">
       <section className="space-y-6 rounded-2xl border border-border bg-background p-5 sm:p-6">
-        {error ? (
+        {error && (
           <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive" role="alert">
             {error}
           </div>
-        ) : null}
+        )}
+        {state?.error && (
+           <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive" role="alert">
+            {state.error}
+          </div>
+        )}
 
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="text-sm font-medium md:col-span-2">
-            Service
-            <Select
-              name="serviceId"
-              required
-              options={serviceOptions}
-              placeholder="Choose a service"
-            />
-          </label>
-          <label className="text-sm font-medium">
-            Preferred date
-            <DatePicker
-              name="preferredDate"
-              required
-              placeholder="Select date"
-              minDate={new Date().toISOString().split("T")[0]}
-            />
-          </label>
-          <label className="text-sm font-medium">
-            Preferred time
-            <TimePicker
-              name="preferredTime"
-              required
-              placeholder="Select time"
-              minTime={rules.openingTime}
-              maxTime={rules.closingTime}
-            />
-          </label>
-          <label className="text-sm font-medium">
-            Alternative date
-            <DatePicker
-              name="alternativeDate"
-              placeholder="Select date (optional)"
-              minDate={new Date().toISOString().split("T")[0]}
-              showClear
-            />
-          </label>
-          <label className="text-sm font-medium">
-            Alternative time
-            <TimePicker
-              name="alternativeTime"
-              placeholder="Select time (optional)"
-              minTime={rules.openingTime}
-              maxTime={rules.closingTime}
-              showClear
-            />
-          </label>
+          <div className="md:col-span-2">
+            <Label>Service</Label>
+            <Select name="serviceId" required options={serviceOptions} placeholder="Choose a service" value={serviceId} onChange={setServiceId} />
+          </div>
+          <div>
+            <Label>Preferred date</Label>
+            <DatePicker name="preferredDate" required placeholder="Select date" minDate={new Date().toISOString().split("T")[0]} value={preferredDate} onChange={setPreferredDate} />
+          </div>
+          <div>
+            <Label>Preferred time</Label>
+            <TimePicker name="preferredTime" required placeholder="Select time" minTime={rules.openingTime} maxTime={rules.closingTime} value={preferredTime} onChange={setPreferredTime} />
+          </div>
+          <div>
+            <Label>Alternative date</Label>
+            <DatePicker name="alternativeDate" placeholder="Select date (optional)" minDate={new Date().toISOString().split("T")[0]} showClear value={alternativeDate} onChange={setAlternativeDate} />
+          </div>
+          <div>
+            <Label>Alternative time</Label>
+            <TimePicker name="alternativeTime" placeholder="Select time (optional)" minTime={rules.openingTime} maxTime={rules.closingTime} showClear value={alternativeTime} onChange={setAlternativeTime} />
+          </div>
         </div>
 
         <div className="grid gap-4 border-t border-border pt-6 md:grid-cols-2">
-          <label className="text-sm font-medium md:col-span-2">
-            Full name
-            <input name="fullName" required className="mt-2 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
-          </label>
-          <label className="text-sm font-medium">
-            Phone
-            <input name="phone" type="tel" className="mt-2 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
-          </label>
-          <label className="text-sm font-medium">
-            Email
-            <input name="email" type="email" className="mt-2 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
-          </label>
-          {communication.enableWhatsapp ? (
-            <label className="text-sm font-medium md:col-span-2">
-              WhatsApp number
-              <input name="whatsappNumber" type="tel" className="mt-2 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
-            </label>
-          ) : null}
-          <fieldset className="md:col-span-2">
-            <legend className="text-sm font-medium">New or returning client</legend>
-            <RadioButtonGroup
-              name="clientType"
-              value="new"
-              options={[
-                { value: "new", label: "New" },
-                { value: "returning", label: "Returning" },
-              ]}
-            />
-          </fieldset>
-          <fieldset className="md:col-span-2">
-            <legend className="text-sm font-medium">Preferred contact method</legend>
-            <RadioButtonGroup
-              name="preferredContactMethod"
-              value={communication.enableCalls ? "phone" : communication.enableEmailContact ? "email" : "whatsapp"}
-              options={contactMethodOptions}
-            />
-          </fieldset>
+          <div className="md:col-span-2">
+            <Label>Full name</Label>
+            <Input name="fullName" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
+          </div>
+          <div>
+            <Label>Phone</Label>
+            <Input name="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          </div>
+          <div>
+            <Label>Email</Label>
+            <Input name="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+          {communication.enableWhatsapp && (
+            <div className="md:col-span-2">
+              <Label>WhatsApp number</Label>
+              <Input name="whatsappNumber" type="tel" value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} />
+            </div>
+          )}
+          <RadioButtonGroup name="clientType" label="New or returning client" value={clientType} onChange={setClientType} options={[{ value: "new", label: "New" }, { value: "returning", label: "Returning" }]} />
+          <RadioButtonGroup name="preferredContactMethod" label="Preferred contact method" value={preferredContactMethod} onChange={setPreferredContactMethod} options={contactMethodOptions} />
         </div>
 
         <div className="space-y-4 border-t border-border pt-6">
@@ -153,24 +140,18 @@ export function ManualBookingForm({
           {questions.map((question) => (
             <fieldset key={question.id} className="rounded-2xl bg-surface-muted p-4">
               <legend className="text-sm font-medium">{question.question}</legend>
-              <RadioButtonGroup
-                name={`answer:${question.id}`}
-                value="no"
-                options={[
-                  { value: "yes", label: "Yes" },
-                  { value: "no", label: "No" },
-                ]}
-              />
+              <RadioButtonGroup name={`answer:${question.id}`} value={answers[question.id] || 'no'} onChange={(val) => handleAnswerChange(question.id, val)} options={[{ value: "yes", label: "Yes" }, { value: "no", label: "No" }]} />
             </fieldset>
           ))}
         </div>
 
-        <label className="block text-sm font-medium">
-          Internal/request note
-          <textarea name="note" rows={4} className="mt-2 w-full rounded-xl border border-border bg-surface px-3 py-3 text-sm" />
-        </label>
+        <div>
+          <Label>Internal/request note</Label>
+          <Textarea name="note" rows={4} value={note} onChange={(e) => setNote(e.target.value)} />
+        </div>
 
-        <button type="submit" disabled={isPending} className="h-12 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60 sm:w-fit">
+        <button type="submit" disabled={isPending} className="h-12 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60 sm:w-fit flex items-center">
+          {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {isPending ? "Saving..." : "Save booking request"}
         </button>
       </section>

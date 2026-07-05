@@ -27,12 +27,12 @@ export function RescheduleBookingModal({ booking, isOpen, onClose }: RescheduleB
     formData.append("bookingId", booking.id);
     
     startTransition(async () => {
-      const result = await rescheduleBooking(formData);
-      if (result.ok) {
+      try {
+        await rescheduleBooking(formData);
         toast.success("Booking rescheduled successfully");
         onClose();
-      } else {
-        toast.error(result.error);
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "An unknown error occurred.");
       }
     });
   };

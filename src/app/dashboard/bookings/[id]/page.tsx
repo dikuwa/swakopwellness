@@ -64,7 +64,13 @@ function ActionForm({ bookingId, action }: { bookingId: string; action: string }
   }
 
   if (action === "no_show") {
-    return <form action={markNoShow.bind(null, bookingId)}><button type="submit" className="h-10 rounded-xl border border-border px-3 text-sm font-semibold hover:bg-surface-muted">No-show</button></form>;
+    return (
+      <form action={markNoShow} className="flex flex-wrap items-center gap-2">
+        <input type="hidden" name="bookingId" value={bookingId} />
+        <input name="reason" placeholder="Reason (optional)" className="h-10 rounded-xl border border-border bg-background px-3 text-sm" />
+        <button type="submit" className="h-10 rounded-xl border border-destructive/30 px-3 text-sm font-semibold text-destructive hover:bg-destructive/10">No-show</button>
+      </form>
+    );
   }
 
   return (

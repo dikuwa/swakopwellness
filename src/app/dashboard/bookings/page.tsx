@@ -5,14 +5,17 @@ import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { DashboardShell } from "@/dashboard/shell";
 import { getDashboardBookings } from "@/dashboard/data";
-import { confirmBooking, markCompleted, markNoShow, changeBookingStatus } from "@/booking/actions";
+import { useTransition } from "react";
+import { confirmBooking, markCompleted, markNoShow, changeBookingStatus, cancelBooking } from "@/booking/actions";
 import { getAvailableActions } from "@/booking/status";
 import { Pagination } from "@/ui/pagination";
 import { SearchInput } from "@/ui/search-input";
 import { Badge, Button, Card, LinkButton } from "@/ui/components";
 import { ActionDropdown } from "@/ui/dropdown";
-import { MoreHorizontal, Calendar as CalendarIcon } from "lucide-react";
+import { MoreHorizontal, Calendar as CalendarIcon, Loader2 } from "lucide-react";
 import { RescheduleBookingModal } from "./reschedule-modal";
+import { ActionReasonModal } from "./action-reason-modal";
+import toast from "react-hot-toast";
 
 type Booking = Awaited<ReturnType<typeof getDashboardBookings>>["rows"][0];
 
@@ -31,67 +34,61 @@ function bookingBadge(status: string): { label: string; variant: "default" | "pr
   return map[status] ?? { label: status.replaceAll("_", " "), variant: "default" };
 }
 
-function ActionButton({ action, bookingId, onReschedule }: { action: string, bookingId: string, onReschedule: () => void }) {
+function ActionButton({ action, booking, onReschedule, onOpenReasonModal }: { action: string, booking: Booking, onReschedule: () => void, onOpenReasonModal: (action: string) => void }) {
+  const [isPending, startTransition] = useTransition();
+  
   const actionLabels: Record<string, string> = {
     confirm: "Confirm",
     review: "Review",
-    contact: "Contact",
+    contacting_client: "Contacting Client",
     reschedule: "Reschedule",
     complete: "Complete",
     cancel: "Cancel",
     no_show: "No-show",
   };
 
+  const handleAction = () => {
+    startTransition(async () => {
+      try {
+        switch(action) {
+          case 'confirm':
+            await confirmBooking(booking.id);
+            break;
+          case 'complete':
+            await markCompleted(booking.id);
+            break;
+          case 'contacting_client':
+          case 'review':
+            const formData = new FormData();
+            formData.append('bookingId', booking.id);
+            formData.append('newStatus', action);
+            await changeBookingStatus(formData);
+            break;
+        }
+        toast.success("Booking updated");
+      } catch (e) {
+        toast.error(e instanceof Error ? e.message : "An unknown error occurred.");
+      }
+    });
+  };
+
   if (action === 'reschedule') {
     return <button type="button" onClick={onReschedule} className="w-full text-left text-sm p-2 rounded-lg hover:bg-surface-muted">Reschedule</button>
   }
 
-  // For now, 'cancel' will be a simple status change. Phase 5 will add a modal for the reason.
-  if (action === 'cancel') {
-    return (
-      <form action={changeBookingStatus}>
-        <input type="hidden" name="bookingId" value={bookingId} />
-        <input type="hidden" name="newStatus" value="cancelled" />
-        <button type="submit" className="w-full text-left text-sm p-2 rounded-lg hover:bg-surface-muted">Cancel</button>
-      </form>
-    );
+  if (action === 'cancel' || action === 'no_show') {
+    return <button type="button" onClick={() => onOpenReasonModal(action)} className="w-full text-left text-sm p-2 rounded-lg hover:bg-surface-muted">{actionLabels[action]}</button>
   }
 
-  if (action === 'confirm') {
-    return (
-      <form action={confirmBooking.bind(null, bookingId)}>
-        <button type="submit" className="w-full text-left text-sm p-2 rounded-lg hover:bg-surface-muted">Confirm</button>
-      </form>
-    );
-  }
-
-  if (action === 'complete') {
-    return (
-      <form action={markCompleted.bind(null, bookingId)}>
-        <button type="submit" className="w-full text-left text-sm p-2 rounded-lg hover:bg-surface-muted">Complete</button>
-      </form>
-    );
-  }
-
-  if (action === 'no_show') {
-    return (
-      <form action={markNoShow.bind(null, bookingId)}>
-        <button type="submit" className="w-full text-left text-sm p-2 rounded-lg hover:bg-surface-muted">No-show</button>
-      </form>
-    );
-  }
-  
-  // Fallback for other status changes like 'review', 'contacting_client', etc.
   return (
-    <form action={changeBookingStatus}>
-      <input type="hidden" name="bookingId" value={bookingId} />
-      <input type="hidden" name="newStatus" value={action} />
-      <button type="submit" className="w-full text-left text-sm p-2 rounded-lg hover:bg-surface-muted">{actionLabels[action] ?? action.replaceAll("_", " ")}</button>
-    </form>
+    <button onClick={handleAction} disabled={isPending} className="w-full text-left text-sm p-2 rounded-lg hover:bg-surface-muted flex items-center">
+      {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+      {actionLabels[action] ?? action.replaceAll("_", " ")}
+    </button>
   );
 }
 
-function ActionsCell({ booking, onReschedule }: { booking: Booking, onReschedule: () => void }) {
+function ActionsCell({ booking, onReschedule, onOpenReasonModal }: { booking: Booking, onReschedule: () => void, onOpenReasonModal: (action: string) => void }) {
   const allActions = getAvailableActions(booking.status);
   
   const primaryActionMap: Record<string, string | undefined> = {
@@ -125,7 +122,7 @@ function ActionsCell({ booking, onReschedule }: { booking: Booking, onReschedule
           }
         >
           {secondaryActions.map((action) => (
-            <ActionButton key={action} action={action} bookingId={booking.id} onReschedule={onReschedule} />
+            <ActionButton key={action} action={action} booking={booking} onReschedule={onReschedule} onOpenReasonModal={onOpenReasonModal} />
           ))}
         </ActionDropdown>
       )}
@@ -135,6 +132,12 @@ function ActionsCell({ booking, onReschedule }: { booking: Booking, onReschedule
 
 function BookingsList({ bookings, page, totalPages }: { bookings: Booking[], page: number, totalPages: number }) {
   const [rescheduleBooking, setRescheduleBooking] = useState<Booking | null>(null);
+  const [reasonModal, setReasonModal] = useState<{booking: Booking, action: string} | null>(null);
+
+  const reasonActions: Record<string, (formData: FormData) => Promise<void>> = {
+    cancel: cancelBooking,
+    no_show: markNoShow,
+  };
 
   if (bookings.length === 0) {
     return (
@@ -149,6 +152,14 @@ function BookingsList({ bookings, page, totalPages }: { bookings: Booking[], pag
   return (
     <>
       <RescheduleBookingModal key={rescheduleBooking?.id} booking={rescheduleBooking} isOpen={!!rescheduleBooking} onClose={() => setRescheduleBooking(null)} />
+      <ActionReasonModal 
+        key={reasonModal?.booking.id}
+        booking={reasonModal?.booking ?? null}
+        action={reasonModal?.action ?? ""}
+        isOpen={!!reasonModal}
+        onClose={() => setReasonModal(null)}
+        formAction={reasonActions[reasonModal?.action ?? ""]}
+      />
       
       {/* Desktop Table */}
       <Card className="hidden md:block mt-6">
@@ -187,7 +198,7 @@ function BookingsList({ bookings, page, totalPages }: { bookings: Booking[], pag
                     <Badge variant={badge.variant}>{badge.label}</Badge>
                   </td>
                   <td className="px-5 py-3">
-                    <ActionsCell booking={booking} onReschedule={() => setRescheduleBooking(booking)} />
+                    <ActionsCell booking={booking} onReschedule={() => setRescheduleBooking(booking)} onOpenReasonModal={(action) => setReasonModal({booking, action})} />
                   </td>
                 </tr>
               );
@@ -220,7 +231,7 @@ function BookingsList({ bookings, page, totalPages }: { bookings: Booking[], pag
                 </div>
               </div>
               <div className="mt-4 pt-4 border-t border-border">
-                <ActionsCell booking={booking} onReschedule={() => setRescheduleBooking(booking)} />
+                <ActionsCell booking={booking} onReschedule={() => setRescheduleBooking(booking)} onOpenReasonModal={(action) => setReasonModal({booking, action})} />
               </div>
             </Card>
           );
