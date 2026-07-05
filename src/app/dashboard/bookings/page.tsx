@@ -166,10 +166,11 @@ function BookingsList({ bookings, page, totalPages }: { bookings: Booking[], pag
         <table className="w-full text-sm">
           <thead className="border-b border-border text-left text-xs text-muted-foreground">
             <tr>
-              <th className="px-5 py-3 font-medium">Booking</th>
-              <th className="px-5 py-3 font-medium">Client & Service</th>
-              <th className="px-5 py-3 font-medium">Date & Time</th>
+              <th className="px-5 py-3 font-medium">Reference & Client</th>
+              <th className="px-5 py-3 font-medium">Service</th>
+              <th className="px-5 py-3 font-medium">Preferred</th>
               <th className="px-5 py-3 font-medium">Status</th>
+              <th className="px-5 py-3 font-medium">Source</th>
               <th className="px-5 py-3 font-medium text-right">Actions</th>
             </tr>
           </thead>
@@ -180,16 +181,13 @@ function BookingsList({ bookings, page, totalPages }: { bookings: Booking[], pag
                 <tr key={booking.id} className="border-b border-border transition-colors last:border-none hover:bg-surface-muted/50">
                   <td className="px-5 py-3">
                     <Link href={`/dashboard/bookings/${booking.id}`} className="font-semibold hover:underline">{booking.reference}</Link>
-                    <p className="text-xs text-muted-foreground capitalize">{booking.source.replaceAll("_", " ")}</p>
+                    <p className="text-muted-foreground">{booking.clientName}</p>
                   </td>
+                  <td className="px-5 py-3">{booking.serviceName}</td>
                   <td className="px-5 py-3">
-                    <p className="font-semibold">{booking.clientName}</p>
-                    <p className="text-xs text-muted-foreground">{booking.serviceName}</p>
-                  </td>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center gap-2">
-                      <CalendarIcon size={14} className="text-muted-foreground" />
-                      <span className="text-muted-foreground">
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <CalendarIcon size={14} />
+                      <span>
                         {booking.preferredAt.toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" })}
                       </span>
                     </div>
@@ -197,6 +195,7 @@ function BookingsList({ bookings, page, totalPages }: { bookings: Booking[], pag
                   <td className="px-5 py-3">
                     <Badge variant={badge.variant}>{badge.label}</Badge>
                   </td>
+                  <td className="px-5 py-3 capitalize">{booking.source.replaceAll("_", " ")}</td>
                   <td className="px-5 py-3">
                     <ActionsCell booking={booking} onReschedule={() => setRescheduleBooking(booking)} onOpenReasonModal={(action) => setReasonModal({booking, action})} />
                   </td>
