@@ -292,7 +292,7 @@ function DashboardSidebar({
                 onClick={() => toggleGroup(group.label)}
                 aria-expanded={groupOpen}
                 aria-controls={`nav-group-${group.label}`}
-                className="mb-2 flex w-full items-center justify-between rounded-lg px-2 py-1 text-left text-xs font-bold tracking-tight text-muted-foreground uppercase transition-colors hover:text-foreground"
+                className="mb-1.5 flex w-full items-center justify-between rounded-lg px-2 py-1 text-left text-xs font-semibold tracking-tighter text-muted-foreground uppercase transition-colors hover:text-foreground"
               >
                 <span>{group.label}</span>
                 <ChevronDown

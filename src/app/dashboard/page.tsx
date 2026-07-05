@@ -131,7 +131,7 @@ export default async function DashboardPage() {
       <PageHeading pre="Overview" title={`${greeting}, ${user.name}`} description={todayDateStr} />
 
       {/* Quick actions and alerts row */}
-      <div className="mt-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+      <div className="mt-8 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         {/* Quick action buttons */}
         <div className="flex flex-wrap items-center gap-2">
           <LinkButton href="/dashboard/bookings/new" variant="secondary" size="sm">New Booking</LinkButton>
