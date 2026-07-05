@@ -15,9 +15,10 @@ interface ActionReasonModalProps {
   isOpen: boolean;
   onClose: () => void;
   formAction: (formData: FormData) => Promise<void>;
+  onSuccess: () => void;
 }
 
-export function ActionReasonModal({ booking, action, isOpen, onClose, formAction }: ActionReasonModalProps) {
+export function ActionReasonModal({ booking, action, isOpen, onClose, formAction, onSuccess }: ActionReasonModalProps) {
   const [isPending, startTransition] = useTransition();
   const [reason, setReason] = useState("");
 
@@ -42,6 +43,7 @@ export function ActionReasonModal({ booking, action, isOpen, onClose, formAction
       try {
         await formAction(formData);
         toast.success(`Booking ${action === 'cancel' ? 'cancelled' : 'updated'}`);
+        onSuccess();
         onClose();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "An unknown error occurred.");

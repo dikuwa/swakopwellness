@@ -14,9 +14,10 @@ interface RescheduleBookingModalProps {
   booking: Booking | null;
   isOpen: boolean;
   onClose: () => void;
+  onSuccess: () => void;
 }
 
-export function RescheduleBookingModal({ booking, isOpen, onClose }: RescheduleBookingModalProps) {
+export function RescheduleBookingModal({ booking, isOpen, onClose, onSuccess }: RescheduleBookingModalProps) {
   const [isPending, startTransition] = useTransition();
   const [date, setDate] = useState<string | undefined>(booking?.preferredAt.toISOString().split('T')[0]);
   const [time, setTime] = useState<string>(booking?.preferredAt.toTimeString().substring(0, 5) ?? "09:00");
@@ -30,6 +31,7 @@ export function RescheduleBookingModal({ booking, isOpen, onClose }: RescheduleB
       try {
         await rescheduleBooking(formData);
         toast.success("Booking rescheduled successfully");
+        onSuccess();
         onClose();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "An unknown error occurred.");

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useTransition } from "react";
+import { useTransition, useRouter } from "react";
 import { confirmBooking, markCompleted, changeBookingStatus, cancelBooking, markNoShow } from "@/booking/actions";
 import { getAvailableActions } from "@/booking/status";
 import { Pagination } from "@/ui/pagination";
@@ -31,7 +31,7 @@ function bookingBadge(status: string): { label: string; variant: "default" | "pr
   return map[status] ?? { label: status.replaceAll("_", " "), variant: "default" };
 }
 
-function ActionButton({ action, booking, onReschedule, onOpenReasonModal }: { action: string, booking: Booking, onReschedule: () => void, onOpenReasonModal: (action: string) => void }) {
+function ActionButton({ action, booking, onReschedule, onOpenReasonModal, onSuccess }: { action: string, booking: Booking, onReschedule: () => void, onOpenReasonModal: (action: string) => void, onSuccess: () => void }) {
   const [isPending, startTransition] = useTransition();
   
   const actionLabels: Record<string, string> = {
@@ -63,6 +63,7 @@ function ActionButton({ action, booking, onReschedule, onOpenReasonModal }: { ac
             break;
         }
         toast.success("Booking updated");
+        onSuccess();
       } catch (e) {
         toast.error(e instanceof Error ? e.message : "An unknown error occurred.");
       }
@@ -85,7 +86,7 @@ function ActionButton({ action, booking, onReschedule, onOpenReasonModal }: { ac
   );
 }
 
-function ActionsCell({ booking, onReschedule, onOpenReasonModal }: { booking: Booking, onReschedule: () => void, onOpenReasonModal: (action: string) => void }) {
+function ActionsCell({ booking, onReschedule, onOpenReasonModal, onSuccess }: { booking: Booking, onReschedule: () => void, onOpenReasonModal: (action: string) => void, onSuccess: () => void }) {
   const allActions = getAvailableActions(booking.status);
   
   const primaryActionMap: Record<string, string | undefined> = {
@@ -119,7 +120,7 @@ function ActionsCell({ booking, onReschedule, onOpenReasonModal }: { booking: Bo
           }
         >
           {secondaryActions.map((action) => (
-            <ActionButton key={action} action={action} booking={booking} onReschedule={onReschedule} onOpenReasonModal={onOpenReasonModal} />
+            <ActionButton key={action} action={action} booking={booking} onReschedule={onReschedule} onOpenReasonModal={onOpenReasonModal} onSuccess={onSuccess} />
           ))}
         </ActionDropdown>
       )}
@@ -134,8 +135,13 @@ interface BookingsClientViewProps {
 }
 
 export function BookingsClientView({ initialBookings, totalPages, page }: BookingsClientViewProps) {
+  const router = useRouter();
   const [rescheduleBooking, setRescheduleBooking] = useState<Booking | null>(null);
   const [reasonModal, setReasonModal] = useState<{booking: Booking, action: string} | null>(null);
+
+  const handleSuccess = () => {
+    router.refresh();
+  };
 
   const reasonActions: Record<string, (formData: FormData) => Promise<void>> = {
     cancel: cancelBooking,
@@ -154,7 +160,7 @@ export function BookingsClientView({ initialBookings, totalPages, page }: Bookin
 
   return (
     <>
-      <RescheduleBookingModal key={rescheduleBooking?.id} booking={rescheduleBooking} isOpen={!!rescheduleBooking} onClose={() => setRescheduleBooking(null)} />
+      <RescheduleBookingModal key={rescheduleBooking?.id} booking={rescheduleBooking} isOpen={!!rescheduleBooking} onClose={() => setRescheduleBooking(null)} onSuccess={handleSuccess} />
       <ActionReasonModal 
         key={reasonModal?.booking.id}
         booking={reasonModal?.booking ?? null}
@@ -162,6 +168,7 @@ export function BookingsClientView({ initialBookings, totalPages, page }: Bookin
         isOpen={!!reasonModal}
         onClose={() => setReasonModal(null)}
         formAction={reasonActions[reasonModal?.action ?? ""]}
+        onSuccess={handleSuccess}
       />
       
       <Card className="hidden md:block mt-6">
@@ -199,7 +206,7 @@ export function BookingsClientView({ initialBookings, totalPages, page }: Bookin
                   </td>
                   <td className="px-5 py-3 capitalize">{booking.source.replaceAll("_", " ")}</td>
                   <td className="px-5 py-3">
-                    <ActionsCell booking={booking} onReschedule={() => setRescheduleBooking(booking)} onOpenReasonModal={(action) => setReasonModal({booking, action})} />
+                    <ActionsCell booking={booking} onReschedule={() => setRescheduleBooking(booking)} onOpenReasonModal={(action) => setReasonModal({booking, action})} onSuccess={handleSuccess} />
                   </td>
                 </tr>
               );
@@ -231,7 +238,7 @@ export function BookingsClientView({ initialBookings, totalPages, page }: Bookin
                 </div>
               </div>
               <div className="mt-4 pt-4 border-t border-border">
-                <ActionsCell booking={booking} onReschedule={() => setRescheduleBooking(booking)} onOpenReasonModal={(action) => setReasonModal({booking, action})} />
+                <ActionsCell booking={booking} onReschedule={() => setRescheduleBooking(booking)} onOpenReasonModal={(action) => setReasonModal({booking, action})} onSuccess={handleSuccess} />
               </div>
             </Card>
           );
