@@ -218,9 +218,11 @@ function SidebarLink({
 function DashboardSidebar({
   collapsed,
   onNavClick,
+  onToggle,
 }: {
   collapsed: boolean;
   onNavClick?: () => void;
+  onToggle: () => void;
 }) {
   const pathname = usePathname();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
@@ -270,15 +272,18 @@ function DashboardSidebar({
 
   return (
     <nav aria-label="Dashboard navigation" className="flex flex-col gap-6">
-      {/* Logo */}
-      <Link
-        href="/dashboard"
-        className={`flex items-center ${collapsed ? "justify-center" : "px-2"}`}
-        onClick={onNavClick}
-        aria-label="Dashboard"
-      >
-        <BrandMark collapsed={collapsed} />
-      </Link>
+      {/* Sidebar Header */}
+      <div className={`flex items-center ${collapsed ? "flex-col gap-4" : "justify-between"}`}>
+        <Link
+          href="/dashboard"
+          className="flex items-center"
+          onClick={onNavClick}
+          aria-label="Dashboard"
+        >
+          <BrandMark collapsed={collapsed} />
+        </Link>
+        <CollapseToggle collapsed={collapsed} onToggle={onToggle} />
+      </div>
 
       {linkGroups.map((group) => {
         const groupOpen = isGroupOpen(group.label);
@@ -548,13 +553,14 @@ function CollapseToggle({
     <button
       type="button"
       onClick={onToggle}
-      className="hidden h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground md:flex"
+      className="flex h-10 w-10 items-center justify-center rounded-xl border border-border text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground"
       aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
     >
       {collapsed ? (
-        <ChevronRight className="h-4 w-4" aria-hidden="true" />
+        <ChevronRight className="h-5 w-5" aria-hidden="true" />
       ) : (
-        <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+        <ChevronLeft className="h-5 w-5" aria-hidden="true" />
       )}
     </button>
   );
@@ -601,12 +607,13 @@ export function DashboardLayout({
       <aside
         className={`fixed inset-y-0 left-0 z-50 flex flex-col border-r border-border bg-surface transition-all duration-300 md:sticky ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0 ${collapsed ? "w-16" : "w-64"}`}
+        } md:translate-x-0 ${collapsed ? "w-20" : "w-64"}`}
       >
         <div className="flex-1 overflow-y-auto px-2 py-4 sm:px-4 sm:py-6">
           <DashboardSidebar
             collapsed={collapsed}
             onNavClick={() => setSidebarOpen(false)}
+            onToggle={toggleCollapse}
           />
         </div>
         <div className="border-t border-border p-2 sm:p-4">
@@ -619,15 +626,6 @@ export function DashboardLayout({
           )}
         </div>
       </aside>
-
-      {/* Collapse toggle (desktop) */}
-      <div
-        className={`fixed bottom-6 z-30 hidden md:block ${
-          collapsed ? "left-[3.5rem]" : "left-[15rem]"
-        } transition-all duration-300`}
-      >
-        <CollapseToggle collapsed={collapsed} onToggle={toggleCollapse} />
-      </div>
 
       {/* Main */}
       <div className="flex min-w-0 flex-1 flex-col">
