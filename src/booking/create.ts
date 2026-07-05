@@ -85,7 +85,7 @@ export async function createBookingRequest(input: unknown, source: BookingSource
           // existing.start < new.end
           lt(bookings.preferredAt, newEnd),
           // new.start < existing.end  (using coalesce for null duration -> 30 min default)
-          sql`${preferredAt} < ${bookings.preferredAt} + coalesce(${bookings.serviceDurationMinutes}, 30) * interval '1 minute'`,
+          sql`${preferredAt.toISOString()} < ${bookings.preferredAt} + coalesce(${bookings.serviceDurationMinutes}, 30) * interval '1 minute'`,
         ),
       )
       .limit(1);
