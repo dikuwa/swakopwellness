@@ -1,6 +1,7 @@
 # TODO - Swakop Wellness fixes
 
-- [ ] Phase 2: Fix OPERATIONS sidebar accordion toggle + chevron/aria consistency (in progress)
+- [x] Phase 2: Fix OPERATIONS sidebar accordion toggle + chevron/aria consistency
+
 
 - [ ] Phase 3/4: Keep compact Bookings layout; implement “More” menu with valid secondary actions only (status-valid, permissions-respecting, portal/z-index correct, close on outside/Esc, focus return)
 - [ ] Phase 5: Implement Reschedule modal/drawer workflow that saves a new date + time (no off-by-one/UTC shifts) and updates all dashboard destinations after success
