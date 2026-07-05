@@ -1,37 +1,37 @@
 "use client";
 
-import Link from "next/link";
+import {
+    Activity,
+    Bell,
+    CalendarCheck,
+    CalendarDays,
+    ChartNoAxesCombined,
+    ChevronDown,
+    ChevronLeft,
+    ChevronRight,
+    CircleHelp,
+    CreditCard,
+    ExternalLink,
+    FileSignature,
+    FileText,
+    FolderTree,
+    HeartPulse,
+    History,
+    LayoutDashboard,
+    ListTodo,
+    LogOut,
+    Menu,
+    MessageCircle,
+    ReceiptText,
+    Settings,
+    ShieldCheck,
+    UserRoundCog,
+    Users,
+} from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  LayoutDashboard,
-  CalendarCheck,
-  CalendarDays,
-  ListTodo,
-  Users,
-  HeartPulse,
-  FolderTree,
-  Activity,
-  CircleHelp,
-  ShieldCheck,
-  MessageCircle,
-  FileText,
-  FileSignature,
-  ReceiptText,
-  CreditCard,
-  ChartNoAxesCombined,
-  Bell,
-  History,
-  UserRoundCog,
-  Settings,
-  LogOut,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  Menu,
-  ExternalLink,
-} from "lucide-react";
 import { logoutAction } from "./logout-action";
 
 // ── Icon map ─────────────────────────────────────────────
@@ -234,25 +234,15 @@ function DashboardSidebar({
     return saved;
   });
 
-  // Compute whether a nav group is open based on user toggle OR active route
+  // Compute whether a nav group is open based on user toggle only
+  // Manual toggle always takes precedence over active route
   const isGroupOpen = useCallback(
     (label: string): boolean => {
-      const group = linkGroups.find((g) => g.label === label);
-      if (!group) return true;
-      const hasActive = group.links.some((link) => {
-        if (pathname === link.href || pathname.startsWith(`${link.href}/`)) return true;
-        if (link.children) {
-          return link.children.some(
-            (child) => pathname === child.href || pathname.startsWith(`${child.href}/`),
-          );
-        }
-        return false;
-      });
       const userToggle = openGroups[label];
-      // Show if group has active route, otherwise use user's preference (default open)
-      return hasActive || (userToggle !== undefined ? userToggle : true);
+      // Use user's explicit toggle preference (default open)
+      return userToggle !== undefined ? userToggle : true;
     },
-    [pathname, openGroups],
+    [openGroups],
   );
 
   const toggleGroup = useCallback((label: string) => {
@@ -317,7 +307,7 @@ function DashboardSidebar({
             <div
               id={!collapsed ? `nav-group-${group.label}` : undefined}
               className={`flex flex-col gap-0.5 overflow-hidden transition-all duration-200 ${
-                collapsed ? "" : groupOpen ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"
+                  groupOpen ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"
               }`}
             >
               {group.links.map((link) => {
