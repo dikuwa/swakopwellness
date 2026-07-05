@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useTransition, useRouter } from "react";
+import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { confirmBooking, markCompleted, changeBookingStatus, cancelBooking, markNoShow } from "@/booking/actions";
 import { getAvailableActions } from "@/booking/status";
 import { Pagination } from "@/ui/pagination";
