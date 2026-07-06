@@ -4,8 +4,9 @@ import { and, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
-import { serviceCategories, serviceFaqs, serviceImages, serviceQuestions, services } from "@/db/schema";
+import { mediaAssets, serviceCategories, serviceFaqs, serviceImages, serviceQuestions, services } from "@/db/schema";
 import { recordActivity } from "@/activity-log/record";
+import { deleteFile } from "@/lib/storage";
 
 function generateSlug(name: string): string {
   return name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
@@ -642,6 +643,21 @@ export async function removeServiceGalleryImage(serviceId: string, mediaAssetId:
   await requirePermission("services:manage");
   const db = getDb();
 
+  // Delete the actual file from storage (non-blocking on failure)
+  try {
+    const [asset] = await db
+      .select({ storageKey: mediaAssets.storageKey })
+      .from(mediaAssets)
+      .where(eq(mediaAssets.id, mediaAssetId))
+      .limit(1);
+    if (asset?.storageKey) {
+      await deleteFile(asset.storageKey);
+    }
+  } catch {
+    // File may not exist on disk/storage, continue
+  }
+
+  // Remove ONLY the gallery join record — keep the media asset for other references
   await db
     .delete(serviceImages)
     .where(and(eq(serviceImages.serviceId, serviceId), eq(serviceImages.mediaAssetId, mediaAssetId)));
