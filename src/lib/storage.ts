@@ -8,26 +8,24 @@ let client: S3ClientType | null = null;
 
 const LOCAL_UPLOAD_DIR = join(process.cwd(), "public", "uploads");
 
+function sanitizeUrl(url: string): string {
+  let u = url.replace(/\/+$/, "");
+  // Fix duplicate protocol: "https:https://..." → "https://..."
+  u = u.replace(/^https?:(https?:\/\/)/, "$1");
+  return u;
+}
+
 function getEndpoint(): string {
   if (env.R2_ENDPOINT) {
-    const ep = env.R2_ENDPOINT.replace(/\/+$/, "");
-    // Validate that the endpoint looks like a URL, not a malformed string
-    if (!ep.startsWith("https://") && !ep.startsWith("http://")) {
-      throw new Error(
-        `Invalid R2_ENDPOINT: "${ep}". Must start with https:// or http://. ` +
-        "Check your environment variables. Expected format: https://<account-id>.r2.cloudflarestorage.com"
-      );
+    const ep = sanitizeUrl(env.R2_ENDPOINT);
+    if (ep.startsWith("https://") || ep.startsWith("http://")) {
+      return ep;
     }
-    // Reject endpoints that look like they concatenated malformed values
-    if (ep.includes(".https") || ep.includes("..")) {
-      throw new Error(
-        `Malformed R2_ENDPOINT: "${ep}". Endpoint contains unexpected dots or protocol concatenation. ` +
-        "Check that R2_ENDPOINT is a clean URL without embedded bucket names or extra protocols."
-      );
-    }
-    return ep;
+    // Endpoint was set but didn't have a protocol — treat as R2_ACCOUNT_ID fallback
+    return `https://${ep}.r2.cloudflarestorage.com`;
   }
-  return `https://${env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`;
+  const accountId = env.R2_ACCOUNT_ID.replace(/^https?:\/\//, "");
+  return `https://${accountId}.r2.cloudflarestorage.com`;
 }
 
 async function getClient(): Promise<S3ClientType> {
