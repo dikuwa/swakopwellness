@@ -22,7 +22,6 @@ type SelectProps = Omit<ComponentProps<"input">, "value" | "onChange" | "type" |
   options: SelectOption[];
   searchable?: boolean;
   showClear?: boolean;
-  maxHeight?: string;
   renderOption?: (option: SelectOption) => ReactNode;
 };
 
@@ -37,7 +36,6 @@ export function Select({
   options,
   searchable = false,
   showClear = false,
-  maxHeight = "240px",
   renderOption,
   className = "",
   ...props
@@ -95,14 +93,14 @@ export function Select({
       setPopoverStyle({
         top: rect.top - 4,
         left: rect.left,
-        minWidth: rect.width,
+        width: rect.width,
         transform: "translateY(-100%)",
       });
     } else {
       setPopoverStyle({
         top: rect.bottom + 4,
         left: rect.left,
-        minWidth: rect.width,
+        width: rect.width,
       });
     }
   }, []);
@@ -206,8 +204,8 @@ export function Select({
   const popoverContent = (
     <div
       ref={popoverRef}
-      style={{ ...popoverStyle, maxHeight }}
-      className="fixed z-50 rounded-2xl border border-border bg-surface shadow-[0_20px_40px_oklch(0.235_0.025_158_/_0.15)] w-full max-w-[90vw] sm:max-w-md"
+      style={popoverStyle}
+      className="fixed z-50 rounded-2xl border border-border bg-surface shadow-[0_20px_40px_oklch(0.235_0.025_158_/_0.15)]"
       role="dialog"
       aria-label="Choose option"
     >
@@ -229,7 +227,7 @@ export function Select({
 
       <div
         ref={optionsRef}
-        className="grid gap-1 p-2 max-h-60 overflow-y-auto"
+        className="grid gap-1 p-2 max-h-[260px] overflow-y-auto"
         role="listbox"
       >
         {filteredOptions.length === 0 ? (
@@ -258,9 +256,9 @@ export function Select({
               }`}
             >
               {renderOption ? renderOption(option) : (
-                <span className="flex items-center justify-between">
-                  {option.label}
-                  {option.value === value && <Check className="h-4 w-4" aria-hidden="true" />}
+                <span className="flex items-center justify-between gap-2 min-w-0">
+                  <span className="truncate">{option.label}</span>
+                  {option.value === value && <Check className="h-4 w-4 shrink-0" aria-hidden="true" />}
                 </span>
               )}
             </button>
@@ -272,7 +270,7 @@ export function Select({
         <button
           type="button"
           onClick={handleClear}
-          className="mx-2 mb-2 w-full text-sm font-medium text-muted-foreground hover:text-foreground transition-colors border-t border-border pt-2"
+          className="w-full rounded-b-xl border-t border-border px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-surface-muted hover:text-foreground transition-colors"
         >
           Clear
         </button>
