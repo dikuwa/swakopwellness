@@ -101,7 +101,7 @@ export function GalleryManager({
   return (
     <section className="mt-8 rounded-xl border border-border bg-background p-6">
       <h2 className="text-lg font-semibold">Gallery Images</h2>
-      <p className="mt-2 text-sm text-muted-foreground">Additional images displayed on the service detail page.</p>
+      <p className="mt-2 text-sm text-muted-foreground">The first image is the main service image. Reorder images to change which one appears first.</p>
 
       {/* Multi-file upload area */}
       <div className="mt-5">
@@ -163,7 +163,7 @@ export function GalleryManager({
       ) : (
         <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {images.map((asset, index) => (
-            <div key={asset.id} className="group relative overflow-hidden rounded-2xl border border-border">
+            <div key={asset.id} className={`group relative overflow-hidden rounded-2xl border ${index === 0 ? 'border-primary/40 ring-1 ring-primary/20' : 'border-border'}`}>
               <div className="aspect-square overflow-hidden bg-surface">
                 {asset.publicUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element -- media URLs are administrator-managed R2/public URLs.
@@ -177,6 +177,11 @@ export function GalleryManager({
                   <div className="flex h-full items-center justify-center text-xs text-muted-foreground">No URL</div>
                 )}
               </div>
+              {index === 0 && (
+                <div className="flex items-center justify-center bg-primary/10 px-2 py-1">
+                  <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">Main Image</span>
+                </div>
+              )}
               <div className="flex items-center justify-between border-t border-border p-2">
                 <div className="flex items-center gap-1">
                   <button

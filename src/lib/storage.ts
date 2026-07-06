@@ -8,7 +8,7 @@ let client: S3ClientType | null = null;
 
 const LOCAL_UPLOAD_DIR = join(process.cwd(), "public", "uploads");
 
-function sanitizeUrl(url: string): string {
+export function sanitizeUrl(url: string): string {
   let u = url.replace(/\/+$/, "");
   // Fix duplicate protocol: "https:https://..." → "https://..."
   u = u.replace(/^https?:(https?:\/\/)/, "$1");

@@ -1,6 +1,6 @@
 "use server";
 
-import { and, desc, eq } from "drizzle-orm";
+import { and, asc, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
@@ -138,7 +138,7 @@ export async function updateService(id: string, data: FormData) {
         bookingEnabled,
         featured,
         sortOrder,
-        featuredImageId,
+        // featuredImageId is managed by gallery server actions — do not overwrite from form
         updatedAt: new Date(),
       })
       .where(eq(services.id, id));
@@ -613,6 +613,19 @@ export async function reorderServiceGalleryImage(serviceId: string, mediaAssetId
       .where(and(eq(serviceImages.serviceId, serviceId), eq(serviceImages.mediaAssetId, mediaAssetId)));
   }
 
+  // Sync featuredImageId to the first gallery image by sort order
+  const [first] = await db
+    .select({ mediaAssetId: serviceImages.mediaAssetId })
+    .from(serviceImages)
+    .where(eq(serviceImages.serviceId, serviceId))
+    .orderBy(asc(serviceImages.sortOrder))
+    .limit(1);
+
+  await db
+    .update(services)
+    .set({ featuredImageId: first?.mediaAssetId ?? null, updatedAt: new Date() })
+    .where(eq(services.id, serviceId));
+
   revalidateServiceManagement();
   revalidatePath(`/dashboard/services/${serviceId}/edit`);
 }
@@ -634,6 +647,14 @@ export async function addServiceGalleryImage(serviceId: string, mediaAssetId: st
     .insert(serviceImages)
     .values({ serviceId, mediaAssetId, sortOrder })
     .onConflictDoNothing();
+
+  // Auto-set as featured image if this is the first gallery image
+  if (sortOrder === 0) {
+    await db
+      .update(services)
+      .set({ featuredImageId: mediaAssetId, updatedAt: new Date() })
+      .where(eq(services.id, serviceId));
+  }
 
   revalidateServiceManagement();
   revalidatePath(`/dashboard/services/${serviceId}/edit`);
@@ -661,6 +682,27 @@ export async function removeServiceGalleryImage(serviceId: string, mediaAssetId:
   await db
     .delete(serviceImages)
     .where(and(eq(serviceImages.serviceId, serviceId), eq(serviceImages.mediaAssetId, mediaAssetId)));
+
+  // If the deleted image was the featured image, promote the next gallery image (or clear)
+  const [currentService] = await db
+    .select({ featuredImageId: services.featuredImageId })
+    .from(services)
+    .where(eq(services.id, serviceId))
+    .limit(1);
+
+  if (currentService?.featuredImageId === mediaAssetId) {
+    const [nextImage] = await db
+      .select({ mediaAssetId: serviceImages.mediaAssetId })
+      .from(serviceImages)
+      .where(eq(serviceImages.serviceId, serviceId))
+      .orderBy(asc(serviceImages.sortOrder))
+      .limit(1);
+
+    await db
+      .update(services)
+      .set({ featuredImageId: nextImage?.mediaAssetId ?? null, updatedAt: new Date() })
+      .where(eq(services.id, serviceId));
+  }
 
   revalidateServiceManagement();
   revalidatePath(`/dashboard/services/${serviceId}/edit`);

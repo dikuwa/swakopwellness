@@ -2,11 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
+import { useActionState, useEffect, type ReactNode } from "react";
 import toast from "react-hot-toast";
-import { Loader2, Trash2, Upload } from "lucide-react";
 import { Select } from "@/ui/components";
-import { uploadMediaAndReturnAction } from "@/media/actions";
 
 
 interface Category {
@@ -33,18 +31,11 @@ interface ServiceFormData {
   featuredImageId: string | null;
 }
 
-interface MediaAsset {
+interface GalleryImage {
   id: string;
   publicUrl: string | null;
   altText: string | null;
-  mimeType: string;
-  byteSize: number;
-  width: number | null;
-  height: number | null;
-  createdAt: Date;
 }
-
-
 
 interface Props {
   categories: Category[];
@@ -52,48 +43,15 @@ interface Props {
     data: FormData,
   ) => Promise<{ ok: boolean; error?: string; serviceId?: string }>;
   initialData?: ServiceFormData;
-  mediaAssets?: MediaAsset[];
+  galleryImages?: GalleryImage[];
   children?: ReactNode;
 }
 
-export function ServiceForm({ categories, action, initialData, mediaAssets, children }: Props) {
+export function ServiceForm({ categories, action, initialData, galleryImages, children }: Props) {
   const router = useRouter();
   const isEdit = !!initialData;
 
-  const uploadInputRef = useRef<HTMLInputElement>(null);
-  const [uploadingInline, setUploadingInline] = useState(false);
-  const [localMediaAssets, setLocalMediaAssets] = useState<MediaAsset[]>(mediaAssets ?? []);
-  const [featuredImageId, setFeaturedImageId] = useState<string | null>(initialData?.featuredImageId ?? null);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing local state with prop on change
-    if (mediaAssets) setLocalMediaAssets(mediaAssets);
-  }, [mediaAssets]);
-
-  const handleInlineUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingInline(true);
-    const formData = new FormData();
-    formData.append("file", file);
-    formData.append("altText", file.name.split(".")[0] ?? "");
-
-    try {
-      const result = await uploadMediaAndReturnAction(formData);
-      if (result?.error) {
-        toast.error(result.error);
-      } else if (result?.asset) {
-        setLocalMediaAssets((prev) => [result.asset, ...prev]);
-        setFeaturedImageId(result.asset.id);
-        toast.success("Image uploaded");
-      }
-    } catch {
-      toast.error("Upload failed");
-    }
-    setUploadingInline(false);
-    if (uploadInputRef.current) uploadInputRef.current.value = "";
-  };
+  const firstImage = (galleryImages && galleryImages.length > 0) ? galleryImages[0] : null;
 
   const [state, formAction, isPending] = useActionState(
     async (_prev: unknown, formData: FormData) => action(formData),
@@ -103,13 +61,17 @@ export function ServiceForm({ categories, action, initialData, mediaAssets, chil
   useEffect(() => {
     if (state?.ok) {
       toast.success(isEdit ? "Service updated" : "Service created");
-      router.push("/dashboard/services");
+      if (isEdit) {
+        router.push("/dashboard/services");
+      } else if ("serviceId" in state && state.serviceId) {
+        router.push(`/dashboard/services/${state.serviceId}/edit`);
+      } else {
+        router.push("/dashboard/services");
+      }
     } else if (state?.ok === false && state.error) {
       toast.error(state.error);
     }
   }, [state, router, isEdit]);
-
-  const currentAsset = localMediaAssets.find((a) => a.id === featuredImageId);
 
   return (
     <>
@@ -363,76 +325,21 @@ export function ServiceForm({ categories, action, initialData, mediaAssets, chil
           <div className="space-y-6 lg:sticky lg:top-4">
             <div className="space-y-4 rounded-xl border border-border bg-background p-6">
               <h2 className="text-lg font-semibold">Service Image</h2>
-              <input type="hidden" name="featuredImageId" value={featuredImageId ?? ""} />
+              <p className="text-xs text-muted-foreground">The first gallery image is used as the main service image.</p>
 
-              {currentAsset?.publicUrl ? (
-                <div className="space-y-3">
-                  <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-border bg-surface">
-                    <img
-                      src={currentAsset.publicUrl}
-                      alt={currentAsset.altText || "Service image"}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => uploadInputRef.current?.click()}
-                      disabled={uploadingInline}
-                      className="flex-1 flex h-9 items-center justify-center gap-1.5 rounded-xl border border-border bg-surface text-xs font-semibold hover:bg-surface-muted transition-colors disabled:opacity-50"
-                    >
-                      {uploadingInline ? (
-                        <>
-                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          Replacing...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="h-3.5 w-3.5" />
-                          Replace
-                        </>
-                      )}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setFeaturedImageId(null)}
-                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-destructive/20 bg-surface text-destructive hover:bg-destructive/10 transition-colors"
-                      title="Remove image"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+              {firstImage?.publicUrl ? (
+                <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-border bg-surface">
+                  <img
+                    src={firstImage.publicUrl}
+                    alt={firstImage.altText || "Service image"}
+                    className="h-full w-full object-cover"
+                  />
                 </div>
               ) : (
-                <div
-                  onClick={() => !uploadingInline && uploadInputRef.current?.click()}
-                  className={`flex aspect-video w-full cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface transition-colors hover:border-primary/50 ${
-                    uploadingInline ? "opacity-50 cursor-not-allowed" : ""
-                  }`}
-                >
-                  {uploadingInline ? (
-                    <>
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                      <span className="mt-2 text-xs text-muted-foreground">Uploading image...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="h-6 w-6 text-muted-foreground" />
-                      <span className="mt-2 text-xs font-semibold">Upload Service Image</span>
-                      <span className="mt-1 text-[10px] text-muted-foreground">Recommended: 1600x1200 (4:3 / 16:9)</span>
-                    </>
-                  )}
+                <div className="flex aspect-video w-full items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface">
+                  <span className="text-xs text-muted-foreground">No images yet — upload via Gallery Images</span>
                 </div>
               )}
-
-              <input
-                ref={uploadInputRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
-                onChange={handleInlineUpload}
-                className="sr-only"
-                id="inline-upload-input"
-              />
             </div>
 
             <div className="space-y-4 rounded-xl border border-border bg-background p-6">
