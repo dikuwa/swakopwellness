@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import toast from "react-hot-toast";
 
 interface PolicyFormData {
@@ -17,9 +17,32 @@ interface Props {
   initialData?: PolicyFormData;
 }
 
+function generateSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 export function PolicyForm({ action, initialData }: Props) {
   const router = useRouter();
   const isEdit = !!initialData;
+  const slugManuallyEdited = useRef(false);
+
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!slugManuallyEdited.current) {
+      const slugInput = document.getElementById("slug") as HTMLInputElement;
+      if (slugInput) {
+        slugInput.value = generateSlug(e.target.value);
+      }
+    }
+  };
+
+  const handleSlugChange = () => {
+    slugManuallyEdited.current = true;
+  };
 
   const [state, formAction, isPending] = useActionState(
     async (_prev: unknown, formData: FormData) => action(formData),
@@ -62,6 +85,7 @@ export function PolicyForm({ action, initialData }: Props) {
                 type="text"
                 required
                 defaultValue={initialData?.title ?? ""}
+                onChange={handleTitleChange}
                 className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
@@ -78,8 +102,9 @@ export function PolicyForm({ action, initialData }: Props) {
                 name="slug"
                 type="text"
                 defaultValue={initialData?.slug ?? ""}
+                onChange={handleSlugChange}
                 placeholder="Auto-generated from title"
-                className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
 

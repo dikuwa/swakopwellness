@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, type ReactNode } from "react";
+import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
 import toast from "react-hot-toast";
 import { Select } from "@/ui/components";
 
@@ -47,9 +47,21 @@ interface Props {
   children?: ReactNode;
 }
 
+function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 export function ServiceForm({ categories, action, initialData, galleryImages, children }: Props) {
   const router = useRouter();
   const isEdit = !!initialData;
+  const slugManuallyEdited = useRef(false);
+
+  const [categoryId, setCategoryId] = useState(initialData?.categoryId ?? "");
 
   const firstImage = (galleryImages && galleryImages.length > 0) ? galleryImages[0] : null;
 
@@ -72,6 +84,19 @@ export function ServiceForm({ categories, action, initialData, galleryImages, ch
       toast.error(state.error);
     }
   }, [state, router, isEdit]);
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!slugManuallyEdited.current) {
+      const slugInput = document.getElementById("slug") as HTMLInputElement;
+      if (slugInput) {
+        slugInput.value = generateSlug(e.target.value);
+      }
+    }
+  };
+
+  const handleSlugChange = () => {
+    slugManuallyEdited.current = true;
+  };
 
   return (
     <>
@@ -113,6 +138,7 @@ export function ServiceForm({ categories, action, initialData, galleryImages, ch
                     type="text"
                     required
                     defaultValue={initialData?.name ?? ""}
+                    onChange={handleNameChange}
                     className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
@@ -128,8 +154,9 @@ export function ServiceForm({ categories, action, initialData, galleryImages, ch
                     name="slug"
                     type="text"
                     defaultValue={initialData?.slug ?? ""}
+                    onChange={handleSlugChange}
                     placeholder="Auto-generated from name"
-                    className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
               </div>
@@ -145,6 +172,8 @@ export function ServiceForm({ categories, action, initialData, galleryImages, ch
                   <Select
                     id="categoryId"
                     name="categoryId"
+                    value={categoryId}
+                    onChange={setCategoryId}
                     options={[
                       { value: "", label: "No category" },
                       ...categories.map((c) => ({ value: c.id, label: c.name })),

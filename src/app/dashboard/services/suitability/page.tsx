@@ -4,13 +4,13 @@ import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { serviceQuestions, services } from "@/db/schema";
 import { DashboardShell } from "@/dashboard/shell";
-import { Select } from "@/ui/components";
 import {
   createSuitabilityQuestion,
   deleteSuitabilityQuestion,
   toggleSuitabilityQuestionActive,
   updateSuitabilityQuestion,
 } from "@/services/actions";
+import { SuitabilityForms } from "./suitability-form";
 
 export const dynamic = "force-dynamic";
 
@@ -56,162 +56,14 @@ export default async function ServiceSuitabilityPage() {
           </div>
         </div>
 
-        {/* Create question form */}
-        <form
-          action={async (formData) => { "use server"; await createSuitabilityQuestion(formData); }}
-          className="mt-6 grid items-end gap-4 rounded-xl border border-border bg-background p-5 lg:grid-cols-[1.5fr_3fr_140px_100px_auto]"
-        >
-          <div>
-            <label htmlFor="serviceId" className="mb-1.5 block text-sm font-semibold">
-              Service
-            </label>
-            <Select
-              id="serviceId"
-              name="serviceId"
-              options={[
-                { value: "", label: "All services" },
-                ...serviceOptions.map((s) => ({ value: s.id, label: s.name })),
-              ]}
-              placeholder="All services"
-            />
-          </div>
-          <div>
-            <label htmlFor="question" className="mb-1.5 block text-sm font-semibold">
-              Question *
-            </label>
-            <input
-              id="question"
-              name="question"
-              required
-              className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-            />
-          </div>
-          <div>
-            <label htmlFor="flaggedAnswer" className="mb-1.5 block text-sm font-semibold">
-              Flagged answer
-            </label>
-            <Select
-              id="flaggedAnswer"
-              name="flaggedAnswer"
-              value="yes"
-              options={[
-                { value: "yes", label: "Yes" },
-                { value: "no", label: "No" },
-              ]}
-              placeholder="Yes"
-            />
-          </div>
-          <div>
-            <label htmlFor="sortOrder" className="mb-1.5 block text-sm font-semibold">
-              Sort
-            </label>
-            <input
-              id="sortOrder"
-              name="sortOrder"
-              type="number"
-              defaultValue={0}
-              className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-            />
-          </div>
-          <button
-            type="submit"
-            className="flex h-11 items-center justify-center rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Create
-          </button>
-        </form>
-
-        <div className="mt-6 space-y-3">
-          {questions.map((question) => (
-            <div key={question.id} className="rounded-xl border border-border bg-background p-5">
-              <form
-                action={async (formData) => { "use server"; await updateSuitabilityQuestion(question.id, formData); }}
-                className="grid items-end gap-4 lg:grid-cols-[1.5fr_3fr_140px_100px_auto]"
-              >
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold">Service</label>
-                  <Select
-                    name="serviceId"
-                    options={[
-                      { value: "", label: "All services" },
-                      ...serviceOptions.map((s) => ({ value: s.id, label: s.name })),
-                    ]}
-                    placeholder="All services"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold">Question</label>
-                  <input
-                    name="question"
-                    defaultValue={question.question}
-                    required
-                    aria-label="Suitability question"
-                    className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold">Flagged answer</label>
-                  <Select
-                    name="flaggedAnswer"
-                    value={question.flaggedAnswer}
-                    options={[
-                      { value: "yes", label: "Yes" },
-                      { value: "no", label: "No" },
-                    ]}
-                    placeholder="Yes"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold">Sort</label>
-                  <input
-                    name="sortOrder"
-                    type="number"
-                    defaultValue={question.sortOrder}
-                    aria-label="Question sort order"
-                    className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="flex h-11 items-center justify-center rounded-xl border border-border px-5 text-sm font-semibold transition-colors hover:bg-surface-muted"
-                >
-                  Update
-                </button>
-              </form>
-              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
-                <span className="text-xs text-muted-foreground">
-                  Applies to: {question.serviceName ?? "All services"}
-                </span>
-                <form action={toggleSuitabilityQuestionActive.bind(null, question.id)}>
-                  <button
-                    type="submit"
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      question.active
-                        ? "bg-green-50 text-green-700"
-                        : "bg-red-50 text-red-700"
-                    }`}
-                  >
-                    <span className={`h-1.5 w-1.5 rounded-full ${question.active ? "bg-green-600" : "bg-red-600"}`} />
-                    {question.active ? "Active" : "Inactive"}
-                  </button>
-                </form>
-                <form action={deleteSuitabilityQuestion.bind(null, question.id)}>
-                  <button
-                    type="submit"
-                    className="flex h-8 items-center gap-1 rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
-                  >
-                    Delete
-                  </button>
-                </form>
-              </div>
-            </div>
-          ))}
-          {questions.length === 0 && (
-            <div className="rounded-xl border border-border bg-background p-8 text-center text-sm text-muted-foreground">
-              No suitability questions yet.
-            </div>
-          )}
-        </div>
+        <SuitabilityForms
+          questions={questions}
+          serviceOptions={serviceOptions}
+          createAction={createSuitabilityQuestion}
+          updateAction={updateSuitabilityQuestion}
+          toggleAction={toggleSuitabilityQuestionActive}
+          deleteAction={deleteSuitabilityQuestion}
+        />
     </DashboardShell>
   );
 }
