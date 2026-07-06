@@ -10,6 +10,7 @@ import {
   toggleServiceCategoryActive,
   updateServiceCategory,
 } from "@/services/actions";
+import { CreateCategoryForm, EditCategoryForm } from "./category-form";
 
 export const dynamic = "force-dynamic";
 
@@ -39,115 +40,15 @@ export default async function ServiceCategoriesPage() {
           </div>
         </div>
 
-        {/* Create category form */}
-        <form
-          action={async (formData) => { "use server"; await createServiceCategory(formData); }}
-          className="mt-6 grid items-end gap-4 rounded-xl border border-border bg-background p-5 lg:grid-cols-[1fr_1fr_2fr_100px_auto]"
-        >
-          <div>
-            <label htmlFor="name" className="mb-1.5 block text-sm font-semibold">
-              Name *
-            </label>
-            <input
-              id="name"
-              name="name"
-              required
-              className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-            />
-          </div>
-          <div>
-            <label htmlFor="slug" className="mb-1.5 block text-sm font-semibold">
-              Slug
-            </label>
-            <input
-              id="slug"
-              name="slug"
-              placeholder="Auto-generated"
-              className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-            />
-          </div>
-          <div>
-            <label htmlFor="description" className="mb-1.5 block text-sm font-semibold">
-              Description
-            </label>
-            <input
-              id="description"
-              name="description"
-              className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-            />
-          </div>
-          <div>
-            <label htmlFor="sortOrder" className="mb-1.5 block text-sm font-semibold">
-              Sort
-            </label>
-            <input
-              id="sortOrder"
-              name="sortOrder"
-              type="number"
-              defaultValue={0}
-              className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-            />
-          </div>
-          <button
-            type="submit"
-            className="flex h-11 items-center justify-center rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            Create
-          </button>
-        </form>
+        <CreateCategoryForm createAction={createServiceCategory} />
 
         <div className="mt-6 space-y-3">
           {categories.map((category) => (
             <div key={category.id} className="rounded-xl border border-border bg-background p-5">
-              <form
-                action={async (formData) => { "use server"; await updateServiceCategory(category.id, formData); }}
-                className="grid items-end gap-4 lg:grid-cols-[1fr_1fr_2fr_100px_auto]"
-              >
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold">Name</label>
-                  <input
-                    name="name"
-                    defaultValue={category.name}
-                    required
-                    aria-label="Category name"
-                    className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold">Slug</label>
-                  <input
-                    name="slug"
-                    defaultValue={category.slug}
-                    aria-label="Category slug"
-                    className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold">Description</label>
-                  <input
-                    name="description"
-                    defaultValue={category.description ?? ""}
-                    aria-label="Category description"
-                    className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1.5 block text-sm font-semibold">Sort</label>
-                  <input
-                    name="sortOrder"
-                    type="number"
-                    defaultValue={category.sortOrder}
-                    aria-label="Category sort order"
-                    className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="flex h-11 items-center justify-center rounded-xl border border-border px-5 text-sm font-semibold transition-colors hover:bg-surface-muted"
-                >
-                  Update
-                </button>
-              </form>
+              <EditCategoryForm
+                category={{ id: category.id, name: category.name, slug: category.slug, description: category.description, sortOrder: category.sortOrder }}
+                updateAction={updateServiceCategory}
+              />
               <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
                 <form action={toggleServiceCategoryActive.bind(null, category.id)}>
                   <button

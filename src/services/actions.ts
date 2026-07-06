@@ -6,7 +6,7 @@ import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { mediaAssets, serviceCategories, serviceFaqs, serviceImages, serviceQuestions, services } from "@/db/schema";
 import { recordActivity } from "@/activity-log/record";
-import { deleteFile } from "@/lib/storage";
+import { deleteFile, uploadFile } from "@/lib/storage";
 
 function generateSlug(name: string): string {
   return name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
@@ -49,7 +49,6 @@ export async function createService(data: FormData) {
   const bookingEnabled = data.get("bookingEnabled") === "on";
   const featured = data.get("featured") === "on";
   const sortOrder = parseInt(data.get("sortOrder") as string) || 0;
-  const featuredImageId = (data.get("featuredImageId") as string) || null;
 
   try {
     const [service] = await db
@@ -70,10 +69,79 @@ export async function createService(data: FormData) {
         bookingEnabled,
         featured,
         sortOrder,
-        featuredImageId,
         active: true,
       })
       .returning({ id: services.id });
+
+    // Upload gallery images and create FAQ entries
+    if (service) {
+      // Handle gallery file uploads
+      const galleryFiles = data.getAll("galleryFile") as File[];
+      if (galleryFiles.length > 0 && galleryFiles[0].size > 0) {
+        for (let i = 0; i < galleryFiles.length; i++) {
+          const file = galleryFiles[i];
+          if (!file || file.size === 0) continue;
+          try {
+            const ext = file.name.split(".").pop() || "bin";
+            const key = `media/${crypto.randomUUID()}.${ext}`;
+            const buffer = Buffer.from(await file.arrayBuffer());
+            const u8 = new Uint8Array(buffer);
+            const publicUrl = await uploadFile(key, u8, file.type);
+
+            const [asset] = await db
+              .insert(mediaAssets)
+              .values({
+                storageKey: key,
+                publicUrl,
+                mimeType: file.type,
+                byteSize: file.size,
+                altText: file.name.split(".")[0] || null,
+              })
+              .returning({ id: mediaAssets.id });
+
+            if (asset) {
+              await db.insert(serviceImages).values({
+                serviceId: service.id,
+                mediaAssetId: asset.id,
+                sortOrder: i,
+              });
+
+              // First image becomes the featured image
+              if (i === 0) {
+                await db
+                  .update(services)
+                  .set({ featuredImageId: asset.id, updatedAt: new Date() })
+                  .where(eq(services.id, service.id));
+              }
+            }
+          } catch {
+            // Continue with other files on failure
+          }
+        }
+      }
+
+      // Handle FAQ entries
+      const faqQuestions = data.getAll("faqQuestion") as string[];
+      const faqAnswers = data.getAll("faqAnswer") as string[];
+      if (faqQuestions.length > 0 && faqQuestions[0]?.trim()) {
+        for (let i = 0; i < faqQuestions.length; i++) {
+          const question = faqQuestions[i]?.trim();
+          const answer = faqAnswers[i]?.trim();
+          if (!question || !answer) continue;
+          try {
+            await db.insert(serviceFaqs).values({
+              serviceId: service.id,
+              question,
+              answer,
+              sortOrder: i,
+              active: true,
+            });
+          } catch {
+            // Continue on failure
+          }
+        }
+      }
+    }
 
     await recordActivity(
       user.id,
