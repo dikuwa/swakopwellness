@@ -2,12 +2,11 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
-import { requirePermission } from "@/auth/session";
-import { hasPermission } from "@/auth/permissions";
-import { cancelBooking, changeBookingStatus, confirmBooking, markCompleted, markNoShow } from "@/booking/actions";
+import { requirePermission, hasPermission } from "@/auth/session";
 import { getAvailableActions } from "@/booking/status";
 import { DashboardShell } from "@/dashboard/shell";
 import { getDashboardBookingById } from "@/dashboard/data";
+import { StatusActionsPanel } from "../status-actions-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -31,55 +30,6 @@ const statusStyles: Record<string, string> = {
 function StatusBadge({ status }: { status: string }) {
   const cls = statusStyles[status] ?? "bg-gray-100 text-gray-700";
   return <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${cls}`}>{status.replaceAll("_", " ")}</span>;
-}
-
-const actionLabels: Record<string, string> = {
-  requires_review: "Review",
-  contacting_client: "Contacting client",
-  awaiting_client_response: "Awaiting response",
-  confirmed: "Confirm",
-  rescheduled: "Reschedule",
-  cancelled: "Cancel",
-  completed: "Complete",
-  no_show: "No-show",
-};
-
-function ActionForm({ bookingId, action }: { bookingId: string; action: string }) {
-  if (action === "cancelled") {
-    return (
-      <form action={cancelBooking} className="flex flex-wrap items-center gap-2">
-        <input type="hidden" name="bookingId" value={bookingId} />
-        <input name="reason" required placeholder="Reason" className="h-10 rounded-xl border border-border bg-background px-3 text-sm" />
-        <button type="submit" className="h-10 rounded-xl border border-destructive/30 px-3 text-sm font-semibold text-destructive hover:bg-destructive/10">Cancel</button>
-      </form>
-    );
-  }
-
-  if (action === "confirmed") {
-    return <form action={confirmBooking.bind(null, bookingId)}><button type="submit" className="h-10 rounded-xl border border-border px-3 text-sm font-semibold hover:bg-surface-muted">Confirm</button></form>;
-  }
-
-  if (action === "completed") {
-    return <form action={markCompleted.bind(null, bookingId)}><button type="submit" className="h-10 rounded-xl border border-border px-3 text-sm font-semibold hover:bg-surface-muted">Complete</button></form>;
-  }
-
-  if (action === "no_show") {
-    return (
-      <form action={markNoShow} className="flex flex-wrap items-center gap-2">
-        <input type="hidden" name="bookingId" value={bookingId} />
-        <input name="reason" placeholder="Reason (optional)" className="h-10 rounded-xl border border-border bg-background px-3 text-sm" />
-        <button type="submit" className="h-10 rounded-xl border border-destructive/30 px-3 text-sm font-semibold text-destructive hover:bg-destructive/10">No-show</button>
-      </form>
-    );
-  }
-
-  return (
-    <form action={changeBookingStatus}>
-      <input type="hidden" name="bookingId" value={bookingId} />
-      <input type="hidden" name="newStatus" value={action} />
-      <button type="submit" className="h-10 rounded-xl border border-border px-3 text-sm font-semibold hover:bg-surface-muted">{actionLabels[action] ?? action.replaceAll("_", " ")}</button>
-    </form>
-  );
 }
 
 function DetailItem({ label, value }: { label: string; value: ReactNode }) {
@@ -138,13 +88,12 @@ export default async function BookingDetailPage(props: { params: Promise<{ id: s
 
           <section className="rounded-2xl border border-border bg-background p-5">
             <h2 className="text-lg font-semibold">Status Actions</h2>
-            {actions.length === 0 ? (
-              <p className="mt-4 text-sm text-muted-foreground">No further status actions are available.</p>
-            ) : (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {actions.map((action) => <ActionForm key={action} bookingId={booking.id} action={action} />)}
-              </div>
-            )}
+            <StatusActionsPanel
+              bookingId={booking.id}
+              currentStatus={booking.status}
+              currentDate={booking.preferredAt}
+              availableActions={actions}
+            />
           </section>
         </div>
 

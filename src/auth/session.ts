@@ -5,6 +5,7 @@ import { getDb } from "@/db/client";
 import { permissions, rolePermissions, roles, sessions, userRoles, users } from "@/db/schema";
 import type { PermissionCode } from "./permissions";
 import { hasPermission } from "./permissions";
+export { hasPermission };
 import { createSessionToken, hashSessionToken } from "./token";
 
 export const sessionCookieName = "swc_session";

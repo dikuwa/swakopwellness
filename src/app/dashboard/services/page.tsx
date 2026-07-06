@@ -3,13 +3,24 @@ import type { Metadata } from "next";
 import { eq, isNull } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
-import { services, serviceCategories } from "@/db/schema";
+import { services, serviceCategories, mediaAssets } from "@/db/schema";
 import { DashboardShell } from "@/dashboard/shell";
 import {
   archiveService,
   toggleServiceActive,
   toggleServicePublic,
 } from "@/services/actions";
+import {
+  Layers,
+  CheckCircle2,
+  Clock,
+  Star,
+  Plus,
+  Tag,
+  Sliders,
+  Pencil,
+  Trash2
+} from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +37,7 @@ export default async function ServicesPage() {
       id: services.id,
       name: services.name,
       slug: services.slug,
+      shortDescription: services.shortDescription,
       categoryName: serviceCategories.name,
       priceCents: services.priceCents,
       durationMinutes: services.durationMinutes,
@@ -33,134 +45,224 @@ export default async function ServicesPage() {
       publicVisible: services.publicVisible,
       featured: services.featured,
       sortOrder: services.sortOrder,
+      featuredImageUrl: mediaAssets.publicUrl,
     })
     .from(services)
     .leftJoin(serviceCategories, eq(services.categoryId, serviceCategories.id))
+    .leftJoin(mediaAssets, eq(services.featuredImageId, mediaAssets.id))
     .where(isNull(services.archivedAt))
     .orderBy(services.sortOrder);
+
+  const totalServices = allServices.length;
+  const activeServices = allServices.filter((s) => s.active).length;
+  const featuredServices = allServices.filter((s) => s.featured).length;
+  const avgDuration = totalServices > 0
+    ? Math.round(allServices.reduce((sum, s) => sum + (s.durationMinutes || 0), 0) / (allServices.filter((s) => s.durationMinutes).length || 1))
+    : 0;
 
   return (
     <DashboardShell>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">Services</p>
-          <h1 className="mt-2 text-2xl sm:text-3xl tracking-[-0.03em]">Services</h1>
+          <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">SERVICES</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">Services</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/dashboard/services/categories"
-            className="flex h-10 items-center rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted"
+            className="flex h-10 items-center gap-1.5 rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted"
           >
+            <Tag className="h-4 w-4" />
             Categories
           </Link>
           <Link
             href="/dashboard/services/suitability"
-            className="flex h-10 items-center rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted"
+            className="flex h-10 items-center gap-1.5 rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted"
           >
+            <Sliders className="h-4 w-4" />
             Suitability
           </Link>
           <Link
             href="/dashboard/services/new"
-            className="flex h-10 items-center rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted"
+            className="flex h-10 items-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
           >
-            New Service
+            <Plus className="h-4 w-4" />
+            Add Service
           </Link>
         </div>
       </div>
-      <div className="mt-6 overflow-x-auto">
-        <table className="w-full min-w-[900px] text-left text-sm">
-          <thead className="text-muted-foreground">
-            <tr>
-              <th className="py-3">Name</th>
-              <th>Category</th>
-              <th>Price</th>
-              <th>Duration</th>
-              <th>Active</th>
-              <th>Public</th>
-              <th>Featured</th>
-              <th>Sort</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {allServices.map((s) => (
-              <tr
-                key={s.id}
-                className="border-t border-border hover:bg-surface-muted/50"
-              >
-                <td className="py-3 font-medium">{s.name}</td>
-                <td className="text-muted-foreground">
-                  {s.categoryName ?? "\u2014"}
-                </td>
-                <td>N${(s.priceCents / 100).toFixed(0)}</td>
-                <td className="text-muted-foreground">
-                  {s.durationMinutes
-                    ? `${s.durationMinutes} min`
-                    : "\u2014"}
-                </td>
-                <td>
-                  <form action={toggleServiceActive.bind(null, s.id)}>
-                    <button
-                      type="submit"
-                      className={`inline-block cursor-pointer rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        s.active
-                          ? "bg-green-100 text-green-700"
-                          : "bg-red-100 text-red-700"
-                      }`}
-                    >
-                      {s.active ? "Yes" : "No"}
-                    </button>
-                  </form>
-                </td>
-                <td>
-                  <form action={toggleServicePublic.bind(null, s.id)}>
-                    <button
-                      type="submit"
-                      className={`inline-block cursor-pointer rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        s.publicVisible
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-500"
-                      }`}
-                    >
-                      {s.publicVisible ? "Yes" : "No"}
-                    </button>
-                  </form>
-                </td>
-                <td>{s.featured ? "\u2605" : "\u2606"}</td>
-                <td className="text-muted-foreground">{s.sortOrder}</td>
-                <td>
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href={`/dashboard/services/${s.id}/edit`}
-                      className="flex h-8 items-center rounded-lg border border-border px-3 text-xs font-semibold transition-colors hover:bg-surface-muted"
-                    >
-                      Edit
-                    </Link>
-                    <form action={archiveService.bind(null, s.id)}>
+
+      {/* Stats Summary Card Bar */}
+      <div className="mt-6 grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Layers className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Total Services</p>
+            <p className="text-xl font-bold tracking-tight mt-0.5">{totalServices}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-success/10 text-success">
+            <CheckCircle2 className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Active</p>
+            <p className="text-xl font-bold tracking-tight mt-0.5">{activeServices}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-warning/10 text-warning">
+            <Clock className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Avg. Duration</p>
+            <p className="text-xl font-bold tracking-tight mt-0.5">{avgDuration} min</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+            <Star className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Featured</p>
+            <p className="text-xl font-bold tracking-tight mt-0.5">{featuredServices}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-8 rounded-xl border border-border bg-background overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[900px] text-left text-sm">
+            <thead className="bg-surface-muted text-muted-foreground border-b border-border">
+              <tr>
+                <th className="py-3 px-4 font-semibold">Service Name</th>
+                <th className="py-3 px-4 font-semibold">Category</th>
+                <th className="py-3 px-4 font-semibold">Price</th>
+                <th className="py-3 px-4 font-semibold">Duration</th>
+                <th className="py-3 px-4 font-semibold">Active</th>
+                <th className="py-3 px-4 font-semibold">Public</th>
+                <th className="py-3 px-4 font-semibold">Featured</th>
+                <th className="py-3 px-4 font-semibold text-center">Sort</th>
+                <th className="py-3 px-4 font-semibold text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {allServices.map((s) => (
+                <tr
+                  key={s.id}
+                  className="hover:bg-surface-muted/30 transition-colors"
+                >
+                  <td className="py-3.5 px-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-border bg-surface-muted">
+                        {s.featuredImageUrl ? (
+                          <img
+                            src={s.featuredImageUrl}
+                            alt={s.name}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-muted-foreground/30">
+                            <Layers className="h-4 w-4" />
+                          </div>
+                        )}
+                      </div>
+                      <div>
+                        <span className="font-semibold text-foreground block text-sm">{s.name}</span>
+                        <span className="text-xs text-muted-foreground block max-w-[320px] truncate mt-0.5">
+                          {s.shortDescription || "No short description"}
+                        </span>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-3.5 px-4 text-muted-foreground">
+                    {s.categoryName ?? "\u2014"}
+                  </td>
+                  <td className="py-3.5 px-4 font-medium">N${(s.priceCents / 100).toFixed(0)}</td>
+                  <td className="py-3.5 px-4 text-muted-foreground">
+                    {s.durationMinutes
+                      ? `${s.durationMinutes} min`
+                      : "\u2014"}
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <form action={toggleServiceActive.bind(null, s.id)}>
                       <button
                         type="submit"
-                        className="flex h-8 cursor-pointer items-center rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+                        className={`inline-flex items-center gap-1.5 cursor-pointer rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                          s.active
+                            ? "bg-green-50 text-green-700"
+                            : "bg-red-50 text-red-700"
+                        }`}
                       >
-                        Archive
+                        <span className={`h-1.5 w-1.5 rounded-full ${s.active ? "bg-green-600" : "bg-red-600"}`} />
+                        {s.active ? "Active" : "Inactive"}
                       </button>
                     </form>
-                  </div>
-                </td>
-              </tr>
-            ))}
-            {allServices.length === 0 && (
-              <tr>
-                <td
-                  colSpan={9}
-                  className="py-8 text-center text-sm text-muted-foreground"
-                >
-                  No services yet.
-                </td>
-              </tr>
-            )}
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <form action={toggleServicePublic.bind(null, s.id)}>
+                      <button
+                        type="submit"
+                        className={`inline-flex items-center gap-1.5 cursor-pointer rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                          s.publicVisible
+                            ? "bg-green-50 text-green-700"
+                            : "bg-gray-50 text-gray-500"
+                        }`}
+                      >
+                        <span className={`h-1.5 w-1.5 rounded-full ${s.publicVisible ? "bg-green-600" : "bg-gray-400"}`} />
+                        {s.publicVisible ? "Visible" : "Hidden"}
+                      </button>
+                    </form>
+                  </td>
+                  <td className="py-3.5 px-4">
+                    <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${s.featured ? "text-amber-700 bg-amber-50" : "text-muted-foreground bg-surface-muted"}`}>
+                      <Star className={`h-3 w-3 ${s.featured ? "fill-amber-500 text-amber-500" : "text-muted-foreground"}`} />
+                      {s.featured ? "Featured" : "Standard"}
+                    </span>
+                  </td>
+                  <td className="py-3.5 px-4 text-center text-muted-foreground font-mono text-xs">{s.sortOrder}</td>
+                  <td className="py-3.5 px-4">
+                    <div className="flex items-center justify-end gap-2">
+                      <Link
+                        href={`/dashboard/services/${s.id}/edit`}
+                        className="flex h-8 items-center gap-1 rounded-lg border border-border px-3 text-xs font-semibold transition-colors hover:bg-surface-muted"
+                      >
+                        <Pencil className="h-3 w-3 text-muted-foreground" />
+                        Edit
+                      </Link>
+                      <form action={archiveService.bind(null, s.id)}>
+                        <button
+                          type="submit"
+                          className="flex h-8 cursor-pointer items-center gap-1 rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          Archive
+                        </button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+              {allServices.length === 0 && (
+                <tr>
+                  <td
+                    colSpan={9}
+                    className="py-12 text-center text-sm text-muted-foreground"
+                  >
+                    No services yet.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
+      </div>
     </DashboardShell>
   );
 }

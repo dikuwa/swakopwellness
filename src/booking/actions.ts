@@ -109,7 +109,8 @@ export async function markNoShow(formData: FormData): Promise<void> {
 export async function changeBookingStatus(formData: FormData): Promise<void> {
   const bookingId = formData.get("bookingId") as string;
   const newStatus = formData.get("newStatus") as string;
-  await transitionBookingStatus(bookingId, newStatus);
+  const reason = formData.get("reason") as string | undefined;
+  await transitionBookingStatus(bookingId, newStatus, reason || undefined);
 }
 
 export async function rescheduleBooking(formData: FormData): Promise<void> {
