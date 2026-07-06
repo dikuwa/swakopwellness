@@ -1,6 +1,15 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Fragment, type ComponentType } from "react";
 import { and, asc, eq, gte, lte } from "drizzle-orm";
+import {
+  CalendarDays,
+  CalendarCheck,
+  AlertCircle,
+  Inbox,
+  User,
+  Clock,
+} from "lucide-react";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
 import { getDb } from "@/db/client";
@@ -29,6 +38,21 @@ function bookingBadge(status: string): { label: string; variant: "default" | "pr
   return map[status] ?? { label: status.replaceAll("_", " "), variant: "default" };
 }
 
+function getStatusDotColor(status: string): string {
+  const map: Record<string, string> = {
+    new_request: "bg-warning",
+    requires_review: "bg-destructive",
+    confirmed: "bg-success",
+    completed: "bg-primary",
+    cancelled: "bg-muted-foreground/60",
+    contacting_client: "bg-warning",
+    awaiting_client_response: "bg-warning",
+    rescheduled: "bg-primary",
+    no_show: "bg-destructive",
+  };
+  return map[status] ?? "bg-muted-foreground/60";
+}
+
 function formatDateHeader(date: Date) {
   return date.toLocaleDateString("en-GB", {
     weekday: "long",
@@ -51,6 +75,7 @@ function toISODate(date: Date) {
   return `${y}-${m}-${d}`;
 }
 
+// Fixed timezone issues by parsing correctly
 function startOfDay(dateStr: string) {
   return new Date(`${dateStr}T00:00:00`);
 }
@@ -85,6 +110,7 @@ interface BookingRow {
   status: string;
   clientName: string | null;
   serviceName: string;
+  serviceDurationMinutes: number | null;
 }
 
 function groupByDate(bookings: BookingRow[]): [string, BookingRow[]][] {
@@ -98,11 +124,26 @@ function groupByDate(bookings: BookingRow[]): [string, BookingRow[]][] {
   return Array.from(groups.entries());
 }
 
-function CompactStat({ label, value, className }: { label: string; value: number; className?: string }) {
+function CompactStat({
+  label,
+  value,
+  icon: Icon,
+  className,
+  valueClassName,
+}: {
+  label: string;
+  value: number;
+  icon: ComponentType<{ className?: string }>;
+  className?: string;
+  valueClassName?: string;
+}) {
   return (
-    <div className={`rounded-xl border border-border bg-surface-muted p-3 ${className || ""}`}>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-xl font-semibold tracking-tight">{value}</p>
+    <div className={`flex items-center justify-between rounded-xl border border-border bg-surface p-3 transition-colors ${className || ""}`}>
+      <div className="flex items-center gap-2 text-muted-foreground min-w-0">
+        <Icon className="h-4 w-4 shrink-0 text-muted-foreground/80" />
+        <span className="text-xs font-medium truncate">{label}</span>
+      </div>
+      <span className={`text-base font-semibold tracking-tight ${valueClassName || "text-foreground"}`}>{value}</span>
     </div>
   );
 }
@@ -130,12 +171,13 @@ export default async function DashboardCalendarPage(props: { searchParams: Promi
       status: bookings.status,
       clientName: clients.fullName,
       serviceName: bookings.serviceName,
+      serviceDurationMinutes: bookings.serviceDurationMinutes,
     })
     .from(bookings)
     .leftJoin(clients, eq(bookings.clientId, clients.id))
     .where(and(gte(bookings.preferredAt, fromDate), lte(bookings.preferredAt, toDate)))
     .orderBy(asc(bookings.preferredAt))
-    .limit(200); // Increased limit slightly
+    .limit(200);
 
   const grouped = groupByDate(allBookings);
 
@@ -181,13 +223,13 @@ export default async function DashboardCalendarPage(props: { searchParams: Promi
 
       {/* Summary Cards */}
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <CompactStat label="Total Appointments" value={totalAppointments} />
-        <CompactStat label="Confirmed" value={confirmedCount} className="text-success" />
-        <CompactStat label="Requires Review" value={reviewCount} className="text-danger" />
-        <CompactStat label="New Requests" value={newRequestCount} className="text-warning" />
+        <CompactStat label="Total Appointments" value={totalAppointments} icon={CalendarDays} />
+        <CompactStat label="Confirmed" value={confirmedCount} icon={CalendarCheck} valueClassName="text-success" />
+        <CompactStat label="Requires Review" value={reviewCount} icon={AlertCircle} valueClassName="text-destructive" />
+        <CompactStat label="New Requests" value={newRequestCount} icon={Inbox} valueClassName="text-warning" />
       </div>
 
-      <Card className="mt-6">
+      <Card className="mt-6 overflow-hidden">
         {grouped.length === 0 ? (
           <div className="p-6 text-center text-sm text-muted-foreground">
             <p>No appointments found for this period.</p>
@@ -197,40 +239,66 @@ export default async function DashboardCalendarPage(props: { searchParams: Promi
             {/* Desktop Table */}
             <div className="hidden md:block">
               <table className="w-full text-sm">
-                <thead className="border-b border-border text-left text-xs text-muted-foreground">
+                <thead className="border-b border-border text-left text-xs text-muted-foreground bg-surface-muted/20">
                   <tr>
-                    <th className="px-5 py-3 font-medium">Time</th>
-                    <th className="px-5 py-3 font-medium">Service</th>
-                    <th className="px-5 py-3 font-medium">Client</th>
-                    <th className="px-5 py-3 font-medium">Booking ID</th>
-                    <th className="px-5 py-3 font-medium text-right">Status</th>
+                    <th className="px-5 py-2.5 font-medium">Time</th>
+                    <th className="px-5 py-2.5 font-medium">Service</th>
+                    <th className="px-5 py-2.5 font-medium">Client</th>
+                    <th className="px-5 py-2.5 font-medium">Booking ID</th>
+                    <th className="px-5 py-2.5 font-medium text-right">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {grouped.map(([dateKey, dateBookings]) => (
-                    <>
-                      <tr key={dateKey} className="border-b border-border bg-surface-muted">
-                        <td colSpan={5} className="px-5 py-2 text-sm font-semibold text-foreground">
-                          {formatDateHeader(new Date(dateKey + "T12:00:00"))}
+                    <Fragment key={dateKey}>
+                      <tr className="border-b border-border bg-surface-muted/60">
+                        <td colSpan={5} className="px-5 py-2 text-sm font-medium text-foreground">
+                          <div className="flex items-center gap-2">
+                            <CalendarDays className="h-4 w-4 text-muted-foreground/80" />
+                            <span>{formatDateHeader(new Date(dateKey + "T12:00:00"))}</span>
+                          </div>
                         </td>
                       </tr>
                       {dateBookings.map((b) => {
                         const badge = bookingBadge(b.status);
+                        const dotColor = getStatusDotColor(b.status);
                         return (
-                          <tr key={b.id} className="border-b border-border transition-colors last:border-none hover:bg-surface-muted/50">
-                            <td className="px-5 py-3 font-semibold text-primary">{formatTime(b.preferredAt)}</td>
-                            <td className="px-5 py-3 font-semibold">
-                              <Link href={`/dashboard/bookings/${b.id}`} className="hover:underline">{b.serviceName}</Link>
+                          <tr key={b.id} className="border-b border-border transition-colors last:border-none hover:bg-surface-muted/30">
+                            <td className="px-5 py-2 font-medium text-primary whitespace-nowrap align-middle">
+                              {formatTime(b.preferredAt)}
                             </td>
-                            <td className="px-5 py-3 text-muted-foreground">{b.clientName}</td>
-                            <td className="px-5 py-3 font-mono text-xs text-muted-foreground">{b.reference}</td>
-                            <td className="px-5 py-3 text-right">
-                              <Badge variant={badge.variant}>{badge.label}</Badge>
+                            <td className="px-5 py-2 align-middle">
+                              <div className="flex flex-col">
+                                <Link href={`/dashboard/bookings/${b.id}`} className="font-medium text-foreground hover:underline">
+                                  {b.serviceName}
+                                </Link>
+                                {b.serviceDurationMinutes && (
+                                  <span className="text-xs text-muted-foreground/80 font-normal mt-0.5 flex items-center gap-1">
+                                    <Clock className="h-3 w-3 shrink-0" />
+                                    {b.serviceDurationMinutes} min
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-5 py-2 text-muted-foreground align-middle">
+                              <div className="flex items-center gap-1.5 font-normal">
+                                <User className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
+                                <span className="truncate max-w-[150px]">{b.clientName}</span>
+                              </div>
+                            </td>
+                            <td className="px-5 py-2 font-mono text-xs text-muted-foreground align-middle">
+                              {b.reference}
+                            </td>
+                            <td className="px-5 py-2 text-right align-middle">
+                              <Badge variant={badge.variant} className="gap-1.5 inline-flex items-center">
+                                <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`} />
+                                {badge.label}
+                              </Badge>
                             </td>
                           </tr>
                         );
                       })}
-                    </>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
@@ -239,28 +307,46 @@ export default async function DashboardCalendarPage(props: { searchParams: Promi
             {/* Mobile List */}
             <div className="divide-y divide-border md:hidden">
               {grouped.map(([dateKey, dateBookings]) => (
-                <div key={dateKey}>
-                  <div className="bg-surface-muted px-4 py-2">
-                     <h2 className="text-sm font-semibold text-foreground">{formatDateHeader(new Date(dateKey + "T12:00:00"))}</h2>
+                <div key={dateKey} className="first:pt-0">
+                  <div className="bg-surface-muted/60 px-4 py-2 border-b border-border">
+                    <h2 className="text-sm font-medium text-foreground flex items-center gap-2">
+                      <CalendarDays className="h-4 w-4 text-muted-foreground/80" />
+                      <span>{formatDateHeader(new Date(dateKey + "T12:00:00"))}</span>
+                    </h2>
                   </div>
-                  {dateBookings.map((b) => {
-                    const badge = bookingBadge(b.status);
-                    return (
-                      <Link key={b.id} href={`/dashboard/bookings/${b.id}`} className="block px-4 py-3 transition-colors hover:bg-surface-muted/50">
-                        <div className="flex items-start justify-between gap-3">
-                          <div>
-                            <p className="font-semibold text-foreground">{b.serviceName}</p>
-                            <p className="text-sm text-muted-foreground">{b.clientName}</p>
+                  <div className="divide-y divide-border/60">
+                    {dateBookings.map((b) => {
+                      const badge = bookingBadge(b.status);
+                      const dotColor = getStatusDotColor(b.status);
+                      return (
+                        <Link key={b.id} href={`/dashboard/bookings/${b.id}`} className="block px-4 py-3 transition-colors hover:bg-surface-muted/30">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="space-y-0.5">
+                              <p className="font-medium text-foreground">{b.serviceName}</p>
+                              {b.serviceDurationMinutes && (
+                                <p className="text-xs text-muted-foreground/80 font-normal flex items-center gap-1">
+                                  <Clock className="h-3 w-3 shrink-0" />
+                                  {b.serviceDurationMinutes} min
+                                </p>
+                              )}
+                              <p className="text-sm text-muted-foreground flex items-center gap-1.5 pt-1">
+                                <User className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
+                                <span>{b.clientName}</span>
+                              </p>
+                            </div>
+                            <Badge variant={badge.variant} className="gap-1.5 inline-flex items-center shrink-0">
+                              <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`} />
+                              {badge.label}
+                            </Badge>
                           </div>
-                          <Badge variant={badge.variant}>{badge.label}</Badge>
-                        </div>
-                        <div className="mt-2 flex items-center justify-between text-sm">
-                          <span className="font-semibold text-primary">{formatTime(b.preferredAt)}</span>
-                          <span className="font-mono text-xs text-muted-foreground">{b.reference}</span>
-                        </div>
-                      </Link>
-                    );
-                  })}
+                          <div className="mt-2.5 flex items-center justify-between text-xs text-muted-foreground">
+                            <span className="font-medium text-primary">{formatTime(b.preferredAt)}</span>
+                            <span className="font-mono">{b.reference}</span>
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
                 </div>
               ))}
             </div>
