@@ -20,7 +20,7 @@ interface StatusActionsPanelProps {
   bookingId: string;
   currentStatus: string;
   currentDate: Date;
-  availableActions: string[];
+  availableActions: readonly string[];
 }
 
 const actionLabels: Record<string, string> = {
@@ -52,8 +52,8 @@ export function StatusActionsPanel({ bookingId, currentStatus, currentDate, avai
   const [newTime, setNewTime] = useState<string>(currentDate.toTimeString().substring(0, 5));
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  const handleActionSelect = (action: StatusAction) => {
-    setSelectedAction(action);
+  const handleActionSelect = (action: string) => {
+    setSelectedAction(action as StatusAction);
     setValidationError(null);
   };
 
@@ -142,7 +142,7 @@ export function StatusActionsPanel({ bookingId, currentStatus, currentDate, avai
             <button
               key={action}
               type="button"
-              onClick={() => handleActionSelect(action as StatusAction)}
+              onClick={() => handleActionSelect(action)}
               disabled={isPending}
               className={`rounded-xl border border-border px-4 py-2 text-sm font-medium transition-all duration-200 hover:bg-surface-muted disabled:opacity-50 disabled:cursor-not-allowed ${
                 isSelected ? selectedClass : "text-foreground"
