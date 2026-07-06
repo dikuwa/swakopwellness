@@ -29,9 +29,13 @@ export function DiacomSection({ business }: { business: BusinessSettingsWithImag
                 loading="lazy"
               />
             ) : (
-              <div className="flex aspect-[4/3] items-center justify-center bg-[linear-gradient(135deg,oklch(0.924_0.025_116),oklch(0.988_0.009_85))] text-sm text-muted-foreground lg:aspect-auto lg:h-full">
-                Diacom device
-              </div>
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src="/images/diacom-technology-device.webp"
+                alt="Diacom device"
+                className="h-full w-full object-cover"
+                loading="lazy"
+              />
             )}
           </div>
           <div className="flex flex-col justify-center gap-4">
