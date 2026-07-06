@@ -39,9 +39,10 @@ export default async function ServiceCategoriesPage() {
           </div>
         </div>
 
+        {/* Create category form */}
         <form
           action={async (formData) => { "use server"; await createServiceCategory(formData); }}
-          className="mt-6 grid gap-4 rounded-xl border border-border bg-background p-4 lg:grid-cols-[1fr_1fr_2fr_120px_auto]"
+          className="mt-6 grid items-end gap-4 rounded-xl border border-border bg-background p-5 lg:grid-cols-[1fr_1fr_2fr_100px_auto]"
         >
           <div>
             <label htmlFor="name" className="mb-1.5 block text-sm font-semibold">
@@ -66,10 +67,7 @@ export default async function ServiceCategoriesPage() {
             />
           </div>
           <div>
-            <label
-              htmlFor="description"
-              className="mb-1.5 block text-sm font-semibold"
-            >
+            <label htmlFor="description" className="mb-1.5 block text-sm font-semibold">
               Description
             </label>
             <input
@@ -79,10 +77,7 @@ export default async function ServiceCategoriesPage() {
             />
           </div>
           <div>
-            <label
-              htmlFor="sortOrder"
-              className="mb-1.5 block text-sm font-semibold"
-            >
+            <label htmlFor="sortOrder" className="mb-1.5 block text-sm font-semibold">
               Sort
             </label>
             <input
@@ -93,76 +88,84 @@ export default async function ServiceCategoriesPage() {
               className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
-          <div className="flex items-end">
-            <button
-              type="submit"
-              className="flex h-11 w-full items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              Create
-            </button>
-          </div>
+          <button
+            type="submit"
+            className="flex h-11 items-center justify-center rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Create
+          </button>
         </form>
 
         <div className="mt-6 space-y-3">
           {categories.map((category) => (
-            <div
-              key={category.id}
-              className="rounded-xl border border-border bg-background p-4"
-            >
+            <div key={category.id} className="rounded-xl border border-border bg-background p-5">
               <form
                 action={async (formData) => { "use server"; await updateServiceCategory(category.id, formData); }}
-                className="grid gap-4 lg:grid-cols-[1fr_1fr_2fr_120px_auto]"
+                className="grid items-end gap-4 lg:grid-cols-[1fr_1fr_2fr_100px_auto]"
               >
-                <input
-                  name="name"
-                  defaultValue={category.name}
-                  required
-                  aria-label="Category name"
-                  className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
-                <input
-                  name="slug"
-                  defaultValue={category.slug}
-                  aria-label="Category slug"
-                  className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
-                <input
-                  name="description"
-                  defaultValue={category.description ?? ""}
-                  aria-label="Category description"
-                  className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
-                <input
-                  name="sortOrder"
-                  type="number"
-                  defaultValue={category.sortOrder}
-                  aria-label="Category sort order"
-                  className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                />
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold">Name</label>
+                  <input
+                    name="name"
+                    defaultValue={category.name}
+                    required
+                    aria-label="Category name"
+                    className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold">Slug</label>
+                  <input
+                    name="slug"
+                    defaultValue={category.slug}
+                    aria-label="Category slug"
+                    className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold">Description</label>
+                  <input
+                    name="description"
+                    defaultValue={category.description ?? ""}
+                    aria-label="Category description"
+                    className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+                <div>
+                  <label className="mb-1.5 block text-sm font-semibold">Sort</label>
+                  <input
+                    name="sortOrder"
+                    type="number"
+                    defaultValue={category.sortOrder}
+                    aria-label="Category sort order"
+                    className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
                 <button
                   type="submit"
-                  className="flex h-11 items-center justify-center rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted"
+                  className="flex h-11 items-center justify-center rounded-xl border border-border px-5 text-sm font-semibold transition-colors hover:bg-surface-muted"
                 >
                   Update
                 </button>
               </form>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
+              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
                 <form action={toggleServiceCategoryActive.bind(null, category.id)}>
                   <button
                     type="submit"
-                    className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
                       category.active
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
+                        ? "bg-green-50 text-green-700"
+                        : "bg-red-50 text-red-700"
                     }`}
                   >
+                    <span className={`h-1.5 w-1.5 rounded-full ${category.active ? "bg-green-600" : "bg-red-600"}`} />
                     {category.active ? "Active" : "Inactive"}
                   </button>
                 </form>
                 <form action={deleteOrArchiveServiceCategory.bind(null, category.id)}>
                   <button
                     type="submit"
-                    className="flex h-8 items-center rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+                    className="flex h-8 items-center gap-1 rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
                   >
                     Delete / Archive
                   </button>

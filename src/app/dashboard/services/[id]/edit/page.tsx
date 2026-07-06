@@ -104,49 +104,123 @@ export default async function EditServicePage({ params }: PageProps) {
         <h2 className="text-lg font-semibold">Service FAQs</h2>
         <p className="mt-2 text-sm text-muted-foreground">These appear on this service detail page.</p>
 
-        <form action={createServiceFaq.bind(null, id) as unknown as (fd: FormData) => Promise<void>} className="mt-5 grid gap-4 rounded-2xl bg-surface-muted p-4 md:grid-cols-[1fr_1fr_6rem_auto]">
-          <label className="text-sm font-medium">
-            Question
-            <input name="question" required className="mt-2 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
-          </label>
-          <label className="text-sm font-medium">
-            Answer
-            <input name="answer" required className="mt-2 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
-          </label>
-          <label className="text-sm font-medium">
-            Sort
-            <input name="sortOrder" type="number" defaultValue={faqs.length} className="mt-2 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
-          </label>
-          <button type="submit" className="mt-7 h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Add FAQ</button>
+        {/* Add FAQ form — stacked layout */}
+        <form action={createServiceFaq.bind(null, id) as unknown as (fd: FormData) => Promise<void>} className="mt-5 space-y-4 rounded-2xl bg-surface-muted p-5">
+          <div>
+            <label htmlFor="faq-question" className="mb-1.5 block text-sm font-semibold">
+              Question *
+            </label>
+            <textarea
+              id="faq-question"
+              name="question"
+              required
+              rows={2}
+              className="w-full resize-y rounded-xl border border-border bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
+          <div>
+            <label htmlFor="faq-answer" className="mb-1.5 block text-sm font-semibold">
+              Answer *
+            </label>
+            <textarea
+              id="faq-answer"
+              name="answer"
+              required
+              rows={3}
+              className="w-full resize-y rounded-xl border border-border bg-background p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+            />
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="w-24">
+              <label htmlFor="faq-sort" className="mb-1.5 block text-sm font-semibold">
+                Sort
+              </label>
+              <input
+                id="faq-sort"
+                name="sortOrder"
+                type="number"
+                defaultValue={faqs.length}
+                className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+              />
+            </div>
+            <button
+              type="submit"
+              className="h-11 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Add FAQ
+            </button>
+          </div>
         </form>
 
+        {/* Existing FAQs */}
         <div className="mt-5 space-y-4">
-          {faqs.length === 0 ? <p className="rounded-2xl bg-surface-muted p-4 text-sm text-muted-foreground">No service FAQs yet.</p> : null}
+          {faqs.length === 0 ? (
+            <p className="rounded-2xl bg-surface-muted p-4 text-sm text-muted-foreground">No service FAQs yet.</p>
+          ) : null}
           {faqs.map((faq) => (
-            <article key={faq.id} className="rounded-2xl border border-border p-4">
-              <form action={updateServiceFaq.bind(null, faq.id) as unknown as (fd: FormData) => Promise<void>} className="grid gap-4 md:grid-cols-[1fr_1fr_6rem_auto]">
-                <label className="text-sm font-medium">
-                  Question
-                  <input name="question" required defaultValue={faq.question} className="mt-2 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
-                </label>
-                <label className="text-sm font-medium">
-                  Answer
-                  <input name="answer" required defaultValue={faq.answer} className="mt-2 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
-                </label>
-                <label className="text-sm font-medium">
-                  Sort
-                  <input name="sortOrder" type="number" defaultValue={faq.sortOrder} className="mt-2 h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm" />
-                </label>
-                <button type="submit" className="mt-7 h-11 rounded-xl border border-border px-4 text-sm font-semibold hover:bg-surface-muted">Save</button>
+            <article key={faq.id} className="rounded-2xl border border-border p-5">
+              <form action={updateServiceFaq.bind(null, faq.id) as unknown as (fd: FormData) => Promise<void>}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-semibold">Question</label>
+                    <textarea
+                      name="question"
+                      required
+                      defaultValue={faq.question}
+                      rows={2}
+                      className="w-full resize-y rounded-xl border border-border bg-surface p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-semibold">Answer</label>
+                    <textarea
+                      name="answer"
+                      required
+                      defaultValue={faq.answer}
+                      rows={3}
+                      className="w-full resize-y rounded-xl border border-border bg-surface p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-end gap-3">
+                    <div className="w-24">
+                      <label className="mb-1.5 block text-sm font-semibold">Sort</label>
+                      <input
+                        name="sortOrder"
+                        type="number"
+                        defaultValue={faq.sortOrder}
+                        className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="h-11 rounded-xl border border-border px-5 text-sm font-semibold transition-colors hover:bg-surface-muted"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
               </form>
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-4">
+                <span className={`inline-flex h-8 items-center rounded-full px-3 text-xs font-semibold ${faq.active ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
+                  <span className={`mr-1.5 h-1.5 w-1.5 rounded-full ${faq.active ? "bg-green-600" : "bg-red-600"}`} />
+                  {faq.active ? "Active" : "Inactive"}
+                </span>
                 <form action={toggleServiceFaqActive.bind(null, faq.id)}>
-                  <button type="submit" className="h-9 rounded-xl border border-border px-3 text-xs font-semibold hover:bg-surface-muted">{faq.active ? "Deactivate" : "Activate"}</button>
+                  <button
+                    type="submit"
+                    className="h-8 rounded-lg border border-border px-3 text-xs font-semibold transition-colors hover:bg-surface-muted"
+                  >
+                    {faq.active ? "Deactivate" : "Activate"}
+                  </button>
                 </form>
                 <form action={deleteServiceFaq.bind(null, faq.id)}>
-                  <button type="submit" className="h-9 rounded-xl border border-destructive/30 px-3 text-xs font-semibold text-destructive hover:bg-destructive/10">Delete</button>
+                  <button
+                    type="submit"
+                    className="h-8 rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+                  >
+                    Delete
+                  </button>
                 </form>
-                <span className={`inline-flex h-9 items-center rounded-xl px-3 text-xs font-semibold ${faq.active ? "bg-success/10 text-success" : "bg-muted text-muted-foreground"}`}>{faq.active ? "Active" : "Inactive"}</span>
               </div>
             </article>
           ))}
