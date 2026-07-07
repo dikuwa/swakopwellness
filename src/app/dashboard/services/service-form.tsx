@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition, type ReactNode } from "react";
 import toast from "react-hot-toast";
 import { Select } from "@/ui/components";
 import { Upload, Loader2 } from "lucide-react";
@@ -48,6 +48,8 @@ interface Props {
   galleryImages?: GalleryImage[];
   serviceId?: string;
   children?: ReactNode;
+  /** Called when the gallery reorders and the featured image changes */
+  onFeaturedImageChange?: (publicUrl: string | null) => void;
 }
 
 function generateSlug(name: string): string {
@@ -59,18 +61,27 @@ function generateSlug(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
-export function ServiceForm({ categories, action, initialData, serviceId, galleryImages, children }: Props) {
+export function ServiceForm({ categories, action, initialData, serviceId, galleryImages, children, onFeaturedImageChange }: Props) {
   const router = useRouter();
   const isEdit = !!initialData;
   const slugManuallyEdited = useRef(false);
 
   const [categoryId, setCategoryId] = useState(initialData?.categoryId ?? "");
 
-  const firstImage = (galleryImages && galleryImages.length > 0) ? galleryImages[0] : null;
-
   const [featuredImageUrl, setFeaturedImageUrl] = useState<string | null>(
-    firstImage?.publicUrl ?? null
+    () => (galleryImages && galleryImages.length > 0) ? (galleryImages[0]?.publicUrl ?? null) : null
   );
+
+  const [, startTransition] = useTransition();
+
+  // Sync featured image URL when the parent updates gallery images (e.g. reorder/remove from GalleryManager)
+  useEffect(() => {
+    const url = (galleryImages && galleryImages.length > 0) ? galleryImages[0].publicUrl : null;
+    startTransition(() => {
+      setFeaturedImageUrl(url);
+    });
+  }, [galleryImages, startTransition]);
+
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -120,13 +131,16 @@ export function ServiceForm({ categories, action, initialData, serviceId, galler
         const result = await uploadServiceFeaturedImage(effectiveServiceId, formData);
         if (result.ok && 'publicUrl' in result && result.publicUrl) {
           setFeaturedImageUrl(result.publicUrl);
+          onFeaturedImageChange?.(result.publicUrl);
           toast.success("Image uploaded");
         } else {
           toast.error((result as { error?: string }).error ?? "Upload failed");
         }
       } else {
         // For new services, just show preview - upload happens during create
-        setFeaturedImageUrl(URL.createObjectURL(file));
+        const url = URL.createObjectURL(file);
+        setFeaturedImageUrl(url);
+        onFeaturedImageChange?.(url);
       }
     } catch {
       toast.error("Failed to upload image");
@@ -141,12 +155,14 @@ export function ServiceForm({ categories, action, initialData, serviceId, galler
       const result = await removeServiceFeaturedImage(effectiveServiceId);
       if (result.ok) {
         setFeaturedImageUrl(null);
+        onFeaturedImageChange?.(null);
         toast.success("Image removed");
       } else {
         toast.error((result as { error?: string }).error ?? "Failed to remove image");
       }
     } else {
       setFeaturedImageUrl(null);
+      onFeaturedImageChange?.(null);
     }
   };
 
