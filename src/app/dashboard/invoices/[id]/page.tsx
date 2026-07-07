@@ -124,12 +124,20 @@ export default async function InvoiceDetailPage(props: { params: Promise<{ id: s
             </form>
           )}
           {canRecordPayment && (
-            <Link
-              href={`/dashboard/payments/new?invoice_id=${invoice.id}`}
-              className="h-11 rounded-xl border border-border px-5 text-sm font-semibold transition-colors hover:bg-surface-muted flex items-center"
-            >
-              Record Payment
-            </Link>
+            <>
+              <Link
+                href={`/dashboard/payments/new?invoice_id=${invoice.id}`}
+                className="h-11 rounded-xl border border-border px-5 text-sm font-semibold transition-colors hover:bg-surface-muted flex items-center"
+              >
+                Record Payment
+              </Link>
+              <Link
+                href={`/dashboard/receipts/new?invoice_id=${invoice.id}`}
+                className="h-11 rounded-xl border border-border px-5 text-sm font-semibold transition-colors hover:bg-surface-muted flex items-center"
+              >
+                Create Receipt
+              </Link>
+            </>
           )}
           <a
             href={`/api/invoices/${invoice.id}/pdf`}
