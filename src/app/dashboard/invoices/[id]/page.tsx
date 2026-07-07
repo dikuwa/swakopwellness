@@ -94,15 +94,23 @@ export default async function InvoiceDetailPage(props: { params: Promise<{ id: s
 
         <div className="mt-8 flex flex-wrap gap-3 border-t border-border pt-6">
           {canIssue && (
-            <form action={issueInvoiceAction}>
-              <input type="hidden" name="invoice_id" value={invoice.id} />
-              <button
-                type="submit"
-                className="h-11 rounded-xl bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+            <>
+              <Link
+                href={`/dashboard/invoices/${invoice.id}/edit`}
+                className="h-11 rounded-xl border border-border px-5 text-sm font-semibold transition-colors hover:bg-surface-muted inline-flex items-center"
               >
-                Issue Invoice
-              </button>
-            </form>
+                Edit
+              </Link>
+              <form action={issueInvoiceAction}>
+                <input type="hidden" name="invoice_id" value={invoice.id} />
+                <button
+                  type="submit"
+                  className="h-11 rounded-xl bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+                >
+                  Issue Invoice
+                </button>
+              </form>
+            </>
           )}
           {canEmail && (
             <form action={emailInvoiceAction}>

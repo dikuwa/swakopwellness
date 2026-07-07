@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { clients, invoiceLineItems, invoices, quotationLineItems, quotations } from "@/db/schema";
 import { getNextDocumentNumber } from "@/documents/number";
@@ -106,6 +106,81 @@ export async function createQuotation(input: CreateQuotationInput): Promise<Quot
 
   if (result.ok) {
     await notifyStaff("quotation.created", `Quotation ${result.quotationNumber}`, `Quotation ${result.quotationNumber} for N$${(result.totalCents / 100).toFixed(2)} created`, "quotation", result.id);
+  }
+  return result;
+}
+
+export async function updateQuotation(
+  quotationId: string,
+  input: CreateQuotationInput,
+): Promise<QuotationResult> {
+  const db = getDb();
+  const result = await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select()
+      .from(quotations)
+      .where(eq(quotations.id, quotationId))
+      .limit(1);
+    if (!existing) return { ok: false, message: "Quotation not found." } as QuotationResult;
+    if (existing.status !== "draft") return { ok: false, message: "Only draft quotations can be edited." } as QuotationResult;
+
+    const [client] = await tx.select({ id: clients.id }).from(clients).where(eq(clients.id, input.clientId)).limit(1);
+    if (!client) return { ok: false, message: "Client not found." } as QuotationResult;
+
+    const subtotalCents = input.lineItems.reduce((sum, item) => sum + item.quantity * item.unitPriceCents - (item.discountCents ?? 0), 0);
+    const discountCents = calculateDiscountCents(subtotalCents, input.discountType, input.discountValue);
+    const totalCents = subtotalCents - discountCents;
+
+    await tx
+      .update(quotations)
+      .set({
+        clientId: input.clientId,
+        bookingId: input.bookingId ?? null,
+        issueDate: input.issueDate,
+        validUntil: input.validUntil ?? null,
+        subtotalCents,
+        discountType: input.discountType ?? null,
+        discountValue: input.discountValue ?? null,
+        discountCents,
+        totalCents,
+        notes: input.notes ?? null,
+        terms: input.terms ?? null,
+        updatedAt: new Date(),
+      })
+      .where(eq(quotations.id, quotationId));
+
+    // Replace all line items
+    const existingIds = await tx
+      .select({ id: quotationLineItems.id })
+      .from(quotationLineItems)
+      .where(eq(quotationLineItems.quotationId, quotationId));
+    if (existingIds.length > 0) {
+      await tx
+        .delete(quotationLineItems)
+        .where(inArray(quotationLineItems.id, existingIds.map((r) => r.id)));
+    }
+
+    if (input.lineItems.length > 0) {
+      await tx.insert(quotationLineItems).values(
+        input.lineItems.map((item, i) => ({
+          quotationId,
+          serviceId: item.serviceId ?? null,
+          description: item.description,
+          quantity: item.quantity,
+          unitPriceCents: item.unitPriceCents,
+          discountCents: item.discountCents ?? 0,
+          sortOrder: i,
+        })),
+      );
+    }
+
+    await recordActivity(input.createdByUserId ?? undefined, "quotation.updated", "quotation", quotationId, `Quotation ${existing.quotationNumber} updated`);
+
+    return { ok: true as const, id: quotationId, quotationNumber: existing.quotationNumber, totalCents };
+  });
+
+  if (result.ok) {
+    await notifyStaff("quotation.updated", `Quotation ${result.quotationNumber}`, `Quotation ${result.quotationNumber} updated`, "quotation", quotationId);
   }
   return result;
 }

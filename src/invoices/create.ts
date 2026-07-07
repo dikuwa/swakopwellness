@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { clients, invoiceLineItems, invoices } from "@/db/schema";
 import { getNextDocumentNumber } from "@/documents/number";
@@ -110,6 +110,84 @@ export async function createInvoice(input: CreateInvoiceInput): Promise<InvoiceR
 
   if (result.ok) {
     await notifyStaff("invoice.created", `Invoice ${result.invoiceNumber}`, `Invoice ${result.invoiceNumber} for N$${(result.totalCents / 100).toFixed(2)} created`, "invoice", result.id);
+  }
+  return result;
+}
+
+export async function updateInvoice(
+  invoiceId: string,
+  input: CreateInvoiceInput,
+): Promise<InvoiceResult> {
+  const db = getDb();
+  const result = await db.transaction(async (tx) => {
+    const [existing] = await tx
+      .select()
+      .from(invoices)
+      .where(eq(invoices.id, invoiceId))
+      .limit(1);
+    if (!existing) return { ok: false, message: "Invoice not found." } as InvoiceResult;
+    if (existing.status !== "draft") return { ok: false, message: "Only draft invoices can be edited." } as InvoiceResult;
+
+    const [client] = await tx.select({ id: clients.id }).from(clients).where(eq(clients.id, input.clientId)).limit(1);
+    if (!client) return { ok: false, message: "Client not found." } as InvoiceResult;
+
+    const subtotalCents = input.lineItems.reduce((sum, item) => sum + item.quantity * item.unitPriceCents - (item.discountCents ?? 0), 0);
+    const discountCents = calculateDiscountCents(subtotalCents, input.discountType, input.discountValue);
+    const taxCents = input.taxCents ?? 0;
+    const totalCents = subtotalCents - discountCents + taxCents;
+
+    await tx
+      .update(invoices)
+      .set({
+        clientId: input.clientId,
+        bookingId: input.bookingId ?? null,
+        issueDate: input.issueDate,
+        dueDate: input.dueDate,
+        subtotalCents,
+        discountType: input.discountType ?? null,
+        discountValue: input.discountValue ?? null,
+        discountCents,
+        taxCents,
+        totalCents,
+        balanceCents: totalCents,
+        notes: input.notes ?? null,
+        terms: input.terms ?? null,
+        updatedAt: new Date(),
+      })
+      .where(eq(invoices.id, invoiceId));
+
+    // Replace all line items
+    const existingIds = await tx
+      .select({ id: invoiceLineItems.id })
+      .from(invoiceLineItems)
+      .where(eq(invoiceLineItems.invoiceId, invoiceId));
+    if (existingIds.length > 0) {
+      await tx
+        .delete(invoiceLineItems)
+        .where(inArray(invoiceLineItems.id, existingIds.map((r) => r.id)));
+    }
+
+    if (input.lineItems.length > 0) {
+      await tx.insert(invoiceLineItems).values(
+        input.lineItems.map((item, i) => ({
+          invoiceId,
+          serviceId: item.serviceId ?? null,
+          description: item.description,
+          quantity: item.quantity,
+          unitPriceCents: item.unitPriceCents,
+          discountCents: item.discountCents ?? 0,
+          sortOrder: i,
+        })),
+      );
+    }
+
+    await recordActivity(input.createdByUserId ?? undefined, "invoice.updated", "invoice", invoiceId, `Invoice ${existing.invoiceNumber} updated`);
+
+    return { ok: true as const, id: invoiceId, invoiceNumber: existing.invoiceNumber, totalCents };
+  });
+
+  if (result.ok) {
+    await notifyStaff("invoice.updated", `Invoice ${result.invoiceNumber}`, `Invoice ${result.invoiceNumber} updated`, "invoice", invoiceId);
   }
   return result;
 }

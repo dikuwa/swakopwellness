@@ -6,6 +6,7 @@ import { getDb } from "@/db/client";
 import { receiptLineItems, receipts, clients, users } from "@/db/schema";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
+import { DocumentPreview } from "@/components/document-preview";
 import { hasPermission } from "@/auth/permissions";
 import { voidReceiptAction } from "./actions";
 
@@ -14,10 +15,6 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Receipt Details — Dashboard",
 };
-
-function formatCurrency(cents: number) {
-  return `N$${(cents / 100).toFixed(2)}`;
-}
 
 function formatDate(d: Date | null) {
   if (!d) return "\u2014";
@@ -41,8 +38,10 @@ export default async function ReceiptDetailPage(props: { params: Promise<{ id: s
       description: receipts.description,
       voidedAt: receipts.voidedAt,
       voidReason: receipts.voidReason,
+      clientId: receipts.clientId,
       clientName: clients.fullName,
       clientPhone: clients.phone,
+      clientEmail: clients.email,
       receivedByName: users.name,
     })
     .from(receipts)
@@ -80,83 +79,37 @@ export default async function ReceiptDetailPage(props: { params: Promise<{ id: s
           )}
         </div>
 
-        <div className="mt-8 grid gap-x-8 gap-y-5 sm:grid-cols-2">
-          <div>
-            <p className="text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase">Client</p>
-            <p className="mt-1 font-semibold">{receipt.clientName}</p>
-            {receipt.clientPhone ? <p className="text-sm text-muted-foreground">{receipt.clientPhone}</p> : null}
-          </div>
-          <div>
-            <p className="text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase">Amount</p>
-            <p className="mt-1 text-2xl font-semibold tracking-tight">{formatCurrency(receipt.amountCents)}</p>
-          </div>
-          <div>
-            <p className="text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase">Payment Date</p>
-            <p className="mt-1 font-medium">{formatDate(receipt.paymentDate)}</p>
-          </div>
-          <div>
-            <p className="text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase">Payment Method</p>
-            <p className="mt-1 font-medium capitalize">{receipt.paymentMethod.replaceAll("_", " ")}</p>
-          </div>
-          {receipt.paymentReference && (
-            <div>
-              <p className="text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase">Payment Reference</p>
-              <p className="mt-1 font-medium">{receipt.paymentReference}</p>
-            </div>
-          )}
-          <div>
-            <p className="text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase">Received By</p>
-            <p className="mt-1 font-medium">{receipt.receivedByName ?? "\u2014"}</p>
-          </div>
+        {/* DocumentPreview for receipt */}
+        <div className="mt-6">
+          <DocumentPreview
+            type="RECEIPT"
+            documentNumber={receipt.receiptNumber}
+            clientName={receipt.clientName}
+            clientPhone={receipt.clientPhone ?? ""}
+            clientEmail={receipt.clientEmail ?? ""}
+            lineItems={lineItems.map((item) => ({
+              description: item.description,
+              quantity: item.quantity,
+              unitPriceCents: item.unitPriceCents,
+              discountCents: item.discountCents,
+              totalCents: item.quantity * item.unitPriceCents - item.discountCents,
+            }))}
+            subtotalCents={lineItems.reduce((s, i) => s + i.quantity * i.unitPriceCents, 0)}
+            discountCents={lineItems.reduce((s, i) => s + i.discountCents, 0)}
+            taxCents={0}
+            totalCents={receipt.amountCents}
+            paidCents={receipt.amountCents}
+            balanceCents={0}
+            notes={receipt.notes ?? ""}
+            terms=""
+            bankingDetails=""
+            dates={[
+              { label: "Payment Date", value: formatDate(receipt.paymentDate) },
+              { label: "Method", value: receipt.paymentMethod.replaceAll("_", " ") },
+              ...(receipt.paymentReference ? [{ label: "Reference", value: receipt.paymentReference }] : []),
+            ]}
+          />
         </div>
-
-        {/* Line Items */}
-        {lineItems.length > 0 && (
-          <div className="mt-6">
-            <p className="text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase mb-3">Line Items</p>
-            <div className="overflow-x-auto rounded-xl border border-border">
-              <table className="w-full min-w-[500px] text-left text-sm">
-                <thead className="bg-surface-muted text-muted-foreground border-b border-border">
-                  <tr>
-                    <th className="py-2.5 px-4 font-semibold">Description</th>
-                    <th className="py-2.5 px-4 text-right font-semibold">Qty</th>
-                    <th className="py-2.5 px-4 text-right font-semibold">Unit Price</th>
-                    <th className="py-2.5 px-4 text-right font-semibold">Discount</th>
-                    <th className="py-2.5 px-4 text-right font-semibold">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {lineItems.map((item) => {
-                    const lineTotal = item.quantity * item.unitPriceCents - item.discountCents;
-                    return (
-                      <tr key={item.id} className="hover:bg-surface-muted/30">
-                        <td className="py-2.5 px-4">{item.description}</td>
-                        <td className="py-2.5 px-4 text-right">{item.quantity}</td>
-                        <td className="py-2.5 px-4 text-right">N${(item.unitPriceCents / 100).toFixed(2)}</td>
-                        <td className="py-2.5 px-4 text-right">{item.discountCents > 0 ? `N$${(item.discountCents / 100).toFixed(2)}` : "—"}</td>
-                        <td className="py-2.5 px-4 text-right font-medium">N${(lineTotal / 100).toFixed(2)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {receipt.description && (
-          <div className="mt-6">
-            <p className="text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase">Description</p>
-            <p className="mt-1 text-sm">{receipt.description}</p>
-          </div>
-        )}
-
-        {receipt.notes && (
-          <div className="mt-6">
-            <p className="text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase">Notes</p>
-            <p className="mt-1 whitespace-pre-wrap text-sm">{receipt.notes}</p>
-          </div>
-        )}
 
         {receipt.voidedAt && (
           <div className="mt-8 rounded-2xl border border-border bg-surface-muted p-5">

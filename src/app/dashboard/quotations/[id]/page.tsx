@@ -132,15 +132,23 @@ export default async function QuotationDetailPage(props: { params: Promise<{ id:
 
         <div className="mt-8 flex flex-wrap gap-3 border-t border-border pt-6">
           {canIssue && (
-            <form action={issueQuotationAction}>
-              <input type="hidden" name="quotation_id" value={quotation.id} />
-              <button
-                type="submit"
-                className="h-11 rounded-xl bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+            <>
+              <Link
+                href={`/dashboard/quotations/${quotation.id}/edit`}
+                className="h-11 rounded-xl border border-border px-5 text-sm font-semibold transition-colors hover:bg-surface-muted inline-flex items-center"
               >
-                Issue Quotation
-              </button>
-            </form>
+                Edit
+              </Link>
+              <form action={issueQuotationAction}>
+                <input type="hidden" name="quotation_id" value={quotation.id} />
+                <button
+                  type="submit"
+                  className="h-11 rounded-xl bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
+                >
+                  Issue Quotation
+                </button>
+              </form>
+            </>
           )}
           {canAccept && (
             <form action={acceptQuotationAction}>
