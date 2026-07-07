@@ -1,7 +1,7 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revokeCurrentSession } from "@/auth/session";
+import { redirect } from "next/navigation";
 
 export async function logoutAction() {
   await revokeCurrentSession();

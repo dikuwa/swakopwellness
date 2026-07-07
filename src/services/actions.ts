@@ -728,6 +728,96 @@ export async function addServiceGalleryImage(serviceId: string, mediaAssetId: st
   revalidatePath(`/dashboard/services/${serviceId}/edit`);
 }
 
+export async function uploadServiceFeaturedImage(serviceId: string, formData: FormData) {
+  const user = await requirePermission("services:manage");
+
+  const file = formData.get("file") as File | null;
+  if (!file || file.size === 0) return { ok: false as const, error: "No file provided." };
+
+  const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif", "image/gif"];
+  const MAX_SIZE = 8 * 1024 * 1024;
+
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    return { ok: false as const, error: `Unsupported file type: ${file.type}.` };
+  }
+  if (file.size > MAX_SIZE) {
+    return { ok: false as const, error: `File too large. Maximum size is ${MAX_SIZE / 1024 / 1024}MB.` };
+  }
+
+  try {
+    const ext = file.name.split(".").pop() || "bin";
+    const key = `media/${crypto.randomUUID()}.${ext}`;
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const u8 = new Uint8Array(buffer);
+    const publicUrl = await uploadFile(key, u8, file.type);
+
+    const db = getDb();
+
+    const [asset] = await db
+      .insert(mediaAssets)
+      .values({
+        storageKey: key,
+        publicUrl,
+        mimeType: file.type,
+        byteSize: file.size,
+        altText: file.name.split(".")[0] || null,
+      })
+      .returning({ id: mediaAssets.id, publicUrl: mediaAssets.publicUrl });
+
+    if (!asset) return { ok: false as const, error: "Failed to create media asset." };
+
+    await db
+      .update(services)
+      .set({ featuredImageId: asset.id, updatedAt: new Date() })
+      .where(eq(services.id, serviceId));
+
+    await db.insert(serviceImages).values({
+      serviceId,
+      mediaAssetId: asset.id,
+      sortOrder: 0,
+    }).onConflictDoNothing();
+
+    await recordActivity(user.id, "update", "service", serviceId, `Updated service featured image`);
+
+    revalidateServiceManagement();
+    revalidatePath(`/dashboard/services/${serviceId}/edit`);
+
+    return { ok: true as const, publicUrl: asset.publicUrl };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to upload image.";
+    return { ok: false as const, error: message };
+  }
+}
+
+export async function removeServiceFeaturedImage(serviceId: string) {
+  const user = await requirePermission("services:manage");
+  const db = getDb();
+
+  const [service] = await db
+    .select({ featuredImageId: services.featuredImageId })
+    .from(services)
+    .where(eq(services.id, serviceId))
+    .limit(1);
+
+  if (!service?.featuredImageId) return { ok: true as const };
+
+  await db
+    .update(services)
+    .set({ featuredImageId: null, updatedAt: new Date() })
+    .where(eq(services.id, serviceId));
+
+  await db
+    .delete(serviceImages)
+    .where(and(eq(serviceImages.serviceId, serviceId), eq(serviceImages.mediaAssetId, service.featuredImageId)));
+
+  await recordActivity(user.id, "update", "service", serviceId, `Removed service featured image`);
+
+  revalidateServiceManagement();
+  revalidatePath(`/dashboard/services/${serviceId}/edit`);
+
+  return { ok: true as const };
+}
+
 export async function removeServiceGalleryImage(serviceId: string, mediaAssetId: string) {
   await requirePermission("services:manage");
   const db = getDb();

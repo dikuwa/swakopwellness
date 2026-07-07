@@ -1,12 +1,12 @@
-import { and, desc, eq, gte, isNull, lt, or, sql } from "drizzle-orm";
 import { getDb } from "@/db/client";
 import { bookingAnswers, bookingRules, bookings, bookingStatusHistory, clients, communicationSettings, serviceQuestions, services } from "@/db/schema";
+import { sendBookingConfirmation, sendBookingNotificationToStaff } from "@/email/send";
+import { notifyStaff } from "@/notifications/create";
+import { and, desc, eq, gte, isNull, lt, or, sql } from "drizzle-orm";
 import { normalizeEmail, normalizePhone } from "./contact";
 import { createBookingReference } from "./reference";
 import { getInitialBookingStatus } from "./status";
 import { bookingRequestSchema, hasAtLeastOneContact, isContactMethodAvailable, parseDateTime, type BookingRequestInput } from "./validation";
-import { notifyStaff } from "@/notifications/create";
-import { sendBookingConfirmation, sendBookingNotificationToStaff } from "@/email/send";
 
 export type CreateBookingResult =
   | { ok: true; reference: string; status: string; bookingId?: string; clientId?: string }

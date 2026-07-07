@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronUp, ChevronDown, Plus } from "lucide-react";
 import { asc } from "drizzle-orm";
 import { requireAuth } from "@/auth/session";
 import { getDb } from "@/db/client";
@@ -24,124 +24,154 @@ export default async function FaqsPage() {
     .orderBy(asc(faqs.sortOrder));
 
   const faqIds = allFaqs.map((f) => f.id);
+  const totalFaqs = allFaqs.length;
+  const publicFaqs = allFaqs.filter((f) => f.publicVisible).length;
 
   return (
     <DashboardShell>
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">Management</p>
-          <h1 className="text-3xl font-semibold tracking-[-0.035em]">
-            FAQs
-          </h1>
+          <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Management</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">FAQs</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Manage frequently asked questions and their visibility on the client website.</p>
         </div>
-          <Link
-            href="/dashboard/faqs/new"
-            className="flex h-11 items-center rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted"
-          >
-            New FAQ
-          </Link>
+        <Link
+          href="/dashboard/faqs/new"
+          className="flex h-10 items-center gap-1.5 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+        >
+          <Plus className="h-4 w-4" />
+          New FAQ
+        </Link>
+      </div>
+
+      {/* Summary cards */}
+      <div className="mt-6 grid gap-4 grid-cols-2 lg:grid-cols-3 max-w-md">
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <span className="text-lg font-bold">{totalFaqs}</span>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Total</p>
+            <p className="text-sm font-bold tracking-tight mt-0.5">FAQs</p>
+          </div>
         </div>
-        <div className="mt-6 overflow-x-auto">
-          <table className="w-full min-w-[800px] text-left text-sm">
-            <thead className="text-muted-foreground">
-              <tr>
-                <th className="py-3">Question</th>
-                <th>Answer</th>
-                <th>Sort</th>
-                <th>Public</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allFaqs.map((faq, index) => (
-                <tr
-                  key={faq.id}
-                  className="border-t border-border hover:bg-surface-muted/50"
-                >
-                  <td className="max-w-[240px] truncate py-3 font-medium">
-                    {faq.question.length > 60
-                      ? `${faq.question.substring(0, 60)}\u2026`
-                      : faq.question}
-                  </td>
-                  <td className="max-w-[300px] truncate text-muted-foreground">
-                    {faq.answer.length > 80
-                      ? `${faq.answer.substring(0, 80)}\u2026`
-                      : faq.answer}
-                  </td>
-                  <td className="text-muted-foreground">{faq.sortOrder}</td>
-                  <td>
-                    <form action={toggleFaqPublic.bind(null, faq.id)}>
-                      <button
-                        type="submit"
-                        className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          faq.publicVisible
-                            ? "bg-green-100 text-green-700"
-                            : "bg-gray-100 text-gray-500"
-                        }`}
-                      >
-                        {faq.publicVisible ? "Yes" : "No"}
-                      </button>
-                    </form>
-                  </td>
-                  <td>
-                    <div className="flex items-center gap-2">
-                      <Link
-                        href={`/dashboard/faqs/${faq.id}/edit`}
-                        className="flex h-8 items-center rounded-lg border border-border px-3 text-xs font-semibold transition-colors hover:bg-surface-muted"
-                      >
-                        Edit
-                      </Link>
-                      <form action={deleteFaq.bind(null, faq.id)}>
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-success/10 text-success">
+            <span className="text-lg font-bold">{publicFaqs}</span>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Public</p>
+            <p className="text-sm font-bold tracking-tight mt-0.5">FAQs</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 rounded-xl border border-border bg-background overflow-hidden">
+        <div className="px-6 py-5 border-b border-border">
+          <h2 className="text-lg font-semibold">Frequently Asked Questions</h2>
+        </div>
+        {allFaqs.length === 0 ? (
+          <div className="p-8 text-center text-sm text-muted-foreground">
+            No FAQs yet. Create your first FAQ to get started.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-left text-sm">
+              <thead className="bg-surface-muted text-muted-foreground border-b border-border">
+                <tr>
+                  <th className="py-3 px-4 font-semibold">Question</th>
+                  <th className="py-3 px-4 font-semibold">Answer</th>
+                  <th className="py-3 px-4 font-semibold text-center">Sort</th>
+                  <th className="py-3 px-4 font-semibold">Visibility</th>
+                  <th className="py-3 px-4 font-semibold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {allFaqs.map((faq, index) => (
+                  <tr key={faq.id} className="hover:bg-surface-muted/30 transition-colors">
+                    <td className="py-3.5 px-4 max-w-[240px]">
+                      <span className="font-medium truncate block">
+                        {faq.question.length > 60
+                          ? `${faq.question.substring(0, 60)}\u2026`
+                          : faq.question}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 max-w-[300px] text-muted-foreground">
+                      <span className="truncate block">
+                        {faq.answer.length > 80
+                          ? `${faq.answer.substring(0, 80)}\u2026`
+                          : faq.answer}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-center text-muted-foreground font-mono text-xs">
+                      {faq.sortOrder}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <form action={toggleFaqPublic.bind(null, faq.id)}>
                         <button
                           type="submit"
-                          className="flex h-8 items-center rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
+                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                            faq.publicVisible
+                              ? "bg-green-50 text-green-700"
+                              : "bg-gray-50 text-gray-500"
+                          }`}
                         >
-                          Delete
+                          <span className={`h-1.5 w-1.5 rounded-full ${faq.publicVisible ? "bg-green-600" : "bg-gray-400"}`} />
+                          {faq.publicVisible ? "Visible" : "Hidden"}
                         </button>
                       </form>
-                      {index > 0 && (
-                        <form action={reorderFaqs.bind(null, faqIds)}>
-                          <input type="hidden" name="faqId" value={faq.id} />
-                          <input type="hidden" name="direction" value="up" />
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <Link
+                          href={`/dashboard/faqs/${faq.id}/edit`}
+                          className="flex h-8 items-center rounded-lg border border-border px-3 text-xs font-semibold transition-colors hover:bg-surface-muted"
+                        >
+                          Edit
+                        </Link>
+                        <form action={deleteFaq.bind(null, faq.id)}>
                           <button
                             type="submit"
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-xs transition-colors hover:bg-surface-muted"
-                            title="Move up"
+                            className="flex h-8 items-center rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
                           >
-                            <ChevronUp className="h-4 w-4" />
+                            Delete
                           </button>
                         </form>
-                      )}
-                      {index < allFaqs.length - 1 && (
-                        <form action={reorderFaqs.bind(null, faqIds)}>
-                          <input type="hidden" name="faqId" value={faq.id} />
-                          <input type="hidden" name="direction" value="down" />
-                          <button
-                            type="submit"
-                            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-xs transition-colors hover:bg-surface-muted"
-                            title="Move down"
-                          >
-                            <ChevronDown className="h-4 w-4" />
-                          </button>
-                        </form>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {allFaqs.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={5}
-                    className="py-8 text-center text-sm text-muted-foreground"
-                  >
-                    No FAQs yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                        {index > 0 && (
+                          <form action={reorderFaqs.bind(null, faqIds)}>
+                            <input type="hidden" name="faqId" value={faq.id} />
+                            <input type="hidden" name="direction" value="up" />
+                            <button
+                              type="submit"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-xs transition-colors hover:bg-surface-muted"
+                              title="Move up"
+                            >
+                              <ChevronUp className="h-4 w-4" />
+                            </button>
+                          </form>
+                        )}
+                        {index < allFaqs.length - 1 && (
+                          <form action={reorderFaqs.bind(null, faqIds)}>
+                            <input type="hidden" name="faqId" value={faq.id} />
+                            <input type="hidden" name="direction" value="down" />
+                            <button
+                              type="submit"
+                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-xs transition-colors hover:bg-surface-muted"
+                              title="Move down"
+                            >
+                              <ChevronDown className="h-4 w-4" />
+                            </button>
+                          </form>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </DashboardShell>
   );
 }

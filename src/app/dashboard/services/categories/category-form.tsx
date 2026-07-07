@@ -12,7 +12,7 @@ function generateSlug(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
-function CreateCategoryForm({ createAction: _createAction }: { createAction: (data: FormData) => Promise<{ ok: boolean; error?: string }> }) {
+export function CreateCategoryForm({ createAction: _createAction }: { createAction: (data: FormData) => Promise<{ ok: boolean; error?: string }> }) {
   const slugManuallyEdited = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -48,10 +48,10 @@ function CreateCategoryForm({ createAction: _createAction }: { createAction: (da
     <form
       ref={formRef}
       action={formAction}
-      className="mt-6 grid items-end gap-4 rounded-xl border border-border bg-background p-5 lg:grid-cols-[1fr_1fr_2fr_100px_auto]"
+      className="mt-4 grid items-end gap-3 sm:grid-cols-[1fr_1fr_1fr_80px_auto]"
     >
       <div>
-        <label htmlFor="create-name" className="mb-1.5 block text-sm font-semibold">
+        <label htmlFor="create-name" className="mb-1 block text-sm font-semibold">
           Name *
         </label>
         <input
@@ -59,11 +59,11 @@ function CreateCategoryForm({ createAction: _createAction }: { createAction: (da
           name="name"
           required
           onChange={handleNameChange}
-          className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
       </div>
       <div>
-        <label htmlFor="create-slug" className="mb-1.5 block text-sm font-semibold">
+        <label htmlFor="create-slug" className="mb-1 block text-sm font-semibold">
           Slug
         </label>
         <input
@@ -71,21 +71,21 @@ function CreateCategoryForm({ createAction: _createAction }: { createAction: (da
           name="slug"
           onChange={handleSlugChange}
           placeholder="Auto-generated"
-          className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
       </div>
       <div>
-        <label htmlFor="create-description" className="mb-1.5 block text-sm font-semibold">
+        <label htmlFor="create-description" className="mb-1 block text-sm font-semibold">
           Description
         </label>
         <input
           id="create-description"
           name="description"
-          className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
       </div>
       <div>
-        <label htmlFor="create-sortOrder" className="mb-1.5 block text-sm font-semibold">
+        <label htmlFor="create-sortOrder" className="mb-1 block text-sm font-semibold">
           Sort
         </label>
         <input
@@ -93,21 +93,21 @@ function CreateCategoryForm({ createAction: _createAction }: { createAction: (da
           name="sortOrder"
           type="number"
           defaultValue={0}
-          className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
       </div>
       <button
         type="submit"
         disabled={isPending}
-        className="flex h-11 items-center justify-center rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+        className="flex h-10 items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
       >
-        {isPending ? "Creating..." : "Create"}
+        {isPending ? "Creating..." : "Create Category"}
       </button>
     </form>
   );
 }
 
-function EditCategoryForm({
+export function EditCategoryForm({
   category,
   updateAction: _updateAction,
 }: {
@@ -143,57 +143,55 @@ function EditCategoryForm({
   );
 
   return (
-    <form action={formAction} className="grid items-end gap-4 lg:grid-cols-[1fr_1fr_2fr_100px_auto]">
+    <form action={formAction} className="grid items-end gap-3 sm:grid-cols-[1fr_1fr_1fr_80px_auto]">
       <div>
-        <label className="mb-1.5 block text-sm font-semibold">Name</label>
+        <label className="mb-1 block text-sm font-semibold">Name</label>
         <input
           name="name"
           defaultValue={category.name}
           required
           onChange={handleNameChange}
           aria-label="Category name"
-          className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
       </div>
       <div>
-        <label className="mb-1.5 block text-sm font-semibold">Slug</label>
+        <label className="mb-1 block text-sm font-semibold">Slug</label>
         <input
           id={`edit-slug-${category.id}`}
           name="slug"
           defaultValue={category.slug}
           onChange={handleSlugChange}
           aria-label="Category slug"
-          className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
       </div>
       <div>
-        <label className="mb-1.5 block text-sm font-semibold">Description</label>
+        <label className="mb-1 block text-sm font-semibold">Description</label>
         <input
           name="description"
           defaultValue={category.description ?? ""}
           aria-label="Category description"
-          className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
       </div>
       <div>
-        <label className="mb-1.5 block text-sm font-semibold">Sort</label>
+        <label className="mb-1 block text-sm font-semibold">Sort</label>
         <input
           name="sortOrder"
           type="number"
           defaultValue={category.sortOrder}
           aria-label="Category sort order"
-          className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+          className="h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
       </div>
       <button
         type="submit"
         disabled={isPending}
-        className="flex h-11 items-center justify-center rounded-xl border border-border px-5 text-sm font-semibold transition-colors hover:bg-surface-muted disabled:opacity-50"
+        className="flex h-10 items-center justify-center rounded-lg border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted disabled:opacity-50"
       >
         {isPending ? "Saving..." : "Update"}
       </button>
     </form>
   );
 }
-
-export { CreateCategoryForm, EditCategoryForm };

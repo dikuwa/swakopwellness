@@ -43,27 +43,48 @@ export default async function ServiceSuitabilityPage() {
       .orderBy(asc(services.sortOrder), asc(services.name)),
   ]);
 
+  const totalQuestions = questions.length;
+  const flaggedQuestions = questions.filter((q) => q.flaggedAnswer === "yes").length;
+
   return (
     <DashboardShell>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Services</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">Suitability Questions</h1>
+        </div>
+      </div>
+
+      {/* Summary cards */}
+      <div className="mt-6 grid gap-4 grid-cols-2 lg:grid-cols-3 max-w-lg">
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <span className="text-lg font-bold">{totalQuestions}</span>
+          </div>
           <div>
-            <p className="text-sm font-semibold text-muted-foreground">
-              Services
-            </p>
-            <h1 className="text-3xl font-semibold tracking-[-0.035em]">
-              Suitability Questions
-            </h1>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Total</p>
+            <p className="text-sm font-bold tracking-tight mt-0.5">Questions</p>
           </div>
         </div>
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-warning/10 text-warning">
+            <span className="text-lg font-bold">{flaggedQuestions}</span>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Flagged</p>
+            <p className="text-sm font-bold tracking-tight mt-0.5">Answers</p>
+          </div>
+        </div>
+      </div>
 
-        <SuitabilityForms
-          questions={questions}
-          serviceOptions={serviceOptions}
-          createAction={createSuitabilityQuestion}
-          updateAction={updateSuitabilityQuestion}
-          toggleAction={toggleSuitabilityQuestionActive}
-          deleteAction={deleteSuitabilityQuestion}
-        />
+      <SuitabilityForms
+        questions={questions}
+        serviceOptions={serviceOptions}
+        createAction={createSuitabilityQuestion}
+        updateAction={updateSuitabilityQuestion}
+        toggleAction={toggleSuitabilityQuestionActive}
+        deleteAction={deleteSuitabilityQuestion}
+      />
     </DashboardShell>
   );
 }

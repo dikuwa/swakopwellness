@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
+import { DocumentPreview } from "@/components/document-preview";
 import { getClientById, getQuotationById } from "@/dashboard/data";
 import { acceptQuotationAction, convertToInvoiceAction, duplicateQuotationAction, emailQuotationAction, issueQuotationAction, rejectQuotationAction, voidQuotationAction } from "./actions";
 
@@ -61,109 +62,59 @@ export default async function QuotationDetailPage(props: { params: Promise<{ id:
           <StatusBadge status={quotation.status} />
         </div>
 
-        <div className="mt-6 grid gap-6 sm:grid-cols-2">
+        {/* DocumentPreview replaces the raw table + totals + notes display */}
+      <div className="mt-6">
+        <DocumentPreview
+          type="QUOTATION"
+          documentNumber={quotation.quotationNumber}
+          clientName={client?.fullName ?? "Unknown"}
+          clientPhone={(client?.phone as string) ?? ""}
+          clientEmail={(client?.email as string) ?? ""}
+          lineItems={quotation.lineItems.map((item) => ({
+            description: item.description,
+            quantity: item.quantity,
+            unitPriceCents: item.unitPriceCents,
+            discountCents: item.discountCents,
+            totalCents: item.quantity * item.unitPriceCents - item.discountCents,
+          }))}
+          subtotalCents={quotation.subtotalCents}
+          discountCents={quotation.discountCents}
+          taxCents={0}
+          totalCents={quotation.totalCents}
+          paidCents={0}
+          balanceCents={0}
+          notes={quotation.notes ?? ""}
+          terms={quotation.terms ?? ""}
+          dates={[
+            { label: "Issue Date", value: quotation.issueDate.toLocaleDateString("en-GB") },
+            ...(quotation.validUntil ? [{ label: "Valid Until", value: quotation.validUntil.toLocaleDateString("en-GB") }] : []),
+          ]}
+        />
+      </div>
+
+      {/* Status metadata below preview */}
+      <div className="mt-4 grid gap-4 grid-cols-2 sm:grid-cols-4 text-sm">
+        {quotation.issuedAt && (
           <div>
-            <p className="text-sm text-muted-foreground">Client</p>
-            <p className="mt-1 font-semibold">{client?.fullName ?? "Unknown"}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Issue Date</p>
-            <p className="mt-1">{quotation.issueDate.toLocaleDateString("en-GB")}</p>
-          </div>
-          {quotation.validUntil && (
-            <div>
-              <p className="text-sm text-muted-foreground">Valid Until</p>
-              <p className="mt-1">{quotation.validUntil.toLocaleDateString("en-GB")}</p>
-            </div>
-          )}
-          {quotation.issuedAt && (
-            <div>
-              <p className="text-sm text-muted-foreground">Issued At</p>
-              <p className="mt-1">{new Date(quotation.issuedAt).toLocaleDateString("en-GB")}</p>
-            </div>
-          )}
-          {quotation.acceptedAt && (
-            <div>
-              <p className="text-sm text-muted-foreground">Accepted At</p>
-              <p className="mt-1">{new Date(quotation.acceptedAt).toLocaleDateString("en-GB")}</p>
-            </div>
-          )}
-          {quotation.convertedToInvoiceId && (
-            <div>
-              <p className="text-sm text-muted-foreground">Converted To</p>
-              <Link href={`/dashboard/invoices/${quotation.convertedToInvoiceId}`} className="mt-1 block font-medium text-primary underline underline-offset-4">
-                View Invoice
-              </Link>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-8 overflow-x-auto">
-          <table className="w-full min-w-[600px] text-left text-sm">
-            <thead className="text-muted-foreground">
-              <tr>
-                <th className="py-3">Description</th>
-                <th className="text-right">Qty</th>
-                <th className="text-right">Unit Price</th>
-                <th className="text-right">Discount</th>
-                <th className="text-right">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {quotation.lineItems.map((item) => {
-                const lineTotal = item.quantity * item.unitPriceCents - item.discountCents;
-                return (
-                  <tr key={item.id} className="border-t border-border">
-                    <td className="py-3">{item.description}</td>
-                    <td className="py-3 text-right">{item.quantity}</td>
-                    <td className="py-3 text-right">N${(item.unitPriceCents / 100).toFixed(2)}</td>
-                    <td className="py-3 text-right">{item.discountCents > 0 ? `N$${(item.discountCents / 100).toFixed(2)}` : "—"}</td>
-                    <td className="py-3 text-right font-medium">N${(lineTotal / 100).toFixed(2)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="mt-6 ml-auto w-full max-w-xs space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Subtotal</span>
-            <span>N${(quotation.subtotalCents / 100).toFixed(2)}</span>
-          </div>
-          {quotation.discountCents > 0 && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">
-                Discount
-                {quotation.discountType === "percentage" && quotation.discountValue
-                  ? ` (${quotation.discountValue}%)`
-                  : ""}
-              </span>
-              <span className="text-red-600">- N${(quotation.discountCents / 100).toFixed(2)}</span>
-            </div>
-          )}
-          <div className="flex justify-between border-t border-border pt-2 font-semibold">
-            <span>Total</span>
-            <span>N${(quotation.totalCents / 100).toFixed(2)}</span>
-          </div>
-        </div>
-
-        {(quotation.notes || quotation.terms) && (
-          <div className="mt-8 grid gap-6 sm:grid-cols-2">
-            {quotation.notes && (
-              <div>
-                <p className="text-sm font-semibold text-muted-foreground">Notes</p>
-                <p className="mt-1 text-sm whitespace-pre-wrap">{quotation.notes}</p>
-              </div>
-            )}
-            {quotation.terms && (
-              <div>
-                <p className="text-sm font-semibold text-muted-foreground">Terms</p>
-                <p className="mt-1 text-sm whitespace-pre-wrap">{quotation.terms}</p>
-              </div>
-            )}
+            <p className="text-xs text-muted-foreground">Issued At</p>
+            <p className="font-medium">{new Date(quotation.issuedAt).toLocaleDateString("en-GB")}</p>
           </div>
         )}
+        {quotation.acceptedAt && (
+          <div>
+            <p className="text-xs text-muted-foreground">Accepted At</p>
+            <p className="font-medium">{new Date(quotation.acceptedAt).toLocaleDateString("en-GB")}</p>
+          </div>
+        )}
+        {quotation.convertedToInvoiceId && (
+          <div>
+            <p className="text-xs text-muted-foreground">Converted To</p>
+            <Link href={`/dashboard/invoices/${quotation.convertedToInvoiceId}`} className="font-medium text-primary underline underline-offset-4">
+              View Invoice
+            </Link>
+          </div>
+        )}
+      </div>
 
         {quotation.rejectedReason && (
           <div className="mt-6 rounded-2xl bg-red-50 p-4 text-sm">

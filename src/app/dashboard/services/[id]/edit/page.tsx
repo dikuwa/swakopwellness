@@ -6,7 +6,6 @@ import { getDb } from "@/db/client";
 import { mediaAssets, services, serviceCategories, serviceFaqs, serviceImages } from "@/db/schema";
 import { createServiceFaq, deleteServiceFaq, toggleServiceFaqActive, updateService, updateServiceFaq } from "@/services/actions";
 import { ServiceForm } from "../../service-form";
-import { GalleryManager } from "./gallery-manager";
 
 export const dynamic = "force-dynamic";
 
@@ -46,20 +45,7 @@ export default async function EditServicePage({ params }: PageProps) {
     .where(eq(serviceFaqs.serviceId, id))
     .orderBy(serviceFaqs.sortOrder);
 
-  const allMedia = await db
-    .select({
-      id: mediaAssets.id,
-      publicUrl: mediaAssets.publicUrl,
-      altText: mediaAssets.altText,
-      mimeType: mediaAssets.mimeType,
-      byteSize: mediaAssets.byteSize,
-      width: mediaAssets.width,
-      height: mediaAssets.height,
-      createdAt: mediaAssets.createdAt,
-    })
-    .from(mediaAssets)
-    .orderBy(desc(mediaAssets.createdAt));
-
+  // Get the featured image
   const galleryEntries = await db
     .select({
       mediaAssetId: serviceImages.mediaAssetId,
@@ -67,18 +53,28 @@ export default async function EditServicePage({ params }: PageProps) {
     })
     .from(serviceImages)
     .where(eq(serviceImages.serviceId, id))
-    .orderBy(asc(serviceImages.sortOrder));
+    .orderBy(asc(serviceImages.sortOrder))
+    .limit(1);
 
-  const mediaMap = new Map(allMedia.map((m) => [m.id, m]));
-  const galleryImages = galleryEntries
-    .map((g) => mediaMap.get(g.mediaAssetId))
-    .filter(Boolean);
+  let galleryImages: { id: string; publicUrl: string | null; altText: string | null }[] = [];
+
+  if (galleryEntries.length > 0) {
+    const [asset] = await db
+      .select({ id: mediaAssets.id, publicUrl: mediaAssets.publicUrl, altText: mediaAssets.altText })
+      .from(mediaAssets)
+      .where(eq(mediaAssets.id, galleryEntries[0].mediaAssetId))
+      .limit(1);
+    if (asset) {
+      galleryImages = [asset];
+    }
+  }
 
   return (
     <ServiceForm
       categories={categories}
       action={updateService.bind(null, id)}
-      galleryImages={galleryImages as { id: string; publicUrl: string | null; altText: string | null }[]}
+      serviceId={id}
+      galleryImages={galleryImages}
       initialData={{
         name: service.name,
         slug: service.slug,
@@ -98,13 +94,12 @@ export default async function EditServicePage({ params }: PageProps) {
         featuredImageId: service.featuredImageId,
       }}
     >
-      <GalleryManager serviceId={id} galleryImages={galleryImages} allMedia={allMedia} />
-
-      <section className="mt-8 rounded-xl border border-border bg-background p-6">
+      {/* Service FAQs */}
+      <section className="rounded-xl border border-border bg-background p-6">
         <h2 className="text-lg font-semibold">Service FAQs</h2>
         <p className="mt-2 text-sm text-muted-foreground">These appear on this service detail page.</p>
 
-        {/* Add FAQ form — stacked layout */}
+        {/* Add FAQ form */}
         <form action={createServiceFaq.bind(null, id) as unknown as (fd: FormData) => Promise<void>} className="mt-5 space-y-4 rounded-2xl bg-surface-muted p-5">
           <div>
             <label htmlFor="faq-question" className="mb-1.5 block text-sm font-semibold">

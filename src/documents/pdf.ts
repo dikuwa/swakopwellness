@@ -56,6 +56,13 @@ export interface ReceiptData {
   reference: string;
   description: string;
   notes: string;
+  lineItems?: Array<{
+    description: string;
+    quantity: number;
+    unitPriceCents: number;
+    discountCents: number;
+    totalCents: number;
+  }>;
 }
 
 export interface QuotationData {
@@ -90,6 +97,12 @@ export interface BusinessData {
   footerMessage?: string;
 }
 
+const MARGIN = 45;
+const PAGE_WIDTH = 595;
+const PAGE_HEIGHT = 842;
+const USABLE_WIDTH = PAGE_WIDTH - 2 * MARGIN;
+const USABLE_HEIGHT = PAGE_HEIGHT - 2 * MARGIN;
+
 function fmt(cents: number): string {
   return `N$${(cents / 100).toFixed(2)}`;
 }
@@ -100,47 +113,297 @@ function fmtDate(d: Date): string {
 
 const documentLogoPath = join(process.cwd(), "public", "brand", "logo-document.png");
 
-function addBusinessHeader(doc: PDFKit.PDFDocument, business: BusinessData) {
-  const startY = doc.y;
-  let detailsY = startY;
+function createDocument(): PDFKit.PDFDocument {
+  const doc = new PDFDocument({ margin: MARGIN, size: "A4" });
 
-  if (existsSync(documentLogoPath)) {
-    try {
-      doc.image(documentLogoPath, 50, startY, { width: 128 });
-      detailsY = startY + 88;
-    } catch {
-      doc.fontSize(20).font("Helvetica-Bold").fillColor("#333").text(business.businessName, 50, startY, { continued: false });
-      detailsY = doc.y + 6;
-    }
+  const onestRegular = join(process.cwd(), "public", "fonts", "Onest-Regular.ttf");
+  const onestBold = join(process.cwd(), "public", "fonts", "Onest-Bold.ttf");
+  const alluraRegular = join(process.cwd(), "public", "fonts", "Allura-Regular.ttf");
+
+  if (existsSync(onestRegular)) {
+    doc.registerFont("Onest", onestRegular);
   } else {
-    doc.fontSize(20).font("Helvetica-Bold").fillColor("#333").text(business.businessName, 50, startY, { continued: false });
-    detailsY = doc.y + 6;
+    doc.registerFont("Onest", "Helvetica");
   }
 
-  doc.fontSize(10).font("Helvetica").fillColor("#666");
-  doc.text(business.address, 50, detailsY);
-  doc.text(business.phone);
-  doc.text(business.email);
-  if (business.registrationNumber) {
-    doc.text(`Registration: ${business.registrationNumber}`);
+  if (existsSync(onestBold)) {
+    doc.registerFont("Onest-Bold", onestBold);
+  } else {
+    doc.registerFont("Onest-Bold", "Helvetica-Bold");
   }
-  if (business.taxNumber) {
-    doc.text(`Tax: ${business.taxNumber}`);
+
+  if (existsSync(alluraRegular)) {
+    doc.registerFont("Allura", alluraRegular);
+  } else {
+    doc.registerFont("Allura", "Times-Italic");
   }
-  doc.moveDown(1);
+
+  return doc;
 }
 
-function collectPdf(doc: PDFKit.PDFDocument, chunks: Buffer[]): Promise<Buffer> {
+const SVG_ICONS = {
+  mapPin: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5",
+  phone: "M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z",
+  mail: "M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z",
+  document: "M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z",
+  calendar: "M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z",
+  user: "M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z",
+  bank: "M4 10h3v7H4zm6 0h3v7h-3zm6 0h3v7h-3zM2 22h19v-2H2zm10-20L1 6v2h21V6z",
+  shieldCheck: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10zm-2-9l2 2 4-4",
+};
+
+const BRAND_LEAF_PATHS = [
+  "M158.5,89.78c2.06-3.84,6.09-5.75,10.19-4.62l5.01,1.38c3.07.85,6.53.8,6.69-1.39s-.09-4.08-.68-6.05c-1.9-6.31,3.9-8.62-.43-12.33l-2.19-1.88c-.78-.67-.71-2.07-.04-2.8l2.67-2.89c.7-.76.46-1.8-.3-2.4-4.48-3.53-9.34-5.69-14.72-7.71l4.9-.51c-.56-1.93-1.31-3.86-2.38-5.67l-3.87-6.57-6.37-14.34c2,2.08,3.21,4.45,4.48,6.96,2.27,4.49,4.65,8.69,7.3,12.97,1.58,2.54,2.75,5.23,4.64,7.55,3.3,4.03,8.29,5.68,8.78,7.65.18.73-.09,1.92-.61,2.43l-2.53,2.51c-.3.3-.91,1.12-.76,1.51s.66,1.02,1.01,1.45c3.06,1.39,4.17,4.53,2.78,7.51-2.33,4.68,1.2,7.13.8,13.26-.37,5.55-8.26,3.73-13.67,2.4-3.35-.82-6.52.23-8.31,3.23-2.9,4.85-2.81,10.58-.43,15.66-1.22-1.09-1.95-2.23-2.7-3.48-1.76-4.49-1.6-9.46.75-13.83Z",
+  "M140.18,57.04c-1.89,4.05.21,7.01,3.58,9.65-3.99-.95-6.52-4.62-6.26-8.71.23-3.58,2.15-6.7,5.1-8.64l5.43-3.56c8.28-5.43,9.33-13.72,6.71-23.4,3.26,5.73,3.49,12.73.68,18.85-1.27,2.78-2.79,5.22-5.26,7l-5.88,4.25c-1.7,1.23-3.22,2.67-4.1,4.55Z",
+  "M147.73,71.49c-7.2,1.16-13.1-1.76-16.55-8.49-2.53-4.93-3.03-10.51-1.44-15.81.06,10.45,4.3,20.31,14.53,23.26l3.47,1.03Z",
+];
+
+const FOOTER_LEAF_PATH =
+  "M178.02,137.03l-.73-.16-1.9-.57c1.29-4.09.89-9.46-2.7-10.09-1.25-.22-2.66.31-3.4,1.43-2.27,3.43.35,7.24,4.35,9.24-2.35,7.82-6.95,14.64-13.94,19.58l3.87-18.86,1.78-9.4c-.6-.25-1.5.02-2.05.69l-7.89,9.52-10.34,14.29,4.21-12.63c.96-2.88,1.14-6.02.47-8.9-.84-3.59-3.93-5.56-7.52-5.14-8.99,1.06-14.06,13.65-9.46,22.86.92,1.85,2.04,3.71,4.31,4.2-3.02-3.55-4.61-7.14-4.46-11.6.15-4.21,1.25-8.21,4.17-11.26,1.52-1.57,3.2-2.78,5.48-2.94,2.02-.14,3.78.98,4.11,3.12.38,2.43.2,5.07-.37,7.6-1.64,7.14-3.94,13.81-6.87,20.61l3.15.02,9.14-12.08c3.5-4.63,6.43-9.36,10.35-14.03l-2.87,11.72-3.01,15.14h1.96c4.71-2.99,8.69-6.66,12.15-11.02,2.58-3.24,4.31-6.73,5.13-10.92l2.47.35c.21.03.64-.72.41-.76ZM173.88,135.53c-2.31-1.27-3.82-3.6-3.49-6.22.09-.75.77-1.65,1.32-1.78,2.62-.6,3.12,4.05,2.17,7.99Z";
+
+function drawIcon(
+  doc: PDFKit.PDFDocument,
+  path: string,
+  x: number,
+  y: number,
+  size: number = 10,
+  color: string = "#01641f",
+) {
+  doc.save();
+  const scale = size / 24;
+  doc.translate(x, y);
+  doc.scale(scale);
+  doc.fillColor(color);
+  doc.fillOpacity(1);
+  doc.path(path).fill();
+  doc.restore();
+}
+
+function drawFadedLeaf(doc: PDFKit.PDFDocument) {
+  doc.save();
+  const scale = 2.8;
+  const dx = 420;
+  const dy = -10;
+  doc.translate(dx, dy);
+  doc.scale(scale);
+  doc.fillColor("#01641f");
+  doc.fillOpacity(0.035);
+  for (const pathData of BRAND_LEAF_PATHS) {
+    doc.path(pathData).fill();
+  }
+  doc.restore();
+}
+
+function drawFooterLeaf(doc: PDFKit.PDFDocument, x: number, y: number) {
+  doc.save();
+  const scale = 0.35;
+  const dx = x - 150 * scale;
+  const dy = y - 137 * scale;
+  doc.translate(dx, dy);
+  doc.scale(scale);
+  doc.fillColor("#01641f");
+  doc.fillOpacity(1);
+  doc.path(FOOTER_LEAF_PATH).fill();
+  doc.restore();
+}
+
+function collectPdf(
+  doc: PDFKit.PDFDocument,
+  chunks: Buffer[],
+): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
   });
 }
 
-function addLineItemTable(doc: PDFKit.PDFDocument, items: InvoiceData["lineItems"]) {
+// ─── Header ───────────────────────────────────────────────────────────
+
+function addHeaderAndBusinessInfo(
+  doc: PDFKit.PDFDocument,
+  business: BusinessData,
+  docType: string,
+  docNumber: string,
+) {
+  drawFadedLeaf(doc);
+
+  const startY = MARGIN;
+  let detailsY = startY;
+
+  if (existsSync(documentLogoPath)) {
+    try {
+      doc.image(documentLogoPath, MARGIN, startY, { width: 100 });
+      detailsY = startY + 55;
+    } catch {
+      doc
+        .font("Onest-Bold")
+        .fontSize(16)
+        .fillColor("#1c3024")
+        .text(business.businessName, MARGIN, startY);
+      detailsY = doc.y + 4;
+    }
+  } else {
+    doc
+      .font("Onest-Bold")
+      .fontSize(16)
+      .fillColor("#1c3024")
+      .text(business.businessName, MARGIN, startY);
+    detailsY = doc.y + 4;
+  }
+
+  let currentY = detailsY;
+  const drawHeaderLine = (iconPath: string, text: string) => {
+    drawIcon(doc, iconPath, MARGIN, currentY + 1, 8);
+    doc
+      .font("Onest")
+      .fontSize(7.5)
+      .fillColor("#5b6c61")
+      .text(text, 56, currentY, { width: 250 });
+    currentY += Math.max(doc.heightOfString(text, { width: 250 }), 8) + 2;
+  };
+
+  drawHeaderLine(SVG_ICONS.mapPin, business.address);
+  drawHeaderLine(SVG_ICONS.phone, business.phone);
+  drawHeaderLine(SVG_ICONS.mail, business.email);
+  if (business.registrationNumber) {
+    drawHeaderLine(
+      SVG_ICONS.document,
+      `Registration: ${business.registrationNumber}`,
+    );
+  }
+  if (business.taxNumber) {
+    drawHeaderLine(SVG_ICONS.document, `Tax: ${business.taxNumber}`);
+  }
+
+  const titleY = startY + 30;
+  doc
+    .font("Onest-Bold")
+    .fontSize(16)
+    .fillColor("#1c3024")
+    .text(docType, 320, titleY, { align: "right", width: 230 });
+  const numY = doc.y + 2;
+  doc
+    .font("Onest")
+    .fontSize(9)
+    .fillColor("#5b6c61")
+    .text(docNumber, 320, numY, { align: "right", width: 230 });
+
+  const numLineY = doc.y + 4;
+
+  doc.y = Math.max(currentY, numLineY + 8);
+
+  const dividerY = doc.y + 4;
+  doc.save();
+  doc.strokeColor("#01641f");
+  doc.lineWidth(0.6);
+  doc.opacity(0.8);
+  doc.moveTo(MARGIN, dividerY).lineTo(PAGE_WIDTH - MARGIN, dividerY).stroke();
+  doc.restore();
+
+  doc.y = dividerY + 8;
+}
+
+// ─── Dates & Client ──────────────────────────────────────────────────
+
+function addDatesAndClientSection(
+  doc: PDFKit.PDFDocument,
+  dates: Array<{ label: string; value: Date | string }>,
+  clientName: string,
+  clientPhone?: string,
+  clientEmail?: string,
+) {
+  const startY = doc.y;
+  const leftColX = MARGIN;
+  const rightColX = 290;
+
+  let leftY = startY;
+  dates.forEach((d) => {
+    drawIcon(doc, SVG_ICONS.calendar, leftColX, leftY + 1.5, 8);
+    doc
+      .font("Onest-Bold")
+      .fontSize(8.5)
+      .fillColor("#1c3024")
+      .text(`${d.label}:  `, leftColX + 11, leftY, { continued: true });
+
+    let dateStr = "";
+    if (d.value instanceof Date) {
+      dateStr = fmtDate(d.value);
+    } else {
+      dateStr = d.value;
+    }
+    doc
+      .font("Onest")
+      .fillColor("#2c3e35")
+      .text(dateStr, { continued: false });
+    leftY += doc.currentLineHeight() + 3;
+  });
+
+  let rightY = startY;
+  drawIcon(doc, SVG_ICONS.user, rightColX, rightY + 1.5, 8);
+  doc
+    .font("Onest-Bold")
+    .fontSize(8.5)
+    .fillColor("#1c3024")
+    .text("Bill To:", rightColX + 11, rightY);
+  rightY += doc.currentLineHeight() + 2;
+
+  doc
+    .font("Onest-Bold")
+    .fontSize(8.5)
+    .fillColor("#1c3024")
+    .text(clientName, rightColX + 11, rightY);
+  rightY += doc.currentLineHeight() + 2;
+
+  if (clientPhone) {
+    drawIcon(doc, SVG_ICONS.phone, rightColX, rightY + 2, 7, "#5b6c61");
+    doc
+      .font("Onest")
+      .fontSize(8)
+      .fillColor("#5b6c61")
+      .text(clientPhone, rightColX + 11, rightY);
+    rightY += doc.currentLineHeight();
+  }
+  if (clientEmail) {
+    drawIcon(doc, SVG_ICONS.mail, rightColX, rightY + 2, 7, "#5b6c61");
+    doc
+      .font("Onest")
+      .fontSize(8)
+      .fillColor("#5b6c61")
+      .text(clientEmail, rightColX + 11, rightY);
+    rightY += doc.currentLineHeight();
+  }
+
+  doc.save();
+  doc.strokeColor("#e2e8f0");
+  doc.lineWidth(0.5);
+  doc
+    .moveTo(270, startY)
+    .lineTo(270, Math.max(leftY, rightY))
+    .stroke();
+  doc.restore();
+
+  doc.y = Math.max(leftY, rightY) + 8;
+}
+
+// ─── Line Items Table ────────────────────────────────────────────────
+
+function addLineItemTable(
+  doc: PDFKit.PDFDocument,
+  items: Array<{
+    description: string;
+    quantity: number;
+    unitPriceCents: number;
+    discountCents: number;
+    totalCents: number;
+  }>,
+  isReceipt?: boolean,
+) {
   const tableTop = doc.y;
-  const leftMargin = 50;
-  const colWidths = [200, 50, 100, 100, 100];
+  const leftMargin = MARGIN;
+  const tableWidth = USABLE_WIDTH;
+  const colWidths = isReceipt
+    ? [tableWidth - 40 - 80 - 85, 40, 80, 85]
+    : [tableWidth - 40 - 80 - 85 - 85, 40, 80, 85, 85];
   const colStarts: number[] = [];
   let x = leftMargin;
   for (const w of colWidths) {
@@ -148,314 +411,491 @@ function addLineItemTable(doc: PDFKit.PDFDocument, items: InvoiceData["lineItems
     x += w;
   }
 
-  const headers = ["Description", "Qty", "Unit Price", "Discount", "Total"];
+  const headers = isReceipt
+    ? ["Description", "Qty", "Price", "Total"]
+    : ["Description", "Qty", "Unit Price", "Discount", "Total"];
 
-  doc.rect(leftMargin - 4, tableTop - 4, colWidths.reduce((a, b) => a + b, 0) + 8, 22).fill("#e6e6e6");
-  doc.font("Helvetica-Bold").fontSize(9).fillColor("#333");
+  // Table header background
+  doc.save();
+  doc.fillColor("#edf1ed");
+  doc
+    .rect(leftMargin, tableTop - 3, tableWidth, 16)
+    .fill();
+  doc.restore();
+
+  doc.font("Onest-Bold").fontSize(8).fillColor("#1c3024");
   for (let i = 0; i < headers.length; i++) {
-    doc.text(headers[i], colStarts[i] + 4, tableTop + 4, { width: colWidths[i] - 8, align: i === 0 ? "left" : "right" });
+    doc.text(headers[i], colStarts[i] + 3, tableTop, {
+      width: colWidths[i] - 6,
+      align: i === 0 ? "left" : "right",
+    });
   }
 
-  doc.fillColor("#ccc").rect(leftMargin - 4, tableTop + 18, colWidths.reduce((a, b) => a + b, 0) + 8, 0.5).fill();
+  const headerBottom = tableTop + 13;
+  doc.save();
+  doc.strokeColor("#d1dcd4");
+  doc.lineWidth(0.5);
+  doc
+    .moveTo(leftMargin, headerBottom)
+    .lineTo(leftMargin + tableWidth, headerBottom)
+    .stroke();
+  doc.restore();
 
-  let rowY = tableTop + 24;
-  doc.font("Helvetica").fontSize(9).fillColor("#333");
-  for (const item of items) {
-    const row = [
-      item.description,
-      String(item.quantity),
-      fmt(item.unitPriceCents),
-      item.discountCents > 0 ? fmt(item.discountCents) : "\u2014",
-      fmt(item.totalCents),
-    ];
+  const rowHeight = 15;
+  const maxRows = Math.max(
+    Math.floor(
+      (PAGE_HEIGHT - MARGIN - headerBottom - 140) / (rowHeight + 1),
+    ),
+    2,
+  );
+  let rowY = headerBottom + 2;
+
+  for (let index = 0; index < items.length; index++) {
+    const item = items[index];
+    const row = isReceipt
+      ? [
+          item.description,
+          String(item.quantity),
+          fmt(item.unitPriceCents),
+          fmt(item.totalCents),
+        ]
+      : [
+          item.description,
+          String(item.quantity),
+          fmt(item.unitPriceCents),
+          item.discountCents > 0 ? fmt(item.discountCents) : "\u2014",
+          fmt(item.totalCents),
+        ];
+
+    // Page overflow handling
+    if (index > 0 && index % maxRows === 0) {
+      doc.addPage();
+      drawFadedLeaf(doc);
+      rowY = MARGIN;
+    }
+
+    doc.font("Onest").fontSize(8).fillColor("#2c3e35");
     for (let i = 0; i < row.length; i++) {
-      doc.text(row[i], colStarts[i] + 4, rowY, {
-        width: colWidths[i] - 8,
+      doc.text(row[i], colStarts[i] + 3, rowY, {
+        width: colWidths[i] - 6,
         align: i === 0 ? "left" : "right",
-        lineBreak: false,
+        lineBreak: i === 0,
       });
     }
-    rowY += 18;
+
+    doc.save();
+    doc.strokeColor("#edf2ee");
+    doc.lineWidth(0.5);
+    doc
+      .moveTo(leftMargin, rowY + rowHeight)
+      .lineTo(leftMargin + tableWidth, rowY + rowHeight)
+      .stroke();
+    doc.restore();
+
+    rowY += rowHeight + 1;
   }
 
-  doc.y = rowY + 8;
+  doc.y = rowY + 4;
 }
 
-export async function generateInvoicePdf(invoice: InvoiceData, business: BusinessData): Promise<Buffer> {
-  const doc = new PDFDocument({ margin: 50, size: "A4" });
-  const chunks: Buffer[] = [];
-  doc.on("data", (chunk: Buffer) => chunks.push(chunk));
-  const done = collectPdf(doc, chunks);
+// ─── Totals Section ──────────────────────────────────────────────────
 
-  addBusinessHeader(doc, business);
+function addTotalsSection(
+  doc: PDFKit.PDFDocument,
+  subtotalCents: number,
+  discountCents: number,
+  taxCents: number,
+  totalCents: number,
+  paidCents: number,
+  balanceCents: number,
+) {
+  const totalsX = PAGE_WIDTH - MARGIN - 220;
+  let y = doc.y;
 
-  doc.font("Helvetica-Bold").fontSize(16).fillColor("#333").text("INVOICE", { align: "right" });
-  doc.font("Helvetica").fontSize(10).fillColor("#666").text(invoice.invoiceNumber, { align: "right" });
-  doc.moveDown(0.5);
+  const drawRow = (
+    label: string,
+    val: string,
+    bold: boolean = false,
+    color: string = "#1c3024",
+    size: number = 8.5,
+  ) => {
+    doc
+      .font(bold ? "Onest-Bold" : "Onest")
+      .fontSize(size)
+      .fillColor(color);
+    doc.text(label, totalsX, y, { width: 110, align: "left" });
+    doc.text(val, totalsX + 110, y, { width: 110, align: "right" });
+    y += bold ? 13 : 11;
+  };
 
-  const hr = doc.y;
-  doc.fillColor("#ccc").rect(50, hr, doc.page.width - 100, 1).fill();
-  doc.y = hr + 12;
+  drawRow("Subtotal", fmt(subtotalCents));
 
-  doc.font("Helvetica-Bold").fontSize(10).fillColor("#333");
-  doc.text(`Issue Date:  `, { continued: true });
-  doc.font("Helvetica").text(fmtDate(invoice.issueDate), { continued: false });
-  doc.font("Helvetica-Bold").text(`Due Date:    `, { continued: true });
-  doc.font("Helvetica").text(fmtDate(invoice.dueDate), { continued: false });
-  doc.moveDown(1);
-
-  doc.font("Helvetica-Bold").fontSize(10).fillColor("#333").text("Bill To:");
-  doc.font("Helvetica").fontSize(10).fillColor("#333").text(invoice.clientName);
-  if (invoice.clientPhone) doc.font("Helvetica").fontSize(10).fillColor("#666").text(invoice.clientPhone);
-  if (invoice.clientEmail) doc.font("Helvetica").fontSize(10).fillColor("#666").text(invoice.clientEmail);
-  doc.moveDown(1.5);
-
-  addLineItemTable(doc, invoice.lineItems);
-
-  const totalsX = doc.page.width - 200;
-  const totalStartY = doc.y;
-
-  doc.font("Helvetica").fontSize(10).fillColor("#666");
-  doc.text("Subtotal", totalsX, totalStartY, { width: 150, align: "left" });
-  doc.text(fmt(invoice.subtotalCents), totalsX + 100, totalStartY, { width: 100, align: "right" });
-
-  let y = totalStartY + 16;
-
-  if (invoice.discountCents > 0) {
-    doc.fillColor("#666").text("Discount", totalsX, y, { width: 150, align: "left" });
-    doc.fillColor("#d32f2f").text(`-${fmt(invoice.discountCents)}`, totalsX + 100, y, { width: 100, align: "right" });
-    y += 16;
+  if (discountCents > 0) {
+    drawRow("Discount", `-${fmt(discountCents)}`, false, "#b91c1c");
   }
 
-  if (invoice.taxCents > 0) {
-    doc.fillColor("#666").text("Tax", totalsX, y, { width: 150, align: "left" });
-    doc.fillColor("#333").text(fmt(invoice.taxCents), totalsX + 100, y, { width: 100, align: "right" });
-    y += 16;
+  if (taxCents > 0) {
+    drawRow("Tax", fmt(taxCents));
   }
 
-  doc.fillColor("#ccc").rect(totalsX, y, 200, 1).fill();
-  y += 8;
+  doc.save();
+  doc.strokeColor("#d1dcd4");
+  doc.lineWidth(0.5);
+  doc.moveTo(totalsX, y).lineTo(totalsX + 220, y).stroke();
+  doc.restore();
+  y += 5;
 
-  doc.font("Helvetica-Bold").fontSize(11).fillColor("#333");
-  doc.text("Total", totalsX, y, { width: 150, align: "left" });
-  doc.text(fmt(invoice.totalCents), totalsX + 100, y, { width: 100, align: "right" });
-  y += 18;
+  drawRow("Total", fmt(totalCents), true, "#01641f", 9);
 
-  if (invoice.paidCents > 0) {
-    doc.font("Helvetica").fontSize(10).fillColor("#2e7d32");
-    doc.text("Amount Paid", totalsX, y, { width: 150, align: "left" });
-    doc.text(`-${fmt(invoice.paidCents)}`, totalsX + 100, y, { width: 100, align: "right" });
-    y += 16;
+  if (paidCents > 0) {
+    drawRow("Amount Paid", `-${fmt(paidCents)}`, false, "#01641f");
   }
 
-  if (invoice.balanceCents > 0) {
-    doc.fillColor("#ccc").rect(totalsX, y, 200, 1).fill();
-    y += 8;
-    doc.font("Helvetica-Bold").fontSize(11).fillColor("#333");
-    doc.text("Balance Due", totalsX, y, { width: 150, align: "left" });
-    doc.text(fmt(invoice.balanceCents), totalsX + 100, y, { width: 100, align: "right" });
+  if (balanceCents > 0) {
+    doc.save();
+    doc.strokeColor("#d1dcd4");
+    doc.lineWidth(0.5);
+    doc.moveTo(totalsX, y).lineTo(totalsX + 220, y).stroke();
+    doc.restore();
+    y += 5;
+
+    doc.save();
+    doc.fillColor("#edf1ed");
+    doc.rect(totalsX - 2, y - 2, 224, 16).fill();
+    doc.restore();
+
+    doc
+      .font("Onest-Bold")
+      .fontSize(9)
+      .fillColor("#1c3024");
+    doc.text("Balance Due", totalsX, y, { width: 110, align: "left" });
+    doc.text(fmt(balanceCents), totalsX + 110, y, {
+      width: 110,
+      align: "right",
+    });
     y += 18;
   }
 
-  doc.y = y + 8;
-
-  if (invoice.notes || invoice.terms || business.bankingDetails) {
-    const sectionY = doc.y;
-    doc.fillColor("#ccc").rect(50, sectionY, doc.page.width - 100, 1).fill();
-    doc.y = sectionY + 16;
-  }
-
-  if (invoice.notes) {
-    doc.font("Helvetica-Bold").fontSize(10).fillColor("#333").text("Notes");
-    doc.font("Helvetica").fontSize(9).fillColor("#666").text(invoice.notes);
-    doc.moveDown(1);
-  }
-
-  if (invoice.terms) {
-    doc.font("Helvetica-Bold").fontSize(10).fillColor("#333").text("Terms");
-    doc.font("Helvetica").fontSize(9).fillColor("#666").text(invoice.terms);
-    doc.moveDown(1);
-  }
-
-  if (business.bankingDetails) {
-    doc.font("Helvetica-Bold").fontSize(10).fillColor("#333").text("Banking Details");
-    doc.font("Helvetica").fontSize(9).fillColor("#666").text(business.bankingDetails);
-    doc.moveDown(1);
-  }
-
-  if (business.footerMessage) {
-    const footerY = doc.page.height - 80;
-    doc.font("Helvetica").fontSize(8).fillColor("#999").text(business.footerMessage, 50, footerY, { align: "center", width: doc.page.width - 100 });
-  }
-
-  doc.end();
-
-  return done;
+  doc.y = y + 6;
 }
 
-export async function generateReceiptPdf(receipt: ReceiptData, business: BusinessData): Promise<Buffer> {
-  const doc = new PDFDocument({ margin: 50, size: "A4" });
+// ─── Block Card for Notes / Terms / Banking ──────────────────────────
+
+function drawBlockCard(
+  doc: PDFKit.PDFDocument,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  iconPath: string,
+  title: string,
+  content: string,
+) {
+  doc.save();
+  doc.fillColor("#fafbfa");
+  doc.strokeColor("#edf2ee");
+  doc.lineWidth(1);
+  doc.roundedRect(x, y, w, h, 6).fillAndStroke();
+
+  const circleCenterX = x + w / 2;
+  const circleCenterY = y + 14;
+  doc.fillColor("#edf2ee");
+  doc.circle(circleCenterX, circleCenterY, 8).fill();
+  drawIcon(doc, iconPath, circleCenterX - 3.5, circleCenterY - 3.5, 7, "#01641f");
+
+  doc
+    .font("Onest-Bold")
+    .fontSize(7.5)
+    .fillColor("#1c3024")
+    .text(title, x + 6, y + 26, { align: "center", width: w - 12 });
+
+  doc
+    .font("Onest")
+    .fontSize(7)
+    .fillColor("#5b6c61")
+    .text(content, x + 8, y + 36, {
+      align: "center",
+      width: w - 16,
+      lineBreak: true,
+    });
+
+  doc.restore();
+}
+
+// ─── Notes / Terms / Banking Section ─────────────────────────────────
+
+function addNotesTermsBankingSection(
+  doc: PDFKit.PDFDocument,
+  notesText: string,
+  termsText: string,
+  bankingText: string,
+) {
+  const cleanNotes = (notesText || "").trim();
+  const cleanTerms = (termsText || "").trim();
+  const cleanBanking = (bankingText || "").trim();
+
+  const hasNotes = cleanNotes.length > 0;
+  const hasTerms = cleanTerms.length > 0;
+  const hasBanking = cleanBanking.length > 0;
+
+  if (!hasNotes && !hasTerms && !hasBanking) return;
+
+  let maxContentH = 0;
+  let w1 = 0, w2 = 0, w3 = 0;
+  let x1 = MARGIN, x2 = MARGIN, x3 = MARGIN;
+
+  // Compute layout
+  if (hasNotes && hasTerms && hasBanking) {
+    w1 = 110;
+    w2 = 110;
+    w3 = 285;
+    x1 = MARGIN;
+    x2 = MARGIN + 120;
+    x3 = MARGIN + 240;
+    maxContentH = Math.max(
+      doc.heightOfString(cleanNotes, { width: w1 - 14 }),
+      doc.heightOfString(cleanTerms, { width: w2 - 14 }),
+      doc.heightOfString(cleanBanking, { width: w3 - 14 }),
+    );
+  } else if (hasNotes && hasBanking) {
+    w1 = 200;
+    w3 = 300;
+    x1 = MARGIN;
+    x3 = MARGIN + 210;
+    maxContentH = Math.max(
+      doc.heightOfString(cleanNotes, { width: w1 - 14 }),
+      doc.heightOfString(cleanBanking, { width: w3 - 14 }),
+    );
+  } else if (hasTerms && hasBanking) {
+    w2 = 200;
+    w3 = 300;
+    x2 = MARGIN;
+    x3 = MARGIN + 210;
+    maxContentH = Math.max(
+      doc.heightOfString(cleanTerms, { width: w2 - 14 }),
+      doc.heightOfString(cleanBanking, { width: w3 - 14 }),
+    );
+  } else if (hasNotes && hasTerms) {
+    w1 = 250;
+    w2 = 255;
+    x1 = MARGIN;
+    x2 = MARGIN + 260;
+    maxContentH = Math.max(
+      doc.heightOfString(cleanNotes, { width: w1 - 14 }),
+      doc.heightOfString(cleanTerms, { width: w2 - 14 }),
+    );
+  } else if (hasBanking) {
+    w3 = USABLE_WIDTH;
+    x3 = MARGIN;
+    maxContentH = doc.heightOfString(cleanBanking, { width: w3 - 14 });
+  } else if (hasNotes) {
+    w1 = USABLE_WIDTH;
+    x1 = MARGIN;
+    maxContentH = doc.heightOfString(cleanNotes, { width: w1 - 14 });
+  } else if (hasTerms) {
+    w2 = USABLE_WIDTH;
+    x2 = MARGIN;
+    maxContentH = doc.heightOfString(cleanTerms, { width: w2 - 14 });
+  }
+
+  const cardH = 42 + maxContentH + 10;
+
+  // Check if we can fit on current page
+  const footerThreshold = PAGE_HEIGHT - MARGIN - 60;
+  if (doc.y + cardH > footerThreshold) {
+    doc.addPage();
+    drawFadedLeaf(doc);
+  }
+
+  const cardY = doc.y;
+
+  if (hasNotes) {
+    drawBlockCard(doc, x1, cardY, w1, cardH, SVG_ICONS.document, "Notes", cleanNotes);
+  }
+  if (hasTerms) {
+    drawBlockCard(doc, x2, cardY, w2, cardH, SVG_ICONS.shieldCheck, "Terms", cleanTerms);
+  }
+  if (hasBanking) {
+    drawBlockCard(doc, x3, cardY, w3, cardH, SVG_ICONS.bank, "Banking Details", cleanBanking);
+  }
+
+  doc.y = cardY + cardH + 8;
+}
+
+// ─── Footer ──────────────────────────────────────────────────────────
+
+function addDocumentFooter(doc: PDFKit.PDFDocument, _business: BusinessData) {
+  const footerY = PAGE_HEIGHT - MARGIN - 55;
+
+  // If we're too close to the footer area, add a page break
+  // But be more lenient — only add a page if we're past the footer
+  if (doc.y > footerY + 10) {
+    doc.addPage();
+    drawFadedLeaf(doc);
+    doc.y = MARGIN;
+  }
+
+  // Always place footer at the bottom of the page
+  const finalY = PAGE_HEIGHT - MARGIN - 50;
+  const centerX = PAGE_WIDTH / 2;
+  const leafY = finalY;
+
+  doc.save();
+  doc.strokeColor("#01641f");
+  doc.lineWidth(0.5);
+  doc.opacity(0.3);
+  doc.moveTo(MARGIN, leafY).lineTo(centerX - 25, leafY).stroke();
+  doc.moveTo(centerX + 25, leafY).lineTo(PAGE_WIDTH - MARGIN, leafY).stroke();
+  doc.restore();
+
+  drawFooterLeaf(doc, centerX, leafY);
+
+  doc
+    .font("Allura")
+    .fontSize(12)
+    .fillColor("#01641f")
+    .fillOpacity(1);
+  doc.text("Thank you for choosing Swakop Wellness Centre.", MARGIN, leafY + 12, {
+    align: "center",
+    width: USABLE_WIDTH,
+  });
+
+  doc
+    .font("Onest")
+    .fontSize(7.5)
+    .fillColor("#666");
+  doc.text("Your wellness. Our priority.", MARGIN, leafY + 27, {
+    align: "center",
+    width: USABLE_WIDTH,
+  });
+}
+
+// ─── Public generators ────────────────────────────────────────────────
+
+export async function generateInvoicePdf(
+  invoice: InvoiceData,
+  business: BusinessData,
+): Promise<Buffer> {
+  const doc = createDocument();
   const chunks: Buffer[] = [];
   doc.on("data", (chunk: Buffer) => chunks.push(chunk));
   const done = collectPdf(doc, chunks);
 
-  addBusinessHeader(doc, business);
+  addHeaderAndBusinessInfo(doc, business, "INVOICE", invoice.invoiceNumber);
 
-  doc.font("Helvetica-Bold").fontSize(16).fillColor("#333").text("RECEIPT", { align: "right" });
-  doc.font("Helvetica").fontSize(10).fillColor("#666").text(receipt.receiptNumber, { align: "right" });
-  doc.moveDown(0.5);
+  addDatesAndClientSection(
+    doc,
+    [
+      { label: "Issue Date", value: invoice.issueDate },
+      { label: "Due Date", value: invoice.dueDate },
+    ],
+    invoice.clientName,
+    invoice.clientPhone,
+    invoice.clientEmail,
+  );
 
-  const hr = doc.y;
-  doc.fillColor("#ccc").rect(50, hr, doc.page.width - 100, 1).fill();
-  doc.y = hr + 16;
+  addLineItemTable(doc, invoice.lineItems);
 
-  doc.font("Helvetica-Bold").fontSize(10).fillColor("#333");
-  doc.text("Payment Date:  ", { continued: true });
-  doc.font("Helvetica").fillColor("#333").text(fmtDate(receipt.paymentDate));
-  doc.moveDown(1.5);
+  addTotalsSection(
+    doc,
+    invoice.subtotalCents,
+    invoice.discountCents,
+    invoice.taxCents,
+    invoice.totalCents,
+    invoice.paidCents,
+    invoice.balanceCents,
+  );
 
-  doc.font("Helvetica-Bold").fontSize(10).fillColor("#333").text("Received From:");
-  doc.font("Helvetica").fontSize(10).fillColor("#333").text(receipt.clientName);
-  if (receipt.clientPhone) doc.font("Helvetica").fontSize(10).fillColor("#666").text(receipt.clientPhone);
-  if (receipt.clientEmail) doc.font("Helvetica").fontSize(10).fillColor("#666").text(receipt.clientEmail);
-  doc.moveDown(1.5);
+  addNotesTermsBankingSection(doc, invoice.notes, invoice.terms, business.bankingDetails ?? "");
 
-  if (receipt.invoiceNumber) {
-    doc.font("Helvetica-Bold").fontSize(10).fillColor("#333").text("Invoice:  ", { continued: true });
-    doc.font("Helvetica").fillColor("#333").text(receipt.invoiceNumber);
-    doc.moveDown(0.5);
-  }
+  addDocumentFooter(doc, business);
 
-  const detailsLeft = 50;
-  const labelW = 130;
-  const valueX = detailsLeft + labelW;
+  doc.end();
+  return done;
+}
 
-  const detailRows: [string, string][] = [
-    ["Amount:", fmt(receipt.amountCents)],
-    ["Payment Method:", receipt.method.charAt(0).toUpperCase() + receipt.method.slice(1).replaceAll("_", " ")],
+export async function generateReceiptPdf(
+  receipt: ReceiptData,
+  business: BusinessData,
+): Promise<Buffer> {
+  const doc = createDocument();
+  const chunks: Buffer[] = [];
+  doc.on("data", (chunk: Buffer) => chunks.push(chunk));
+  const done = collectPdf(doc, chunks);
+
+  addHeaderAndBusinessInfo(doc, business, "RECEIPT", receipt.receiptNumber);
+
+  const dates: Array<{ label: string; value: Date | string }> = [
+    {
+      label: "Payment Date",
+      value: receipt.paymentDate,
+    },
+    {
+      label: "Payment Method",
+      value:
+        receipt.method.charAt(0).toUpperCase() +
+        receipt.method.slice(1).replaceAll("_", " "),
+    },
   ];
-  if (receipt.reference) detailRows.push(["Reference:", receipt.reference]);
-
-  doc.font("Helvetica").fontSize(10);
-  for (const [label, value] of detailRows) {
-    doc.fillColor("#666").text(label, detailsLeft, doc.y, { width: labelW });
-    doc.fillColor("#333").text(value, valueX, doc.y - doc.currentLineHeight(), { width: doc.page.width - valueX - 50 });
+  if (receipt.reference) {
+    dates.push({ label: "Reference", value: receipt.reference });
   }
-  doc.moveDown(1);
-
-  if (receipt.description) {
-    const descY = doc.y;
-    doc.fillColor("#ccc").rect(50, descY, doc.page.width - 100, 1).fill();
-    doc.y = descY + 16;
-    doc.font("Helvetica-Bold").fontSize(10).fillColor("#333").text("Description");
-    doc.font("Helvetica").fontSize(9).fillColor("#666").text(receipt.description);
-    doc.moveDown(1);
+  if (receipt.invoiceNumber) {
+    dates.push({ label: "Invoice", value: receipt.invoiceNumber });
   }
+  addDatesAndClientSection(doc, dates, receipt.clientName, receipt.clientPhone, receipt.clientEmail);
 
-  if (receipt.notes) {
-    doc.font("Helvetica-Bold").fontSize(10).fillColor("#333").text("Notes");
-    doc.font("Helvetica").fontSize(9).fillColor("#666").text(receipt.notes);
-    doc.moveDown(1);
-  }
+  const receiptItems =
+    receipt.lineItems && receipt.lineItems.length > 0
+      ? receipt.lineItems
+      : [
+          {
+            description: receipt.description || "Wellness services",
+            quantity: 1,
+            unitPriceCents: receipt.amountCents,
+            discountCents: 0,
+            totalCents: receipt.amountCents,
+          },
+        ];
+  addLineItemTable(doc, receiptItems, true);
 
-  if (business.footerMessage) {
-    const footerY = doc.page.height - 80;
-    doc.font("Helvetica").fontSize(8).fillColor("#999").text(business.footerMessage, 50, footerY, { align: "center", width: doc.page.width - 100 });
-  }
+  addTotalsSection(doc, receipt.amountCents, 0, 0, receipt.amountCents, 0, 0);
+
+  addNotesTermsBankingSection(doc, receipt.notes, "", "");
+
+  addDocumentFooter(doc, business);
 
   doc.end();
-
   return done;
 }
 
-export async function generateQuotationPdf(quotation: QuotationData, business: BusinessData): Promise<Buffer> {
-  const doc = new PDFDocument({ margin: 50, size: "A4" });
+export async function generateQuotationPdf(
+  quotation: QuotationData,
+  business: BusinessData,
+): Promise<Buffer> {
+  const doc = createDocument();
   const chunks: Buffer[] = [];
   doc.on("data", (chunk: Buffer) => chunks.push(chunk));
   const done = collectPdf(doc, chunks);
 
-  addBusinessHeader(doc, business);
+  addHeaderAndBusinessInfo(doc, business, "QUOTATION", quotation.quotationNumber);
 
-  doc.font("Helvetica-Bold").fontSize(16).fillColor("#333").text("QUOTATION", { align: "right" });
-  doc.font("Helvetica").fontSize(10).fillColor("#666").text(quotation.quotationNumber, { align: "right" });
-  doc.moveDown(0.5);
-
-  const hr = doc.y;
-  doc.fillColor("#ccc").rect(50, hr, doc.page.width - 100, 1).fill();
-  doc.y = hr + 12;
-
-  doc.font("Helvetica-Bold").fontSize(10).fillColor("#333");
-  doc.text(`Issue Date:  `, { continued: true });
-  doc.font("Helvetica").text(fmtDate(quotation.issueDate), { continued: false });
+  const dates: Array<{ label: string; value: Date | string }> = [
+    { label: "Issue Date", value: quotation.issueDate },
+  ];
   if (quotation.validUntil) {
-    doc.font("Helvetica-Bold").text(`Valid Until: `, { continued: true });
-    doc.font("Helvetica").text(fmtDate(quotation.validUntil), { continued: false });
+    dates.push({ label: "Valid Until", value: quotation.validUntil });
   }
-  doc.moveDown(1);
-
-  doc.font("Helvetica-Bold").fontSize(10).fillColor("#333").text("Bill To:");
-  doc.font("Helvetica").fontSize(10).fillColor("#333").text(quotation.clientName);
-  if (quotation.clientPhone) doc.font("Helvetica").fontSize(10).fillColor("#666").text(quotation.clientPhone);
-  if (quotation.clientEmail) doc.font("Helvetica").fontSize(10).fillColor("#666").text(quotation.clientEmail);
-  doc.moveDown(1.5);
+  addDatesAndClientSection(doc, dates, quotation.clientName, quotation.clientPhone, quotation.clientEmail);
 
   addLineItemTable(doc, quotation.lineItems);
 
-  const totalsX = doc.page.width - 200;
-  const totalStartY = doc.y;
+  addTotalsSection(doc, quotation.subtotalCents, quotation.discountCents, 0, quotation.totalCents, 0, 0);
 
-  doc.font("Helvetica").fontSize(10).fillColor("#666");
-  doc.text("Subtotal", totalsX, totalStartY, { width: 150, align: "left" });
-  doc.text(fmt(quotation.subtotalCents), totalsX + 100, totalStartY, { width: 100, align: "right" });
+  addNotesTermsBankingSection(doc, quotation.notes, quotation.terms, business.bankingDetails ?? "");
 
-  let y = totalStartY + 16;
-
-  if (quotation.discountCents > 0) {
-    doc.fillColor("#666").text("Discount", totalsX, y, { width: 150, align: "left" });
-    doc.fillColor("#d32f2f").text(`-${fmt(quotation.discountCents)}`, totalsX + 100, y, { width: 100, align: "right" });
-    y += 16;
-  }
-
-  doc.fillColor("#ccc").rect(totalsX, y, 200, 1).fill();
-  y += 8;
-
-  doc.font("Helvetica-Bold").fontSize(11).fillColor("#333");
-  doc.text("Total", totalsX, y, { width: 150, align: "left" });
-  doc.text(fmt(quotation.totalCents), totalsX + 100, y, { width: 100, align: "right" });
-  y += 24;
-
-  doc.y = y;
-
-  if (quotation.notes || quotation.terms || business.bankingDetails) {
-    const sectionY = doc.y;
-    doc.fillColor("#ccc").rect(50, sectionY, doc.page.width - 100, 1).fill();
-    doc.y = sectionY + 16;
-  }
-
-  if (quotation.notes) {
-    doc.font("Helvetica-Bold").fontSize(10).fillColor("#333").text("Notes");
-    doc.font("Helvetica").fontSize(9).fillColor("#666").text(quotation.notes);
-    doc.moveDown(1);
-  }
-
-  if (quotation.terms) {
-    doc.font("Helvetica-Bold").fontSize(10).fillColor("#333").text("Terms & Conditions");
-    doc.font("Helvetica").fontSize(9).fillColor("#666").text(quotation.terms);
-    doc.moveDown(1);
-  }
-
-  if (business.bankingDetails) {
-    doc.font("Helvetica-Bold").fontSize(10).fillColor("#333").text("Banking Details");
-    doc.font("Helvetica").fontSize(9).fillColor("#666").text(business.bankingDetails);
-    doc.moveDown(1);
-  }
-
-  if (business.footerMessage) {
-    const footerY = doc.page.height - 80;
-    doc.font("Helvetica").fontSize(8).fillColor("#999").text(business.footerMessage, 50, footerY, { align: "center", width: doc.page.width - 100 });
-  }
+  addDocumentFooter(doc, business);
 
   doc.end();
-
   return done;
 }

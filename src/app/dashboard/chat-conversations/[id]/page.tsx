@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
+import { Bot, User } from "lucide-react";
 import { hasPermission } from "@/auth/permissions";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
@@ -33,6 +34,51 @@ function DetailItem({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
+function ChatMessage({ role, content, createdAt }: { role: string; content: string; createdAt: Date }) {
+  const isUser = role === "user";
+
+  return (
+    <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
+      {/* Avatar */}
+      <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
+        isUser
+          ? "bg-primary/10"
+          : "bg-surface-muted"
+      }`}>
+        {isUser ? (
+          <User className="h-4 w-4 text-primary" aria-hidden="true" />
+        ) : (
+          <Bot className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+        )}
+      </div>
+
+      {/* Bubble */}
+      <div className={`flex max-w-[75%] flex-col gap-1 ${
+        isUser ? "items-end" : "items-start"
+      }`}>
+        <span className="text-[11px] font-medium text-muted-foreground">
+          {isUser ? "User" : "Chatbot"}
+        </span>
+        <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+          isUser
+            ? "bg-primary/10 text-foreground rounded-tr-md"
+            : "bg-surface-muted text-foreground rounded-tl-md"
+        }`}>
+          {content}
+        </div>
+        <span className="text-[10px] text-muted-foreground">
+          {createdAt.toLocaleString("en-GB", {
+            hour: "2-digit",
+            minute: "2-digit",
+            day: "numeric",
+            month: "short",
+          })}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default async function ChatConversationDetailPage(props: { params: Promise<{ id: string }> }) {
   const user = await requirePermission("bookings:view");
   const { id } = await props.params;
@@ -45,81 +91,118 @@ export default async function ChatConversationDetailPage(props: { params: Promis
 
   return (
     <DashboardShell>
-      <Link href="/dashboard/chat-conversations" className="text-sm text-muted-foreground hover:text-foreground">&larr; Chat conversations</Link>
+      <Link href="/dashboard/chat-conversations" className="text-sm text-muted-foreground hover:text-foreground transition-colors">&larr; Chat conversations</Link>
 
-        <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-primary">Chat conversation</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">{conversation.clientName ?? "Unknown client"}</h1>
-            <p className="mt-2 text-sm text-muted-foreground">Updated {conversation.updatedAt.toLocaleString("en-GB")}</p>
+      <div className="mt-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold tracking-[0.16em] text-primary uppercase">Chat conversation</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">{conversation.clientName ?? "Unknown client"}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Updated {conversation.updatedAt.toLocaleString("en-GB")}</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <StatusBadge status={conversation.status} />
+          {canUpdateStatus ? (
+            <form action={async (formData) => { "use server"; await updateChatConversationStatus(formData); }}>
+              <input type="hidden" name="conversationId" value={conversation.id} />
+              <input type="hidden" name="status" value={nextStatus} />
+              <button type="submit" className="h-10 rounded-xl border border-border px-3 text-sm font-semibold capitalize hover:bg-surface-muted transition-colors">
+                {nextStatus === "closed" ? "Close" : "Reopen"}
+              </button>
+            </form>
+          ) : null}
+        </div>
+      </div>
+
+      {/* Info cards */}
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="rounded-xl border border-border bg-background p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Created</p>
+          <p className="mt-1 text-sm font-medium">{conversation.createdAt.toLocaleString("en-GB")}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-background p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Updated</p>
+          <p className="mt-1 text-sm font-medium">{conversation.updatedAt.toLocaleString("en-GB")}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-background p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Linked booking</p>
+          <p className="mt-1 text-sm font-medium">
+            {conversation.bookingId && conversation.bookingReference ? (
+              <Link href={`/dashboard/bookings/${conversation.bookingId}`} className="text-primary hover:underline">
+                {conversation.bookingReference}
+              </Link>
+            ) : (
+              <span className="text-muted-foreground">None</span>
+            )}
+          </p>
+        </div>
+        <div className="rounded-xl border border-border bg-background p-4">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Booking status</p>
+          <p className="mt-1 text-sm font-medium">
+            {conversation.bookingStatus ? (
+              <span className="capitalize">{conversation.bookingStatus.replaceAll("_", " ")}</span>
+            ) : (
+              <span className="text-muted-foreground">None</span>
+            )}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_1fr]">
+        <section className="rounded-xl border border-border bg-background p-5">
+          <h2 className="text-base font-semibold">Linked Client</h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <DetailItem label="Name" value={
+              conversation.clientId && conversation.clientName
+                ? <Link href={`/dashboard/clients/${conversation.clientId}`} className="text-primary hover:underline">{conversation.clientName}</Link>
+                : <span className="text-muted-foreground">Unknown</span>
+            } />
+            <DetailItem label="Phone" value={conversation.clientPhone ?? <span className="text-muted-foreground">Not provided</span>} />
+            <DetailItem label="Email" value={conversation.clientEmail ?? <span className="text-muted-foreground">Not provided</span>} />
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <StatusBadge status={conversation.status} />
-            {canUpdateStatus ? (
-              <form action={async (formData) => { "use server"; await updateChatConversationStatus(formData); }}>
-                <input type="hidden" name="conversationId" value={conversation.id} />
-                <input type="hidden" name="status" value={nextStatus} />
-                <button type="submit" className="h-10 rounded-xl border border-border px-3 text-sm font-semibold capitalize hover:bg-surface-muted">
-                  {nextStatus === "closed" ? "Close" : "Reopen"}
-                </button>
-              </form>
-            ) : null}
-          </div>
-        </div>
+        </section>
 
-        <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          <DetailItem label="Created" value={conversation.createdAt.toLocaleString("en-GB")} />
-          <DetailItem label="Updated" value={conversation.updatedAt.toLocaleString("en-GB")} />
-          <DetailItem
-            label="Linked booking"
-            value={conversation.bookingId && conversation.bookingReference ? <Link href={`/dashboard/bookings/${conversation.bookingId}`} className="text-primary hover:underline">{conversation.bookingReference}</Link> : "None"}
-          />
-          <DetailItem label="Booking status" value={conversation.bookingStatus ? <span className="capitalize">{conversation.bookingStatus.replaceAll("_", " ")}</span> : "None"} />
-        </div>
-
-        <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_1fr]">
-          <section className="rounded-2xl border border-border bg-background p-5">
-            <h2 className="text-lg font-semibold">Linked Client</h2>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              <DetailItem label="Name" value={conversation.clientId && conversation.clientName ? <Link href={`/dashboard/clients/${conversation.clientId}`} className="text-primary hover:underline">{conversation.clientName}</Link> : "Unknown"} />
-              <DetailItem label="Phone" value={conversation.clientPhone ?? "None"} />
-              <DetailItem label="Email" value={conversation.clientEmail ?? "None"} />
-            </div>
-          </section>
-
-          <section className="rounded-2xl border border-border bg-background p-5">
-            <h2 className="text-lg font-semibold">Tool Events</h2>
-            {conversation.toolEvents.length === 0 ? <p className="mt-4 text-sm text-muted-foreground">No tool events recorded.</p> : null}
-            <div className="mt-4 space-y-3">
-              {conversation.toolEvents.map((event) => (
-                <div key={event.id} className="rounded-xl bg-surface-muted p-4 text-sm">
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                    <p className="font-medium">{event.toolName}</p>
-                    <span className="text-xs font-semibold capitalize text-muted-foreground">{event.status.replaceAll("_", " ")}</span>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">{event.createdAt.toLocaleString("en-GB")}</p>
-                  {event.summary ? <p className="mt-2 text-muted-foreground">{event.summary}</p> : null}
+        <section className="rounded-xl border border-border bg-background p-5">
+          <h2 className="text-base font-semibold">Tool Events</h2>
+          {conversation.toolEvents.length === 0 ? (
+            <p className="mt-4 text-sm text-muted-foreground">No tool events recorded.</p>
+          ) : null}
+          <div className="mt-4 space-y-2">
+            {conversation.toolEvents.map((event) => (
+              <div key={event.id} className="rounded-lg bg-surface-muted p-3 text-sm">
+                <div className="flex items-start justify-between gap-2">
+                  <p className="font-medium text-xs">{event.toolName}</p>
+                  <span className={`text-[10px] font-semibold capitalize px-1.5 py-0.5 rounded ${
+                    event.status === "success" ? "bg-green-50 text-green-700" :
+                    event.status === "error" ? "bg-red-50 text-red-700" :
+                    "bg-gray-50 text-gray-700"
+                  }`}>{event.status.replaceAll("_", " ")}</span>
                 </div>
-              ))}
-            </div>
-          </section>
-        </div>
-
-        <section className="mt-6 rounded-2xl border border-border bg-background p-5">
-          <h2 className="text-lg font-semibold">Messages</h2>
-          {conversation.messages.length === 0 ? <p className="mt-4 text-sm text-muted-foreground">No messages recorded.</p> : null}
-          <div className="mt-4 space-y-3">
-            {conversation.messages.map((message) => (
-              <div key={message.id} className="rounded-xl border border-border p-4 text-sm">
-                <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
-                  <p className="font-semibold capitalize">{message.role.replaceAll("_", " ")}</p>
-                  <p className="text-xs text-muted-foreground">{message.createdAt.toLocaleString("en-GB")}</p>
-                </div>
-                <p className="mt-3 whitespace-pre-wrap text-muted-foreground">{message.content}</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">{event.createdAt.toLocaleString("en-GB")}</p>
+                {event.summary ? <p className="mt-1.5 text-xs text-muted-foreground">{event.summary}</p> : null}
               </div>
             ))}
           </div>
         </section>
+      </div>
+
+      {/* Messages */}
+      <section className="mt-6 rounded-xl border border-border bg-background p-5">
+        <h2 className="text-base font-semibold">Messages</h2>
+        {conversation.messages.length === 0 ? (
+          <p className="mt-6 text-center text-sm text-muted-foreground">No messages recorded.</p>
+        ) : (
+          <div className="mt-5 space-y-5">
+            {conversation.messages.map((message, index) => (
+              <ChatMessage
+                key={message.id}
+                role={message.role}
+                content={message.content}
+                createdAt={message.createdAt}
+              />
+            ))}
+          </div>
+        )}
+      </section>
     </DashboardShell>
   );
 }

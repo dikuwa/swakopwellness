@@ -1,9 +1,9 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { receipts, clients, users } from "@/db/schema";
+import { receiptLineItems, receipts, clients, users } from "@/db/schema";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
 import { hasPermission } from "@/auth/permissions";
@@ -50,6 +50,12 @@ export default async function ReceiptDetailPage(props: { params: Promise<{ id: s
     .leftJoin(users, eq(receipts.receivedByUserId, users.id))
     .where(eq(receipts.id, id))
     .limit(1);
+
+  const lineItems = await db
+    .select()
+    .from(receiptLineItems)
+    .where(eq(receiptLineItems.receiptId, id))
+    .orderBy(asc(receiptLineItems.sortOrder));
 
   if (!receipt) notFound();
 
@@ -103,6 +109,40 @@ export default async function ReceiptDetailPage(props: { params: Promise<{ id: s
             <p className="mt-1 font-medium">{receipt.receivedByName ?? "\u2014"}</p>
           </div>
         </div>
+
+        {/* Line Items */}
+        {lineItems.length > 0 && (
+          <div className="mt-6">
+            <p className="text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase mb-3">Line Items</p>
+            <div className="overflow-x-auto rounded-xl border border-border">
+              <table className="w-full min-w-[500px] text-left text-sm">
+                <thead className="bg-surface-muted text-muted-foreground border-b border-border">
+                  <tr>
+                    <th className="py-2.5 px-4 font-semibold">Description</th>
+                    <th className="py-2.5 px-4 text-right font-semibold">Qty</th>
+                    <th className="py-2.5 px-4 text-right font-semibold">Unit Price</th>
+                    <th className="py-2.5 px-4 text-right font-semibold">Discount</th>
+                    <th className="py-2.5 px-4 text-right font-semibold">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {lineItems.map((item) => {
+                    const lineTotal = item.quantity * item.unitPriceCents - item.discountCents;
+                    return (
+                      <tr key={item.id} className="hover:bg-surface-muted/30">
+                        <td className="py-2.5 px-4">{item.description}</td>
+                        <td className="py-2.5 px-4 text-right">{item.quantity}</td>
+                        <td className="py-2.5 px-4 text-right">N${(item.unitPriceCents / 100).toFixed(2)}</td>
+                        <td className="py-2.5 px-4 text-right">{item.discountCents > 0 ? `N$${(item.discountCents / 100).toFixed(2)}` : "—"}</td>
+                        <td className="py-2.5 px-4 text-right font-medium">N${(lineTotal / 100).toFixed(2)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {receipt.description && (
           <div className="mt-6">

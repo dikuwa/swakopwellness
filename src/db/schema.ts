@@ -571,6 +571,22 @@ export const payments = pgTable(
   ],
 );
 
+export const receiptLineItems = pgTable(
+  "receipt_line_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    receiptId: uuid("receipt_id").notNull().references(() => receipts.id, { onDelete: "cascade" }),
+    serviceId: uuid("service_id").references(() => services.id, { onDelete: "set null" }),
+    description: text("description").notNull(),
+    quantity: integer("quantity").notNull().default(1),
+    unitPriceCents: integer("unit_price_cents").notNull(),
+    discountCents: integer("discount_cents").notNull().default(0),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("line_items_receipt_idx").on(table.receiptId)],
+);
+
 export const receipts = pgTable(
   "receipts",
   {
@@ -638,12 +654,18 @@ export const paymentsRelations = relations(payments, ({ one, many }) => ({
   receipts: many(receipts),
 }));
 
-export const receiptsRelations = relations(receipts, ({ one }) => ({
+export const receiptLineItemsRelations = relations(receiptLineItems, ({ one }) => ({
+  receipt: one(receipts, { fields: [receiptLineItems.receiptId], references: [receipts.id] }),
+  service: one(services, { fields: [receiptLineItems.serviceId], references: [services.id] }),
+}));
+
+export const receiptsRelations = relations(receipts, ({ one, many }) => ({
   payment: one(payments, { fields: [receipts.paymentId], references: [payments.id] }),
   client: one(clients, { fields: [receipts.clientId], references: [clients.id] }),
   booking: one(bookings, { fields: [receipts.bookingId], references: [bookings.id] }),
   invoice: one(invoices, { fields: [receipts.invoiceId], references: [invoices.id] }),
   receivedBy: one(users, { fields: [receipts.receivedByUserId], references: [users.id] }),
+  lineItems: many(receiptLineItems),
 }));
 
 export const notifications = pgTable(

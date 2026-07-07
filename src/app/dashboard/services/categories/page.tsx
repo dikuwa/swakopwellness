@@ -11,6 +11,7 @@ import {
   updateServiceCategory,
 } from "@/services/actions";
 import { CreateCategoryForm, EditCategoryForm } from "./category-form";
+import { ClientCategoryRow } from "./client-category-row";
 
 export const dynamic = "force-dynamic";
 
@@ -27,59 +28,83 @@ export default async function ServiceCategoriesPage() {
     .from(serviceCategories)
     .orderBy(asc(serviceCategories.sortOrder), asc(serviceCategories.name));
 
+  const totalCategories = categories.length;
+  const activeCategories = categories.filter((c) => c.active).length;
+
   return (
     <DashboardShell>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold tracking-[0.16em] text-muted-foreground uppercase">Services</p>
+          <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">Service Categories</h1>
+        </div>
+      </div>
+
+      {/* Summary cards */}
+      <div className="mt-6 grid gap-4 grid-cols-2 lg:grid-cols-3 max-w-lg">
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <span className="text-lg font-bold">{totalCategories}</span>
+          </div>
           <div>
-            <p className="text-sm font-semibold text-muted-foreground">
-              Services
-            </p>
-            <h1 className="text-3xl font-semibold tracking-[-0.035em]">
-              Service Categories
-            </h1>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Total</p>
+            <p className="text-sm font-bold tracking-tight mt-0.5">Categories</p>
           </div>
         </div>
-
-        <CreateCategoryForm createAction={createServiceCategory} />
-
-        <div className="mt-6 space-y-3">
-          {categories.map((category) => (
-            <div key={category.id} className="rounded-xl border border-border bg-background p-5">
-              <EditCategoryForm
-                category={{ id: category.id, name: category.name, slug: category.slug, description: category.description, sortOrder: category.sortOrder }}
-                updateAction={updateServiceCategory}
-              />
-              <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
-                <form action={toggleServiceCategoryActive.bind(null, category.id)}>
-                  <button
-                    type="submit"
-                    className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
-                      category.active
-                        ? "bg-green-50 text-green-700"
-                        : "bg-red-50 text-red-700"
-                    }`}
-                  >
-                    <span className={`h-1.5 w-1.5 rounded-full ${category.active ? "bg-green-600" : "bg-red-600"}`} />
-                    {category.active ? "Active" : "Inactive"}
-                  </button>
-                </form>
-                <form action={deleteOrArchiveServiceCategory.bind(null, category.id)}>
-                  <button
-                    type="submit"
-                    className="flex h-8 items-center gap-1 rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
-                  >
-                    Delete / Archive
-                  </button>
-                </form>
-              </div>
-            </div>
-          ))}
-          {categories.length === 0 && (
-            <div className="rounded-xl border border-border bg-background p-8 text-center text-sm text-muted-foreground">
-              No service categories yet.
-            </div>
-          )}
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-background p-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-success/10 text-success">
+            <span className="text-lg font-bold">{activeCategories}</span>
+          </div>
+          <div>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Active</p>
+            <p className="text-sm font-bold tracking-tight mt-0.5">Categories</p>
+          </div>
         </div>
+      </div>
+
+      {/* Add Category card */}
+      <div className="mt-6 rounded-xl border border-border bg-background p-6">
+        <h2 className="text-lg font-semibold">Add Category</h2>
+        <CreateCategoryForm createAction={createServiceCategory} />
+      </div>
+
+      {/* Existing Categories card */}
+      <div className="mt-6 rounded-xl border border-border bg-background overflow-hidden">
+        <div className="px-6 py-5 border-b border-border">
+          <h2 className="text-lg font-semibold">Existing Categories</h2>
+        </div>
+        {categories.length === 0 ? (
+          <div className="p-8 text-center text-sm text-muted-foreground">
+            No service categories yet.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-sm">
+              <thead className="bg-surface-muted text-muted-foreground border-b border-border">
+                <tr>
+                  <th className="py-3 px-4 font-semibold">Name</th>
+                  <th className="py-3 px-4 font-semibold">Slug</th>
+                  <th className="py-3 px-4 font-semibold">Description</th>
+                  <th className="py-3 px-4 font-semibold text-center">Sort</th>
+                  <th className="py-3 px-4 font-semibold">Status</th>
+                  <th className="py-3 px-4 font-semibold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {categories.map((category) => (
+                  <ClientCategoryRow
+                    key={category.id}
+                    category={category}
+                    updateAction={updateServiceCategory}
+                    toggleAction={toggleServiceCategoryActive}
+                    archiveAction={deleteOrArchiveServiceCategory}
+                  />
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </DashboardShell>
   );
 }

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
-import { businessSettings, clients, invoices, receipts } from "@/db/schema";
+import { businessSettings, clients, invoices, receiptLineItems, receipts } from "@/db/schema";
 import { generateReceiptPdf, type BusinessData, type ReceiptData } from "@/documents/pdf";
 
 export const dynamic = "force-dynamic";
@@ -67,6 +67,12 @@ export async function GET(_request: Request, props: { params: Promise<{ id: stri
     footerMessage: (docDetails.footerMessage as string) ?? undefined,
   };
 
+  const receiptLineItemsData = await db
+    .select()
+    .from(receiptLineItems)
+    .where(eq(receiptLineItems.receiptId, receipt.id))
+    .orderBy(asc(receiptLineItems.sortOrder));
+
   const receiptData: ReceiptData = {
     receiptNumber: receipt.receiptNumber,
     paymentDate: receipt.paymentDate,
@@ -79,6 +85,15 @@ export async function GET(_request: Request, props: { params: Promise<{ id: stri
     reference: receipt.paymentReference ?? "",
     description: receipt.description ?? "",
     notes: receipt.notes ?? "",
+    lineItems: receiptLineItemsData.length > 0
+      ? receiptLineItemsData.map((item) => ({
+          description: item.description,
+          quantity: item.quantity,
+          unitPriceCents: item.unitPriceCents,
+          discountCents: item.discountCents,
+          totalCents: item.quantity * item.unitPriceCents - item.discountCents,
+        }))
+      : undefined,
   };
 
   const pdfBuffer = await generateReceiptPdf(receiptData, businessData);

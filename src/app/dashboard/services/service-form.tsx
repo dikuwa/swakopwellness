@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useActionState, useEffect, useRef, useState, type ReactNode } from "react";
 import toast from "react-hot-toast";
 import { Select } from "@/ui/components";
+import { Upload, Loader2 } from "lucide-react";
+import { uploadServiceFeaturedImage, removeServiceFeaturedImage } from "@/services/actions";
 
 
 interface Category {
@@ -44,6 +46,7 @@ interface Props {
   ) => Promise<{ ok: boolean; error?: string; serviceId?: string }>;
   initialData?: ServiceFormData;
   galleryImages?: GalleryImage[];
+  serviceId?: string;
   children?: ReactNode;
 }
 
@@ -56,7 +59,7 @@ function generateSlug(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
-export function ServiceForm({ categories, action, initialData, galleryImages, children }: Props) {
+export function ServiceForm({ categories, action, initialData, serviceId, galleryImages, children }: Props) {
   const router = useRouter();
   const isEdit = !!initialData;
   const slugManuallyEdited = useRef(false);
@@ -64,6 +67,12 @@ export function ServiceForm({ categories, action, initialData, galleryImages, ch
   const [categoryId, setCategoryId] = useState(initialData?.categoryId ?? "");
 
   const firstImage = (galleryImages && galleryImages.length > 0) ? galleryImages[0] : null;
+
+  const [featuredImageUrl, setFeaturedImageUrl] = useState<string | null>(
+    firstImage?.publicUrl ?? null
+  );
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [state, formAction, isPending] = useActionState(
     async (_prev: unknown, formData: FormData) => action(formData),
@@ -79,11 +88,12 @@ export function ServiceForm({ categories, action, initialData, galleryImages, ch
         router.push(`/dashboard/services/${state.serviceId}/edit`);
       } else {
         router.push("/dashboard/services");
+      }      } else if (state && 'ok' in state && state.ok === false && 'error' in state && state.error) {
+        toast.error(state.error as string);
       }
-    } else if (state?.ok === false && state.error) {
-      toast.error(state.error);
-    }
   }, [state, router, isEdit]);
+
+  const effectiveServiceId = serviceId;
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!slugManuallyEdited.current) {
@@ -96,6 +106,48 @@ export function ServiceForm({ categories, action, initialData, galleryImages, ch
 
   const handleSlugChange = () => {
     slugManuallyEdited.current = true;
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    try {
+      if (isEdit && effectiveServiceId) {
+        const formData = new FormData();
+        formData.append("file", file);
+        const result = await uploadServiceFeaturedImage(effectiveServiceId, formData);
+        if (result.ok && 'publicUrl' in result && result.publicUrl) {
+          setFeaturedImageUrl(result.publicUrl);
+          toast.success("Image uploaded");
+        } else {
+          toast.error((result as { error?: string }).error ?? "Upload failed");
+        }
+      } else {
+        // For new services, just show preview - upload happens during create
+        setFeaturedImageUrl(URL.createObjectURL(file));
+      }
+    } catch {
+      toast.error("Failed to upload image");
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleRemoveImage = async () => {
+    if (isEdit && effectiveServiceId) {
+      const result = await removeServiceFeaturedImage(effectiveServiceId);
+      if (result.ok) {
+        setFeaturedImageUrl(null);
+        toast.success("Image removed");
+      } else {
+        toast.error((result as { error?: string }).error ?? "Failed to remove image");
+      }
+    } else {
+      setFeaturedImageUrl(null);
+    }
   };
 
   return (
@@ -354,25 +406,64 @@ export function ServiceForm({ categories, action, initialData, galleryImages, ch
           <div className="space-y-6 lg:sticky lg:top-4">
             <div className="space-y-4 rounded-xl border border-border bg-background p-6">
               <h2 className="text-lg font-semibold">Service Image</h2>
-              <p className="text-xs text-muted-foreground">The first gallery image is used as the main service image.</p>
+              <p className="text-xs text-muted-foreground">Upload one main image for this service.</p>
 
-              {firstImage?.publicUrl ? (
-                <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-border bg-surface">
+              {featuredImageUrl ? (
+                <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-border bg-surface group">
                   <img
-                    src={firstImage.publicUrl}
-                    alt={firstImage.altText || "Service image"}
+                    src={featuredImageUrl}
+                    alt="Service image"
                     className="h-full w-full object-cover"
                   />
+                  <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm hover:bg-gray-100"
+                    >
+                      Replace
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-700"
+                    >
+                      Remove
+                    </button>
+                  </div>
                 </div>
               ) : (
-                <div className="flex aspect-video w-full items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface">
-                  <span className="text-xs text-muted-foreground">No images yet — upload via Gallery Images</span>
+                <div
+                  onClick={() => !uploadingImage && fileInputRef.current?.click()}
+                  className={`flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-surface-muted/50 p-6 transition-colors hover:border-primary/50 ${uploadingImage ? "opacity-50 cursor-not-allowed" : ""}`}
+                >
+                  {uploadingImage ? (
+                    <>
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      <span className="mt-2 text-sm font-medium text-muted-foreground">Uploading...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-6 w-6 text-muted-foreground" />
+                      <span className="mt-2 text-sm font-semibold">Upload image</span>
+                      <span className="mt-1 text-xs text-muted-foreground">JPG, PNG, WebP (max 8MB)</span>
+                    </>
+                  )}
                 </div>
               )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/avif,image/gif"
+                onChange={handleImageUpload}
+                className="sr-only"
+              />
             </div>
 
             <div className="space-y-4 rounded-xl border border-border bg-background p-6">
               <h2 className="text-lg font-semibold">Visibility & Settings</h2>
+              <p className="text-xs text-muted-foreground">Control how this service appears on the website.</p>
 
               <div className="space-y-3">
                 <label className="flex cursor-pointer items-center gap-2.5 text-sm font-semibold">

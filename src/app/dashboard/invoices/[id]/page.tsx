@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
+import { DocumentPreview } from "@/components/document-preview";
 import { getInvoiceById, getClientById } from "@/dashboard/data";
 import { emailInvoiceAction, issueInvoiceAction, voidInvoiceAction } from "./actions";
 
@@ -54,111 +55,35 @@ export default async function InvoiceDetailPage(props: { params: Promise<{ id: s
           <StatusBadge status={invoice.status} />
         </div>
 
-        <div className="mt-6 grid gap-6 sm:grid-cols-2">
-          <div>
-            <p className="text-sm text-muted-foreground">Client</p>
-            <p className="mt-1 font-semibold">{client?.fullName ?? "Unknown"}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Issue Date</p>
-            <p className="mt-1">{invoice.issueDate.toLocaleDateString("en-GB")}</p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Due Date</p>
-            <p className="mt-1">{invoice.dueDate.toLocaleDateString("en-GB")}</p>
-          </div>
-          {invoice.issuedAt && (
-            <div>
-              <p className="text-sm text-muted-foreground">Issued At</p>
-              <p className="mt-1">{new Date(invoice.issuedAt).toLocaleDateString("en-GB")}</p>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-8 overflow-x-auto">
-          <table className="w-full min-w-[600px] text-left text-sm">
-            <thead className="text-muted-foreground">
-              <tr>
-                <th className="py-3">Description</th>
-                <th className="text-right">Qty</th>
-                <th className="text-right">Unit Price</th>
-                <th className="text-right">Discount</th>
-                <th className="text-right">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoice.lineItems.map((item) => {
-                const lineTotal = item.quantity * item.unitPriceCents - item.discountCents;
-                return (
-                  <tr key={item.id} className="border-t border-border">
-                    <td className="py-3">{item.description}</td>
-                    <td className="py-3 text-right">{item.quantity}</td>
-                    <td className="py-3 text-right">N${(item.unitPriceCents / 100).toFixed(2)}</td>
-                    <td className="py-3 text-right">{item.discountCents > 0 ? `N$${(item.discountCents / 100).toFixed(2)}` : "—"}</td>
-                    <td className="py-3 text-right font-medium">N${(lineTotal / 100).toFixed(2)}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        <div className="mt-6 ml-auto w-full max-w-xs space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted-foreground">Subtotal</span>
-            <span>N${(invoice.subtotalCents / 100).toFixed(2)}</span>
-          </div>
-          {invoice.discountCents > 0 && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">
-                Discount
-                {invoice.discountType === "percentage" && invoice.discountValue
-                  ? ` (${invoice.discountValue}%)`
-                  : ""}
-              </span>
-              <span className="text-red-600">- N${(invoice.discountCents / 100).toFixed(2)}</span>
-            </div>
-          )}
-          {invoice.taxCents > 0 && (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Tax</span>
-              <span>N${(invoice.taxCents / 100).toFixed(2)}</span>
-            </div>
-          )}
-          <div className="flex justify-between border-t border-border pt-2 font-semibold">
-            <span>Total</span>
-            <span>N${(invoice.totalCents / 100).toFixed(2)}</span>
-          </div>
-          {invoice.amountPaidCents > 0 && (
-            <div className="flex justify-between text-green-600">
-              <span>Amount Paid</span>
-              <span>- N${(invoice.amountPaidCents / 100).toFixed(2)}</span>
-            </div>
-          )}
-          {invoice.balanceCents > 0 && (
-            <div className="flex justify-between border-t border-border pt-2 font-semibold">
-              <span>Balance Due</span>
-              <span>N${(invoice.balanceCents / 100).toFixed(2)}</span>
-            </div>
-          )}
-        </div>
-
-        {(invoice.notes || invoice.terms) && (
-          <div className="mt-8 grid gap-6 sm:grid-cols-2">
-            {invoice.notes && (
-              <div>
-                <p className="text-sm font-semibold text-muted-foreground">Notes</p>
-                <p className="mt-1 text-sm whitespace-pre-wrap">{invoice.notes}</p>
-              </div>
-            )}
-            {invoice.terms && (
-              <div>
-                <p className="text-sm font-semibold text-muted-foreground">Terms</p>
-                <p className="mt-1 text-sm whitespace-pre-wrap">{invoice.terms}</p>
-              </div>
-            )}
-          </div>
-        )}
+        {/* DocumentPreview replaces the raw table + totals + notes display */}
+      <div className="mt-6">
+        <DocumentPreview
+          type="INVOICE"
+          documentNumber={invoice.invoiceNumber}
+          clientName={client?.fullName ?? "Unknown"}
+          clientPhone={(client?.phone as string) ?? ""}
+          clientEmail={(client?.email as string) ?? ""}
+          lineItems={invoice.lineItems.map((item) => ({
+            description: item.description,
+            quantity: item.quantity,
+            unitPriceCents: item.unitPriceCents,
+            discountCents: item.discountCents,
+            totalCents: item.quantity * item.unitPriceCents - item.discountCents,
+          }))}
+          subtotalCents={invoice.subtotalCents}
+          discountCents={invoice.discountCents}
+          taxCents={invoice.taxCents}
+          totalCents={invoice.totalCents}
+          paidCents={invoice.amountPaidCents}
+          balanceCents={invoice.balanceCents}
+          notes={invoice.notes ?? ""}
+          terms={invoice.terms ?? ""}
+          dates={[
+            { label: "Issue Date", value: invoice.issueDate.toLocaleDateString("en-GB") },
+            { label: "Due Date", value: invoice.dueDate.toLocaleDateString("en-GB") },
+          ]}
+        />
+      </div>
 
         {invoice.voidReason && (
           <div className="mt-6 rounded-2xl bg-red-50 p-4 text-sm">
