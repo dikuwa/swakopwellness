@@ -17,10 +17,21 @@ interface Client {
   fullName: string;
 }
 
+interface InitialLineItem {
+  description: string;
+  quantity: number;
+  unitPriceCents: number;
+  discountCents: number;
+  serviceId: string | null;
+}
+
 interface Props {
   clients: Client[];
   services: ServiceOption[];
   initialInvoiceId?: string;
+  initialClientId?: string;
+  initialLineItems?: InitialLineItem[];
+  initialAmountCents?: number;
 }
 
 const methodOptions = [
@@ -31,10 +42,24 @@ const methodOptions = [
   { value: "other", label: "Other" },
 ];
 
-export function ReceiptForm({ clients, services, initialInvoiceId }: Props) {
+function mapInitialLineItems(items?: InitialLineItem[]): EditorLineItem[] {
+  if (!items || items.length === 0) return [createEmptyLineItem()];
+  let keyCounter = 0;
+  return items.map((item) => ({
+    _key: `init_${++keyCounter}_${Date.now()}`,
+    itemType: item.serviceId ? ("SERVICE" as const) : ("CUSTOM" as const),
+    serviceId: item.serviceId,
+    description: item.description,
+    quantity: item.quantity,
+    unitPriceCents: item.unitPriceCents,
+    discountCents: item.discountCents,
+  }));
+}
+
+export function ReceiptForm({ clients, services, initialInvoiceId, initialClientId, initialLineItems, initialAmountCents }: Props) {
   const [paymentDate, setPaymentDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [items, setItems] = useState<EditorLineItem[]>([createEmptyLineItem()]);
-  const [amountPaid, setAmountPaid] = useState("");
+  const [items, setItems] = useState<EditorLineItem[]>(() => mapInitialLineItems(initialLineItems));
+  const [amountPaid, setAmountPaid] = useState(initialAmountCents != null ? (initialAmountCents / 100).toFixed(2) : "");
 
   const totals = calculateDocumentTotals(items);
 
@@ -63,6 +88,7 @@ export function ReceiptForm({ clients, services, initialInvoiceId }: Props) {
               name="clientId"
               required
               searchable
+              defaultValue={initialClientId ?? ""}
               options={clients.map((c) => ({ value: c.id, label: c.fullName }))}
               placeholder="Select client"
             />

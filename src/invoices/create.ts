@@ -34,11 +34,11 @@ export type InvoiceResult = {
   totalCents: number;
 } | { ok: false; message: string };
 
-function calculateLineTotal(item: LineItemInput): number {
+export function calculateLineTotal(item: LineItemInput): number {
   return item.quantity * item.unitPriceCents - (item.discountCents ?? 0);
 }
 
-function calculateDiscountCents(
+export function calculateDiscountCents(
   subtotalCents: number,
   discountType: string | null | undefined,
   discountValue: number | null | undefined,

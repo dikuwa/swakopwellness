@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useActionState, useState } from "react";
+import { useEffect, useActionState, useState, startTransition } from "react";
 import toast from "react-hot-toast";
 import { Select } from "@/ui/components";
 
@@ -60,8 +60,10 @@ export function SuitabilityForms({
   useEffect(() => {
     if (createState?.ok) {
       toast.success("Question created");
-      setCreateServiceId("");
-      setCreateFlaggedAnswer("yes");
+      startTransition(() => {
+        setCreateServiceId("");
+        setCreateFlaggedAnswer("yes");
+      });
     } else if (createState?.ok === false && createState.error) {
       toast.error(createState.error);
     }
