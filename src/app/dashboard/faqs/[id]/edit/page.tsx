@@ -40,7 +40,7 @@ export default async function EditFaqPage({ params }: PageProps) {
 
   return (
     <FaqForm
-      action={async (data) => updateFaq(id, data)}
+      action={updateFaq.bind(null, id)}
       initialData={{
         question: faq.question,
         answer: faq.answer,

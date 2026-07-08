@@ -1,12 +1,13 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ChevronUp, ChevronDown, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { asc } from "drizzle-orm";
 import { requireAuth } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { faqs } from "@/db/schema";
 import { DashboardShell } from "@/dashboard/shell";
 import { deleteFaq, toggleFaqPublic, reorderFaqs } from "@/faqs/actions";
+import { FaqDeleteButton, FaqMoveButton, FaqVisibilityButton } from "./faq-row-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -108,17 +109,7 @@ export default async function FaqsPage() {
                     </td>
                     <td className="py-3.5 px-4">
                       <form action={toggleFaqPublic.bind(null, faq.id)}>
-                        <button
-                          type="submit"
-                          className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                            faq.publicVisible
-                              ? "bg-green-50 text-green-700"
-                              : "bg-gray-50 text-gray-500"
-                          }`}
-                        >
-                          <span className={`h-1.5 w-1.5 rounded-full ${faq.publicVisible ? "bg-green-600" : "bg-gray-400"}`} />
-                          {faq.publicVisible ? "Visible" : "Hidden"}
-                        </button>
+                        <FaqVisibilityButton visible={faq.publicVisible} />
                       </form>
                     </td>
                     <td className="py-3.5 px-4">
@@ -130,37 +121,20 @@ export default async function FaqsPage() {
                           Edit
                         </Link>
                         <form action={deleteFaq.bind(null, faq.id)}>
-                          <button
-                            type="submit"
-                            className="flex h-8 items-center rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
-                          >
-                            Delete
-                          </button>
+                          <FaqDeleteButton />
                         </form>
                         {index > 0 && (
                           <form action={reorderFaqs.bind(null, faqIds)}>
                             <input type="hidden" name="faqId" value={faq.id} />
                             <input type="hidden" name="direction" value="up" />
-                            <button
-                              type="submit"
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-xs transition-colors hover:bg-surface-muted"
-                              title="Move up"
-                            >
-                              <ChevronUp className="h-4 w-4" />
-                            </button>
+                            <FaqMoveButton direction="up" />
                           </form>
                         )}
                         {index < allFaqs.length - 1 && (
                           <form action={reorderFaqs.bind(null, faqIds)}>
                             <input type="hidden" name="faqId" value={faq.id} />
                             <input type="hidden" name="direction" value="down" />
-                            <button
-                              type="submit"
-                              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border text-xs transition-colors hover:bg-surface-muted"
-                              title="Move down"
-                            >
-                              <ChevronDown className="h-4 w-4" />
-                            </button>
+                            <FaqMoveButton direction="down" />
                           </form>
                         )}
                       </div>
