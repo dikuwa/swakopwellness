@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { FilePlus2, Plus, Trash2 } from "lucide-react";
 import { Button, Card, DatePicker, Input, Label, Select } from "@/ui/components";
 import { fmtCents } from "@/documents/calculate";
+import { BookingOptionDisplay, BookingSelectedDisplay, bookingSearchLabel } from "@/components/booking-option-display";
 
 type DocumentType = "quotation" | "invoice" | "receipt";
 type LineItemType = "service" | "product" | "fee" | "discount" | "other";
@@ -59,10 +60,6 @@ function centsToInput(cents: number) {
 
 function normaliseLineItem(item: Omit<LineItem, "key">): LineItem {
   return { ...item, key: newKey(item.source) };
-}
-
-function bookingLabel(booking: BookingOption) {
-  return `${booking.reference} - ${booking.clientName}`;
 }
 
 export function DocumentsForm({ clients, initialType = "quotation" }: { clients: ClientOption[]; initialType?: DocumentType }) {
@@ -283,14 +280,15 @@ export function DocumentsForm({ clients, initialType = "quotation" }: { clients:
             placeholder={loadingBookings ? "Loading bookings..." : "Select booking"}
             options={bookings.map((booking) => ({
               value: booking.id,
-              label: bookingLabel(booking),
+              label: bookingSearchLabel(booking),
+              reference: booking.reference,
+              clientName: booking.clientName,
               serviceName: booking.serviceName,
             }))}
+            className="h-16 py-2"
+            renderValue={(option) => <BookingSelectedDisplay booking={option} />}
             renderOption={(option) => (
-              <span className="grid min-w-0 gap-0.5">
-                <span className="truncate font-semibold">{option.label}</span>
-                <span className="truncate text-xs opacity-75">{String(option.serviceName ?? "")}</span>
-              </span>
+              <BookingOptionDisplay booking={option} selected={option.value === bookingId} />
             )}
           />
         </div>
@@ -347,12 +345,12 @@ export function DocumentsForm({ clients, initialType = "quotation" }: { clients:
       ) : null}
 
       <div className="mt-6 rounded-2xl border border-border bg-surface-muted p-4 sm:p-5">
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(460px,560px)] xl:items-end">
-          <div>
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="w-full min-w-0 md:w-[260px] lg:w-[280px]">
             <h3 className="text-sm font-semibold">Additional Items</h3>
-            <p className="mt-1 text-xs text-muted-foreground">Add predefined charges or custom document rows.</p>
+            <p className="mt-1 max-w-prose text-sm leading-5 text-muted-foreground">Add predefined charges or custom document rows.</p>
           </div>
-          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
+          <div className="flex w-full flex-col gap-3 sm:flex-row md:flex-1 md:justify-end">
             <Select
               value={selectedPredefined}
               onChange={addPredefinedItem}
@@ -365,8 +363,9 @@ export function DocumentsForm({ clients, initialType = "quotation" }: { clients:
                   <span className="shrink-0 text-xs opacity-75">{String(option.price ?? "")}</span>
                 </span>
               )}
+              className="w-full sm:min-w-[260px]"
             />
-            <Button type="button" variant="secondary" onClick={addCustomItem} className="shrink-0 gap-2">
+            <Button type="button" variant="secondary" onClick={addCustomItem} className="w-full shrink-0 gap-2 sm:w-auto">
               <Plus className="h-4 w-4" aria-hidden="true" />
               Custom item
             </Button>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { CreditCard } from "lucide-react";
 import { Button, Card, Input, Label, Select } from "@/ui/components";
+import { BookingOptionDisplay, BookingSelectedDisplay, bookingSearchLabel } from "@/components/booking-option-display";
 
 interface PaymentPanelProps {
   bookingId?: string | null;
@@ -17,10 +18,6 @@ interface BookingOption {
   reference: string;
   clientName: string;
   serviceName: string;
-}
-
-function bookingLabel(booking: BookingOption) {
-  return `${booking.reference} - ${booking.clientName}`;
 }
 
 export function PaymentPanel({ bookingId, invoiceId, clientId }: PaymentPanelProps) {
@@ -107,14 +104,15 @@ export function PaymentPanel({ bookingId, invoiceId, clientId }: PaymentPanelPro
             placeholder={invoiceId ? "Using selected invoice" : loadingBookings ? "Loading bookings..." : "Select booking"}
             options={bookings.map((booking) => ({
               value: booking.id,
-              label: bookingLabel(booking),
+              label: bookingSearchLabel(booking),
+              reference: booking.reference,
+              clientName: booking.clientName,
               serviceName: booking.serviceName,
             }))}
+            className="h-16 py-2"
+            renderValue={(option) => <BookingSelectedDisplay booking={option} />}
             renderOption={(option) => (
-              <span className="grid min-w-0 gap-0.5">
-                <span className="truncate font-semibold">{option.label}</span>
-                <span className="truncate text-xs opacity-75">{String(option.serviceName ?? "")}</span>
-              </span>
+              <BookingOptionDisplay booking={option} selected={option.value === selectedBookingId} />
             )}
           />
         </div>

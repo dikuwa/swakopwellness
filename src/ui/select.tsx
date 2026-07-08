@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ComponentProps, ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentProps, ReactNode } from "react";
 import { ChevronDown, ChevronUp, X, Search, Check } from "lucide-react";
 import { createPortal } from "react-dom";
 
@@ -23,6 +23,7 @@ type SelectProps = Omit<ComponentProps<"input">, "value" | "onChange" | "type" |
   searchable?: boolean;
   showClear?: boolean;
   renderOption?: (option: SelectOption) => ReactNode;
+  renderValue?: (option: SelectOption) => ReactNode;
 };
 
 export function Select({
@@ -37,6 +38,7 @@ export function Select({
   searchable = false,
   showClear = false,
   renderOption,
+  renderValue,
   className = "",
   ...props
 }: SelectProps) {
@@ -48,8 +50,9 @@ export function Select({
   const popoverRef = useRef<HTMLDivElement>(null);
   const optionsRef = useRef<HTMLDivElement>(null);
 
-  const filteredOptions = options.filter((option) =>
-    option.label.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredOptions = useMemo(
+    () => options.filter((option) => option.label.toLowerCase().includes(searchQuery.toLowerCase())),
+    [options, searchQuery],
   );
 
   const selectedOption = options.find((opt) => opt.value === value);
@@ -298,9 +301,17 @@ export function Select({
           aria-haspopup="dialog"
           aria-expanded={isOpen}
           aria-required={required || undefined}
-          className={`h-11 w-full rounded-xl border border-border bg-background pl-4 pr-10 text-sm transition-colors duration-200 placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10 ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"} ${className}`}
+          className={`h-11 w-full rounded-xl border border-border bg-background pl-4 pr-10 text-sm transition-colors duration-200 placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10 ${renderValue && selectedOption ? "text-transparent caret-transparent" : ""} ${disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer"} ${className}`}
           {...props}
         />
+        {renderValue && selectedOption ? (
+          <div
+            className={`pointer-events-none absolute inset-y-0 left-4 right-10 flex items-center overflow-hidden ${disabled ? "opacity-50" : ""}`}
+            aria-hidden="true"
+          >
+            {renderValue(selectedOption)}
+          </div>
+        ) : null}
         <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
           {isOpen ? (
             <ChevronUp className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
