@@ -16,19 +16,27 @@ export async function loginAction(formData: FormData) {
 
   if (!parsed.success) redirect("/login?error=invalid");
 
+  let user: { id: string; passwordHash: string; active: boolean } | null = null;
+
   try {
     const db = getDb();
 
-    const [user] = await db
+    const [found] = await db
       .select({ id: users.id, passwordHash: users.passwordHash, active: users.active })
       .from(users)
       .where(eq(sql`lower(${users.email})`, parsed.data.email.toLowerCase()))
       .limit(1);
 
-    if (!user || !user.active || !(await verifyPassword(parsed.data.password, user.passwordHash))) {
-      redirect("/login?error=invalid");
-    }
+    user = found ?? null;
+  } catch {
+    redirect("/login?error=connection");
+  }
 
+  if (!user || !user.active || !(await verifyPassword(parsed.data.password, user.passwordHash))) {
+    redirect("/login?error=invalid");
+  }
+
+  try {
     await createSession(user.id);
   } catch {
     redirect("/login?error=connection");

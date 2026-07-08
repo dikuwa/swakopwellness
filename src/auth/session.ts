@@ -2,7 +2,8 @@ import { and, eq, gt, isNull } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getDb } from "@/db/client";
-import { permissions, rolePermissions, roles, sessions, userRoles, users } from "@/db/schema";
+import { mediaAssets, permissions, rolePermissions, roles, sessions, userRoles, users } from "@/db/schema";
+import { getMediaUrl } from "@/lib/media-url";
 import type { PermissionCode } from "./permissions";
 import { hasPermission } from "./permissions";
 export { hasPermission };
@@ -56,8 +57,16 @@ export async function getCurrentUser() {
   if (!session) return null;
 
   const [user] = await db
-    .select({ id: users.id, email: users.email, name: users.name, active: users.active })
+    .select({
+      id: users.id,
+      email: users.email,
+      name: users.name,
+      active: users.active,
+      avatarMediaId: users.avatarMediaId,
+      avatarPublicUrl: mediaAssets.publicUrl,
+    })
     .from(users)
+    .leftJoin(mediaAssets, eq(users.avatarMediaId, mediaAssets.id))
     .where(and(eq(users.id, session.userId), eq(users.active, true)))
     .limit(1);
 
@@ -71,7 +80,18 @@ export async function getCurrentUser() {
     .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
     .where(eq(userRoles.userId, user.id));
 
-  return { ...user, permissions: permissionRows.map((row) => row.code) };
+  const roleRows = await db
+    .select({ name: roles.name })
+    .from(userRoles)
+    .innerJoin(roles, eq(userRoles.roleId, roles.id))
+    .where(eq(userRoles.userId, user.id));
+
+  return {
+    ...user,
+    avatarUrl: getMediaUrl({ id: user.avatarMediaId, publicUrl: user.avatarPublicUrl }),
+    permissions: permissionRows.map((row) => row.code),
+    roles: roleRows.map((row) => row.name),
+  };
 }
 
 export async function requireAuth() {
@@ -83,5 +103,11 @@ export async function requireAuth() {
 export async function requirePermission(permission: PermissionCode) {
   const user = await requireAuth();
   if (!hasPermission(user.permissions, permission)) redirect("/dashboard/denied");
+  return user;
+}
+
+export async function requireOwner() {
+  const user = await requireAuth();
+  if (!user.roles.includes("Owner")) redirect("/dashboard/denied");
   return user;
 }

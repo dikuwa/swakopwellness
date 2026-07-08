@@ -13,7 +13,7 @@ export default async function DashboardRootLayout({
   const unreadCount = await getUnreadNotificationCount(user.id);
 
   return (
-    <DashboardLayout userName={user.name} userEmail={user.email} unreadCount={unreadCount}>
+    <DashboardLayout userName={user.name} userEmail={user.email} userAvatarUrl={user.avatarUrl} userRoles={user.roles} unreadCount={unreadCount}>
       {children}
     </DashboardLayout>
   );

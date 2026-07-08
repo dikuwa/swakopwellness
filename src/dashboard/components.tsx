@@ -23,6 +23,7 @@ import {
     MessageCircle,
     Settings,
     ShieldCheck,
+    SlidersHorizontal,
     UserRoundCog,
     Users,
 } from "lucide-react";
@@ -54,6 +55,7 @@ const iconMap: Record<string, typeof LayoutDashboard> = {
   "/dashboard/activity-log": History,
   "/dashboard/users": UserRoundCog,
   "/dashboard/settings": Settings,
+  "/dashboard/settings/data-management": SlidersHorizontal,
 };
 
 function NavIcon({ href, className }: { href: string; className?: string }) {
@@ -67,11 +69,13 @@ function NavIcon({ href, className }: { href: string; className?: string }) {
 interface NavChild {
   href: string;
   label: string;
+  ownerOnly?: boolean;
 }
 
 interface NavLink {
   href: string;
   label: string;
+  ownerOnly?: boolean;
   children?: NavChild[];
 }
 
@@ -121,7 +125,11 @@ const linkGroups: NavGroup[] = [
       { href: "/dashboard/notifications", label: "Notifications" },
       { href: "/dashboard/activity-log", label: "Activity Log" },
       { href: "/dashboard/users", label: "Users" },
-      { href: "/dashboard/settings", label: "Settings" },
+      {
+        href: "/dashboard/settings",
+        label: "Settings",
+        children: [{ href: "/dashboard/settings/data-management", label: "Data Management", ownerOnly: true }],
+      },
     ],
   },
 ];
@@ -213,12 +221,15 @@ function DashboardSidebar({
   collapsed,
   onNavClick,
   onToggle,
+  userRoles,
 }: {
   collapsed: boolean;
   onNavClick?: () => void;
   onToggle: () => void;
+  userRoles: string[];
 }) {
   const pathname = usePathname();
+  const isOwner = userRoles.includes("Owner");
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
     if (typeof window === "undefined") return {};
     const saved: Record<string, boolean> = {};
@@ -281,6 +292,8 @@ function DashboardSidebar({
 
       {linkGroups.map((group) => {
         const groupOpen = isGroupOpen(group.label);
+        const visibleLinks = group.links.filter((link) => !link.ownerOnly || isOwner);
+        if (visibleLinks.length === 0) return null;
 
         // Don't show children labels when collapsed
         return (
@@ -309,9 +322,10 @@ function DashboardSidebar({
                   groupOpen ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"
               }`}
             >
-              {group.links.map((link) => {
+              {visibleLinks.map((link) => {
+                const visibleChildren = link.children?.filter((child) => !child.ownerOnly || isOwner);
                 const linkActive = isActive(link.href);
-                const childActive = link.children && isChildActive(link.children);
+                const childActive = visibleChildren && isChildActive(visibleChildren);
 
                 if (collapsed) {
                   // In collapsed mode, show only top-level links
@@ -335,9 +349,9 @@ function DashboardSidebar({
                       active={linkActive}
                       onNavClick={onNavClick}
                     />
-                    {link.children && (linkActive || childActive) && (
+                    {visibleChildren && visibleChildren.length > 0 && (linkActive || childActive) && (
                       <div className="ml-4 mt-1 grid gap-0.5 border-l border-border pl-3">
-                        {link.children.map((child) => {
+                        {visibleChildren.map((child) => {
                           const childActive = isActive(child.href);
                           return (
                             <Link
@@ -424,17 +438,28 @@ function NotificationBell({ unreadCount }: { unreadCount: number }) {
 
 // ── User avatar and dropdown ─────────────────────────────
 
-function UserAvatar({ name }: { name: string }) {
-  const initials = name
+function initialsFromName(name: string) {
+  return name
     .split(" ")
     .map((n) => n[0])
     .join("")
     .toUpperCase()
     .slice(0, 2);
+}
+
+function UserAvatar({ name, avatarUrl }: { name: string; avatarUrl?: string }) {
+  const initials = name
+    ? initialsFromName(name)
+    : "SW";
 
   return (
-    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
-      {initials}
+    <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-sm font-bold text-primary">
+      {avatarUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+      ) : (
+        initials
+      )}
     </div>
   );
 }
@@ -442,9 +467,11 @@ function UserAvatar({ name }: { name: string }) {
 function UserDropdown({
   name,
   email,
+  avatarUrl,
 }: {
   name: string;
   email: string;
+  avatarUrl?: string;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -471,12 +498,7 @@ function UserDropdown({
     return () => document.removeEventListener("keydown", handler);
   }, [open]);
 
-  const initials = name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+  const initials = initialsFromName(name);
 
   return (
     <div ref={ref} className="relative">
@@ -487,8 +509,13 @@ function UserDropdown({
         aria-haspopup="true"
         aria-expanded={open}
       >
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary">
-          {initials}
+        <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-xs font-bold text-primary">
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            initials
+          )}
         </div>
         <div className="hidden text-left md:block">
           <p className="text-sm font-semibold leading-tight text-foreground">{name}</p>
@@ -511,6 +538,15 @@ function UserDropdown({
             <p className="text-xs text-muted-foreground">{email}</p>
           </div>
           <div className="mt-1 space-y-0.5">
+            <Link
+              href="/dashboard/profile"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground"
+              role="menuitem"
+            >
+              <UserRoundCog className="h-4 w-4" aria-hidden="true" />
+              Profile
+            </Link>
             <Link
               href="/dashboard/settings"
               onClick={() => setOpen(false)}
@@ -569,11 +605,15 @@ export function DashboardLayout({
   children,
   userName,
   userEmail,
+  userAvatarUrl,
+  userRoles,
   unreadCount,
 }: {
   children: React.ReactNode;
   userName: string;
   userEmail: string;
+  userAvatarUrl?: string;
+  userRoles: string[];
   unreadCount: number;
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -611,6 +651,7 @@ export function DashboardLayout({
             collapsed={collapsed}
             onNavClick={() => setSidebarOpen(false)}
             onToggle={toggleCollapse}
+            userRoles={userRoles}
           />
         </div>
         <div className="border-t border-border p-2 sm:p-4">
@@ -642,7 +683,7 @@ export function DashboardLayout({
           </div>
           <div className="flex items-center gap-2">
             <NotificationBell unreadCount={unreadCount} />
-            <UserAvatar name={userName} />
+            <UserAvatar name={userName} avatarUrl={userAvatarUrl} />
           </div>
         </header>
 
@@ -651,7 +692,7 @@ export function DashboardLayout({
           <div />
           <div className="flex items-center gap-4">
             <NotificationBell unreadCount={unreadCount} />
-            <UserDropdown name={userName} email={userEmail} />
+            <UserDropdown name={userName} email={userEmail} avatarUrl={userAvatarUrl} />
           </div>
         </header>
 
