@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowLeft, CheckCircle2, Clock, Phone } from "lucide-rea
 import { PageShell } from "@/public/components";
 import { formatMoney, getBusinessSettings, getCommunicationSettings, getPublicServices, getServiceBySlug } from "@/public/data";
 import { getMediaUrl } from "@/lib/media-url";
+import { formatServiceTitle } from "@/public/service-title";
 
 export const dynamic = "force-dynamic";
 
@@ -12,9 +13,10 @@ type GalleryImage = { id: string; publicUrl: string | null; altText: string | nu
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const service = await getServiceBySlug(slug);
+  const title = formatServiceTitle(service.name, service.slug);
   return {
-    title: service.name,
-    description: service.shortDescription || `${service.name} - View service details and pricing.`,
+    title,
+    description: service.shortDescription || `${title} - View service details and pricing.`,
   };
 }
 
@@ -28,6 +30,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
   ]);
   const gallery = "gallery" in service ? (service as { gallery: GalleryImage[] }).gallery : [];
   const related = services.filter((item) => item.slug !== service.slug).slice(0, 3);
+  const title = formatServiceTitle(service.name, service.slug);
 
   return (
     <PageShell business={business} communication={communication}>
@@ -37,7 +40,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
           <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_0.85fr] lg:items-center">
             <div>
               <p className="text-sm font-semibold text-primary">{formatMoney(service.priceCents, business.currencySymbol)}{service.durationMinutes ? ` · about ${service.durationMinutes} minutes` : ""}</p>
-              <h1 className="mt-4 text-5xl font-semibold sm:text-6xl">{service.name}</h1>
+              <h1 className="mt-4 text-5xl font-semibold sm:text-6xl">{title}</h1>
               <p className="mt-5 max-w-2xl text-lg leading-8 text-muted-foreground">{service.shortDescription}</p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 {service.bookingEnabled ? <Link href={`/book?service=${service.slug}`} className="inline-flex h-12 items-center justify-center rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground">Book this service</Link> : null}
@@ -47,7 +50,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             <div className="overflow-hidden rounded-2xl border border-border bg-surface">
               {service.featuredImage ? (
                 // eslint-disable-next-line @next/next/no-img-element -- media URLs are administrator-managed public URLs.
-                <img src={service.featuredImage.publicUrl} alt={service.featuredImage.altText ?? service.name} className="aspect-[4/3] w-full object-cover" loading="lazy" />
+                <img src={service.featuredImage.publicUrl} alt={service.featuredImage.altText ?? title} className="aspect-[4/3] w-full object-cover" loading="lazy" />
               ) : (
                 <div className="aspect-[4/3] bg-[linear-gradient(135deg,oklch(0.924_0.025_116),oklch(0.988_0.009_85))]" />
               )}
@@ -131,7 +134,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             <div className="mt-5 grid gap-4 md:grid-cols-3">
               {related.map((item) => (
                 <Link key={item.slug} href={`/services/${item.slug}`} className="rounded-xl border border-border bg-surface p-5 hover:bg-background">
-                  <h3 className="font-semibold">{item.name}</h3>
+                  <h3 className="font-semibold">{formatServiceTitle(item.name, item.slug)}</h3>
                   <p className="mt-2 flex items-center gap-2 text-sm text-muted-foreground"><Clock className="h-4 w-4" />{item.durationMinutes ?? 30} minutes</p>
                 </Link>
               ))}

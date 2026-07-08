@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AlertTriangle, Clock } from "lucide-react";
 import { PageShell } from "@/public/components";
 import { formatMoney, getBusinessSettings, getCommunicationSettings, getPublicServices } from "@/public/data";
+import { formatServiceTitle } from "@/public/service-title";
 
 export const dynamic = "force-dynamic";
 
@@ -26,18 +27,31 @@ export default async function ServicesPage() {
         <section className="mx-auto max-w-6xl px-5 pb-16 sm:px-8">
           <div className="grid items-stretch gap-6 md:grid-cols-2">
             {services.map((service) => (
-              <article key={service.id} className="flex h-full overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_8px_30px_oklch(0.235_0.025_158_/_0.04)]">
+              <article key={service.id} className="flex h-full overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_8px_30px_oklch(0.235_0.025_158_/_0.04)] transition-shadow duration-200 hover:shadow-[0_12px_34px_oklch(0.235_0.025_158_/_0.08)]">
                 <div className="flex min-h-full w-full flex-col">
-                {service.featuredImage ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- media URLs are administrator-managed public URLs.
-                  <img src={service.featuredImage.publicUrl} alt={service.featuredImage.altText ?? service.name} className="aspect-[16/9] w-full object-cover" loading="lazy" />
-                ) : (
-                  <div className="aspect-[16/9] bg-[linear-gradient(135deg,oklch(0.924_0.025_116),oklch(0.988_0.009_85))]" />
-                )}
+                  {service.featuredImage ? (
+                    <div className="relative aspect-[16/9] overflow-hidden bg-surface-muted">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- media URLs are administrator-managed public URLs. */}
+                      <img
+                        src={service.featuredImage.publicUrl}
+                        alt={service.featuredImage.altText ?? formatServiceTitle(service.name, service.slug)}
+                        className="h-full w-full object-cover object-center saturate-[0.92] contrast-[0.96] brightness-[0.98]"
+                        loading="lazy"
+                      />
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/20 via-secondary/15 to-accent/10 mix-blend-multiply" />
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-surface via-surface/70 to-transparent" />
+                      <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-primary/10" />
+                    </div>
+                  ) : (
+                    <div className="relative aspect-[16/9] overflow-hidden bg-[linear-gradient(135deg,oklch(0.924_0.025_116),oklch(0.988_0.009_85))]">
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/15 via-secondary/20 to-accent/15" />
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-surface via-surface/70 to-transparent" />
+                    </div>
+                  )}
                 <div className="flex flex-1 flex-col p-6">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <h2 className="text-2xl font-semibold">{service.name}</h2>
-                    <span className="text-lg font-semibold text-primary">{formatMoney(service.priceCents, business.currencySymbol)}</span>
+                    <h2 className="text-2xl font-semibold">{formatServiceTitle(service.name, service.slug)}</h2>
+                    <span className="w-fit rounded-full bg-surface-muted px-3 py-1 text-sm font-semibold text-primary ring-1 ring-primary/10">{formatMoney(service.priceCents, business.currencySymbol)}</span>
                   </div>
                   <p className="mt-3 text-sm leading-6 text-muted-foreground">{service.shortDescription}</p>
                   <div className="mt-auto pt-5">

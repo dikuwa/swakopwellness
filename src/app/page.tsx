@@ -6,6 +6,7 @@ import { submitContactMessage } from "@/app/contact/actions";
 import { DiacomSection } from "@/public/diacom-section";
 import { PageShell } from "@/public/components";
 import { formatMoney, getBusinessSettings, getCommunicationSettings, getFeaturedServices, getPublicFaqs } from "@/public/data";
+import { formatServiceTitle } from "@/public/service-title";
 
 export const dynamic = "force-dynamic";
 
@@ -66,18 +67,31 @@ export default async function Home() {
           </div>
           <div className="mt-8 grid items-stretch gap-5 md:grid-cols-2 lg:grid-cols-4">
             {services.map((service) => (
-              <article key={service.id} className="flex h-full overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_8px_30px_oklch(0.235_0.025_158_/_0.04)]">
+              <article key={service.id} className="flex h-full overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_8px_30px_oklch(0.235_0.025_158_/_0.04)] transition-shadow duration-200 hover:shadow-[0_12px_34px_oklch(0.235_0.025_158_/_0.08)]">
                 <div className="flex min-h-full w-full flex-col">
-                {service.featuredImage ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- media URLs are administrator-managed public URLs.
-                  <img src={service.featuredImage.publicUrl} alt={service.featuredImage.altText ?? service.name} className="aspect-[4/3] w-full object-cover" loading="lazy" />
-                ) : (
-                  <div className="aspect-[4/3] bg-[linear-gradient(135deg,oklch(0.924_0.025_116),oklch(0.988_0.009_85))]" />
-                )}
+                  {service.featuredImage ? (
+                    <div className="relative aspect-[4/3] overflow-hidden bg-surface-muted">
+                      {/* eslint-disable-next-line @next/next/no-img-element -- media URLs are administrator-managed public URLs. */}
+                      <img
+                        src={service.featuredImage.publicUrl}
+                        alt={service.featuredImage.altText ?? formatServiceTitle(service.name, service.slug)}
+                        className="h-full w-full object-cover object-center saturate-[0.92] contrast-[0.96] brightness-[0.98]"
+                        loading="lazy"
+                      />
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/20 via-secondary/15 to-accent/10 mix-blend-multiply" />
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-surface via-surface/70 to-transparent" />
+                      <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-primary/10" />
+                    </div>
+                  ) : (
+                    <div className="relative aspect-[4/3] overflow-hidden bg-[linear-gradient(135deg,oklch(0.924_0.025_116),oklch(0.988_0.009_85))]">
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/15 via-secondary/20 to-accent/15" />
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-surface via-surface/70 to-transparent" />
+                    </div>
+                  )}
                 <div className="flex flex-1 flex-col p-5">
                   <div className="flex items-start justify-between gap-3">
-                    <h3 className="text-lg font-semibold">{service.name}</h3>
-                    <span className="rounded-full bg-surface-muted px-2.5 py-1 text-xs font-semibold text-primary">{formatMoney(service.priceCents, business.currencySymbol)}</span>
+                    <h3 className="text-lg font-semibold">{formatServiceTitle(service.name, service.slug)}</h3>
+                    <span className="rounded-full bg-surface-muted px-2.5 py-1 text-xs font-semibold text-primary ring-1 ring-primary/10">{formatMoney(service.priceCents, business.currencySymbol)}</span>
                   </div>
                   <p className="mt-3 text-sm leading-6 text-muted-foreground">{service.shortDescription}</p>
                   <div className="mt-auto flex items-center justify-between gap-3 pt-5 text-xs text-muted-foreground">
