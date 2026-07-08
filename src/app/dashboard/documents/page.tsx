@@ -8,6 +8,7 @@ import { PaymentPanel } from "@/components/PaymentPanel";
 import { getClients } from "@/dashboard/data";
 import { DashboardShell } from "@/dashboard/shell";
 import { fmtCents } from "@/documents/calculate";
+import { getDocumentPredefinedItems } from "@/documents/predefined-items";
 import { listUnifiedDocuments } from "@/lib/models/document";
 import { Badge, LinkButton } from "@/ui/components";
 import { Pagination } from "@/ui/pagination";
@@ -63,7 +64,7 @@ export default async function DocumentsPage(props: {
   const page = Math.max(1, Number.parseInt(searchParams.page ?? "1", 10) || 1);
   const pageSize = 25;
 
-  const [{ rows, total }, { rows: clients }] = await Promise.all([
+  const [{ rows, total }, { rows: clients }, predefinedItems] = await Promise.all([
     listUnifiedDocuments({
       page,
       pageSize,
@@ -74,6 +75,7 @@ export default async function DocumentsPage(props: {
       q: searchParams.q,
     }),
     getClients(1, 250),
+    getDocumentPredefinedItems({ activeOnly: true }),
   ]);
 
   const totalPages = Math.ceil(total / pageSize);
@@ -92,6 +94,7 @@ export default async function DocumentsPage(props: {
       <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
         <DocumentsForm
           clients={clients}
+          predefinedItems={predefinedItems}
           initialType={["quotation", "invoice", "receipt"].includes(searchParams.type ?? "") ? (searchParams.type as "quotation" | "invoice" | "receipt") : "quotation"}
         />
         <PaymentPanel invoiceId={searchParams.invoiceId ?? null} />

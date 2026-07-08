@@ -5,6 +5,7 @@ import { getDb } from "@/db/client";
 import { businessSettings, communicationSettings, bookingRules, documentNumberSequences } from "@/db/schema";
 import { asc } from "drizzle-orm";
 import { getMediaAssets } from "@/media/actions";
+import { getDocumentPredefinedItems } from "@/documents/predefined-items";
 import { DashboardShell } from "@/dashboard/shell";
 import { SettingsTabs } from "./settings-tabs";
 
@@ -33,6 +34,7 @@ export default async function SettingsPage() {
   const [br] = await db.select().from(bookingRules).limit(1);
   const seqs = await db.select().from(documentNumberSequences).orderBy(asc(documentNumberSequences.documentType));
   const mediaAssets = await getMediaAssets();
+  const predefinedItems = await getDocumentPredefinedItems();
 
   return (
     <DashboardShell>
@@ -45,6 +47,7 @@ export default async function SettingsPage() {
         communicationSettings={cs}
         bookingRules={br}
         documentSequences={seqs}
+        predefinedItems={predefinedItems}
         mediaAssets={mediaAssets}
       />
     </DashboardShell>

@@ -1,4 +1,4 @@
-import { and, asc, count, desc, eq, gte, ilike, lte, or, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ilike, inArray, isNull, lte, or, sql } from "drizzle-orm";
 import { recordActivity } from "@/activity-log/record";
 import { getDb } from "@/db/client";
 import {
@@ -8,6 +8,7 @@ import {
   documents,
   invoiceLineItems,
   invoices,
+  payments,
   receiptLineItems,
   receipts,
   quotationLineItems,
@@ -103,8 +104,20 @@ export async function getBookingCharges(bookingId: string) {
 
   if (!booking) return null;
 
+  const [paymentSummary] = await db
+    .select({
+      paidCents: sql<number>`coalesce(sum(case when ${payments.voidedAt} is null then ${payments.amountCents} else 0 end), 0)::int`,
+      unappliedPaidCents: sql<number>`coalesce(sum(case when ${payments.voidedAt} is null and ${payments.invoiceId} is null then ${payments.amountCents} else 0 end), 0)::int`,
+    })
+    .from(payments)
+    .where(eq(payments.bookingId, bookingId));
+
   return {
     booking,
+    payments: {
+      paidCents: Number(paymentSummary?.paidCents ?? 0),
+      unappliedPaidCents: Number(paymentSummary?.unappliedPaidCents ?? 0),
+    },
     lineItems: [
       {
         serviceId: booking.serviceId,
@@ -115,6 +128,35 @@ export async function getBookingCharges(bookingId: string) {
       },
     ],
   };
+}
+
+async function applyUnappliedBookingPaymentsToInvoice(invoiceId: string, bookingId: string | null | undefined) {
+  if (!bookingId) return;
+  const db = getDb();
+  const [invoice] = await db.select().from(invoices).where(eq(invoices.id, invoiceId)).limit(1);
+  if (!invoice) return;
+
+  const unappliedPayments = await db
+    .select({ id: payments.id, amountCents: payments.amountCents })
+    .from(payments)
+    .where(and(eq(payments.bookingId, bookingId), isNull(payments.invoiceId), isNull(payments.voidedAt)))
+    .orderBy(asc(payments.paymentDate), asc(payments.createdAt));
+
+  const unappliedTotalCents = unappliedPayments.reduce((sum, payment) => sum + payment.amountCents, 0);
+  const amountPaidCents = Math.min(invoice.totalCents, unappliedTotalCents);
+  const balanceCents = Math.max(0, invoice.totalCents - amountPaidCents);
+  const status = amountPaidCents >= invoice.totalCents ? "paid" : amountPaidCents > 0 ? "partially_paid" : invoice.status;
+
+  if (unappliedPayments.length > 0) {
+    await db.update(payments).set({ invoiceId }).where(inArray(payments.id, unappliedPayments.map((payment) => payment.id)));
+  }
+
+  if (amountPaidCents > 0 || status !== invoice.status) {
+    await db
+      .update(invoices)
+      .set({ amountPaidCents, balanceCents, status, updatedAt: new Date() })
+      .where(eq(invoices.id, invoiceId));
+  }
 }
 
 async function mirrorInvoiceDocument(invoiceId: string, manualEntry: boolean, createdByUserId: string) {
@@ -284,6 +326,7 @@ export async function createUnifiedDocument(input: CreateUnifiedDocumentInput): 
       createdByUserId: input.createdByUserId,
     });
     if (!result.ok) return result;
+    await applyUnappliedBookingPaymentsToInvoice(result.id, input.bookingId);
     const doc = await mirrorInvoiceDocument(result.id, !!input.manualEntry, input.createdByUserId);
     return { ok: true, id: doc?.id ?? result.id, documentNumber: result.invoiceNumber, type: "invoice", totalCents: result.totalCents };
   }

@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import {
-  Store, MessageSquare, CalendarRange, FileText,
+  Store, MessageSquare, CalendarRange, FileText, Loader2, Trash2,
 } from "lucide-react";
-import { Select, DatePicker, TimePicker, Checkbox } from "@/ui/components";
-import { updateBusinessSettings, updateCommunicationSettings, updateBookingRules, updateDocumentSequence } from "@/settings/actions";
+import { Select, TimePicker, Checkbox } from "@/ui/components";
+import { createDocumentPredefinedItem, deleteDocumentPredefinedItem, updateBusinessSettings, updateCommunicationSettings, updateBookingRules, updateDocumentPredefinedItem, updateDocumentSequence } from "@/settings/actions";
+import { fmtCents } from "@/documents/calculate";
 
 const TABS = [
   { id: "general", label: "General", icon: Store },
@@ -34,6 +35,7 @@ export function SettingsTabs({
   bookingRules: br,
   documentSequences: seqs,
   mediaAssets,
+  predefinedItems,
 }: {
   businessSettings: {
     id: string; businessName: string; address: string; telephone: string; email: string;
@@ -52,6 +54,9 @@ export function SettingsTabs({
   } | null;
   documentSequences: {
     id: string; documentType: string; prefix: string; nextNumber: number; padding: number;
+  }[];
+  predefinedItems: {
+    id: string; label: string; description: string; itemType: string; unitPriceCents: number; sortOrder: number; active: boolean;
   }[];
   mediaAssets: MediaAsset[];
 }) {
@@ -331,7 +336,7 @@ export function SettingsTabs({
 
         {/* ─── Documents ─── */}
         {activeTab === "documents" && (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {seqs.length === 0 && <p className="text-muted-foreground">No document sequences found.</p>}
             {seqs.map((seq) => {
               const labels: Record<string, string> = { invoice: "Invoice", receipt: "Receipt", quotation: "Quotation" };
@@ -373,6 +378,99 @@ export function SettingsTabs({
                 </form>
               );
             })}
+
+            <div className="rounded-xl border border-border p-5">
+              <div>
+                <h2 className="text-lg font-semibold">Predefined line items</h2>
+                <p className="mt-1 text-sm text-muted-foreground">These appear in the Documents page preset dropdown.</p>
+              </div>
+
+              <form
+                action={async (fd) => handleAction(createDocumentPredefinedItem, fd, "preset-new")}
+                className="mt-5 grid gap-3 rounded-xl border border-border bg-surface-muted p-4 lg:grid-cols-[minmax(160px,1fr)_minmax(180px,1.4fr)_150px_120px_90px_90px_auto]"
+              >
+                <input name="label" placeholder="Label" required className="h-11 rounded-xl border border-border bg-surface px-3 text-sm" />
+                <input name="description" placeholder="Description" className="h-11 rounded-xl border border-border bg-surface px-3 text-sm" />
+                <Select
+                  name="itemType"
+                  value="other"
+                  options={[
+                    { value: "service", label: "Service" },
+                    { value: "product", label: "Product" },
+                    { value: "fee", label: "Fee" },
+                    { value: "discount", label: "Discount" },
+                    { value: "other", label: "Other" },
+                  ]}
+                />
+                <input name="unitPrice" type="number" min="0" step="0.01" placeholder="Price" className="h-11 rounded-xl border border-border bg-surface px-3 text-sm" />
+                <input name="sortOrder" type="number" min="0" step="1" placeholder="Order" className="h-11 rounded-xl border border-border bg-surface px-3 text-sm" />
+                <label className="flex h-11 items-center gap-2 text-sm font-medium">
+                  <input type="checkbox" name="active" defaultChecked className="h-4 w-4 rounded border-border accent-primary" />
+                  Active
+                </label>
+                <button
+                  type="submit"
+                  disabled={saving === "preset-new"}
+                  className="h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+                >
+                  {saving === "preset-new" ? "Adding..." : "Add item"}
+                </button>
+              </form>
+
+              <div className="mt-5 space-y-3">
+                {predefinedItems.map((item) => (
+                  <form
+                    key={item.id}
+                    action={async (fd) => handleAction(updateDocumentPredefinedItem, fd, `preset-${item.id}`)}
+                    className="grid gap-3 rounded-xl border border-border bg-surface p-4 lg:grid-cols-[minmax(160px,1fr)_minmax(180px,1.4fr)_150px_120px_90px_90px_auto]"
+                  >
+                    <input type="hidden" name="id" value={item.id} />
+                    <input name="label" defaultValue={item.label} required className="h-11 rounded-xl border border-border bg-background px-3 text-sm" />
+                    <input name="description" defaultValue={item.description} className="h-11 rounded-xl border border-border bg-background px-3 text-sm" />
+                    <Select
+                      name="itemType"
+                      value={item.itemType}
+                      options={[
+                        { value: "service", label: "Service" },
+                        { value: "product", label: "Product" },
+                        { value: "fee", label: "Fee" },
+                        { value: "discount", label: "Discount" },
+                        { value: "other", label: "Other" },
+                      ]}
+                    />
+                    <input name="unitPrice" type="number" min="0" step="0.01" defaultValue={(item.unitPriceCents / 100).toFixed(2)} className="h-11 rounded-xl border border-border bg-background px-3 text-sm" />
+                    <input name="sortOrder" type="number" min="0" step="1" defaultValue={item.sortOrder} className="h-11 rounded-xl border border-border bg-background px-3 text-sm" />
+                    <label className="flex h-11 items-center gap-2 text-sm font-medium">
+                      <input type="checkbox" name="active" defaultChecked={item.active} className="h-4 w-4 rounded border-border accent-primary" />
+                      Active
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        type="submit"
+                        disabled={saving === `preset-${item.id}`}
+                        className="flex h-11 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+                      >
+                        {saving === `preset-${item.id}` ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : "Save"}
+                      </button>
+                      <button
+                        type="submit"
+                        formAction={async (fd) => handleAction(deleteDocumentPredefinedItem, fd, `preset-delete-${item.id}`)}
+                        disabled={saving === `preset-delete-${item.id}`}
+                        className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-muted-foreground transition-colors hover:bg-surface-muted hover:text-destructive disabled:opacity-50"
+                        aria-label={`Delete ${item.label}`}
+                        title={`Delete ${item.label}`}
+                      >
+                        {saving === `preset-delete-${item.id}` ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Trash2 className="h-4 w-4" aria-hidden="true" />}
+                      </button>
+                    </div>
+                    <p className="text-xs text-muted-foreground lg:col-span-7">Current dropdown label: {item.label} - {fmtCents(item.unitPriceCents)}</p>
+                  </form>
+                ))}
+                {predefinedItems.length === 0 ? (
+                  <p className="rounded-xl border border-border bg-surface p-4 text-sm text-muted-foreground">No predefined items yet.</p>
+                ) : null}
+              </div>
+            </div>
           </div>
         )}
       </div>

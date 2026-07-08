@@ -26,6 +26,19 @@ interface BookingOption {
   preferredAt: string;
 }
 
+interface PredefinedItemOption {
+  id: string;
+  label: string;
+  description: string;
+  itemType: string;
+  unitPriceCents: number;
+}
+
+interface BookingPaymentSummary {
+  paidCents: number;
+  unappliedPaidCents: number;
+}
+
 interface LineItem {
   key: string;
   serviceId?: string | null;
@@ -36,15 +49,6 @@ interface LineItem {
   discountCents: number;
   source: "booking" | "predefined" | "custom";
 }
-
-const predefinedItems: Array<{ value: string; label: string; description: string; itemType: LineItemType; unitPriceCents: number }> = [
-  { value: "consultation_add_on", label: "Consultation add-on", description: "Consultation add-on", itemType: "service", unitPriceCents: 25000 },
-  { value: "supplement", label: "Supplement", description: "Supplement", itemType: "product", unitPriceCents: 18000 },
-  { value: "transport", label: "Transport", description: "Transport", itemType: "fee", unitPriceCents: 15000 },
-  { value: "admin_fee", label: "Admin fee", description: "Admin fee", itemType: "fee", unitPriceCents: 10000 },
-  { value: "late_cancellation", label: "Late cancellation", description: "Late cancellation", itemType: "fee", unitPriceCents: 20000 },
-  { value: "custom_wellness_support", label: "Custom wellness support", description: "Custom wellness support", itemType: "other", unitPriceCents: 30000 },
-];
 
 function newKey(prefix: string) {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -62,7 +66,15 @@ function normaliseLineItem(item: Omit<LineItem, "key">): LineItem {
   return { ...item, key: newKey(item.source) };
 }
 
-export function DocumentsForm({ clients, initialType = "quotation" }: { clients: ClientOption[]; initialType?: DocumentType }) {
+export function DocumentsForm({
+  clients,
+  predefinedItems,
+  initialType = "quotation",
+}: {
+  clients: ClientOption[];
+  predefinedItems: PredefinedItemOption[];
+  initialType?: DocumentType;
+}) {
   const router = useRouter();
   const [bookings, setBookings] = useState<BookingOption[]>([]);
   const [bookingId, setBookingId] = useState("");
@@ -82,6 +94,7 @@ export function DocumentsForm({ clients, initialType = "quotation" }: { clients:
   const [manualEntry, setManualEntry] = useState(false);
   const [selectedPredefined, setSelectedPredefined] = useState("");
   const [lineItems, setLineItems] = useState<LineItem[]>([]);
+  const [bookingPayments, setBookingPayments] = useState<BookingPaymentSummary>({ paidCents: 0, unappliedPaidCents: 0 });
   const [loadingBookings, setLoadingBookings] = useState(true);
   const [loadingCharges, setLoadingCharges] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -122,6 +135,10 @@ export function DocumentsForm({ clients, initialType = "quotation" }: { clients:
             source: "booking",
           }),
         ));
+        setBookingPayments({
+          paidCents: Number(data.payments?.paidCents ?? 0),
+          unappliedPaidCents: Number(data.payments?.unappliedPaidCents ?? 0),
+        });
       })
       .catch((err) => setError(err.message))
       .finally(() => {
@@ -145,6 +162,8 @@ export function DocumentsForm({ clients, initialType = "quotation" }: { clients:
     .reduce((sum, item) => sum + Math.max(0, item.quantity * item.unitPriceCents - item.discountCents), 0);
   const discountCents = validLineItems.reduce((sum, item) => sum + item.discountCents, 0);
   const totalCents = bookingTotalCents + additionalTotalCents;
+  const appliedPaymentCents = documentType === "invoice" && !manualEntry ? Math.min(totalCents, bookingPayments.unappliedPaidCents) : 0;
+  const balanceDueCents = Math.max(0, totalCents - appliedPaymentCents);
 
   function updateItem(key: string, patch: Partial<LineItem>) {
     setLineItems((items) => items.map((item) => (item.key === key ? { ...item, ...patch } : item)));
@@ -156,14 +175,15 @@ export function DocumentsForm({ clients, initialType = "quotation" }: { clients:
 
   function addPredefinedItem(value: string) {
     setSelectedPredefined(value);
-    const preset = predefinedItems.find((item) => item.value === value);
+    const preset = predefinedItems.find((item) => item.id === value);
     if (!preset) return;
+    const itemType = (["service", "product", "fee", "discount", "other"].includes(preset.itemType) ? preset.itemType : "other") as LineItemType;
     setLineItems((items) => [
       ...items,
       normaliseLineItem({
         serviceId: null,
         description: preset.description,
-        itemType: preset.itemType,
+        itemType,
         quantity: 1,
         unitPriceCents: preset.unitPriceCents,
         discountCents: 0,
@@ -271,6 +291,7 @@ export function DocumentsForm({ clients, initialType = "quotation" }: { clients:
                 setLoadingCharges(true);
               } else {
                 setLineItems([]);
+                setBookingPayments({ paidCents: 0, unappliedPaidCents: 0 });
                 setLoadingCharges(false);
               }
             }}
@@ -308,6 +329,7 @@ export function DocumentsForm({ clients, initialType = "quotation" }: { clients:
               if (event.target.checked) {
                 setBookingId("");
                 setLineItems([]);
+                setBookingPayments({ paidCents: 0, unappliedPaidCents: 0 });
               }
             }}
             className="h-4 w-4 accent-primary"
@@ -345,25 +367,25 @@ export function DocumentsForm({ clients, initialType = "quotation" }: { clients:
       ) : null}
 
       <div className="mt-6 rounded-2xl border border-border bg-surface-muted p-4 sm:p-5">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="w-full min-w-0 md:w-[260px] lg:w-[280px]">
+        <div className="grid gap-4">
+          <div className="min-w-0">
             <h3 className="text-sm font-semibold">Additional Items</h3>
             <p className="mt-1 max-w-prose text-sm leading-5 text-muted-foreground">Add predefined charges or custom document rows.</p>
           </div>
-          <div className="flex w-full flex-col gap-3 sm:flex-row md:flex-1 md:justify-end">
+          <div className="grid w-full gap-3 sm:grid-cols-[minmax(0,360px)_auto] sm:items-center">
             <Select
               value={selectedPredefined}
               onChange={addPredefinedItem}
-              options={predefinedItems.map((item) => ({ value: item.value, label: item.label, price: fmtCents(item.unitPriceCents) }))}
+              options={predefinedItems.map((item) => ({ value: item.id, label: item.label, price: fmtCents(item.unitPriceCents) }))}
               placeholder="Select predefined item"
               showClear
               renderOption={(option) => (
-                <span className="flex min-w-0 items-center justify-between gap-3">
+                <span className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 overflow-hidden">
                   <span className="truncate">{option.label}</span>
-                  <span className="shrink-0 text-xs opacity-75">{String(option.price ?? "")}</span>
+                  <span className="max-w-[90px] truncate text-right text-xs opacity-75">{String(option.price ?? "")}</span>
                 </span>
               )}
-              className="w-full sm:min-w-[260px]"
+              className="w-full"
             />
             <Button type="button" variant="secondary" onClick={addCustomItem} className="w-full shrink-0 gap-2 sm:w-auto">
               <Plus className="h-4 w-4" aria-hidden="true" />
@@ -489,9 +511,29 @@ export function DocumentsForm({ clients, initialType = "quotation" }: { clients:
               <td className="px-4 py-3 text-right font-semibold">{fmtCents(totalCents)}</td>
               <td />
             </tr>
+            {documentType === "invoice" && !manualEntry ? (
+              <>
+                <tr>
+                  <td colSpan={5} className="px-4 py-2 text-right text-muted-foreground">Payments already received</td>
+                  <td className="px-4 py-2 text-right font-medium">{fmtCents(appliedPaymentCents)}</td>
+                  <td />
+                </tr>
+                <tr>
+                  <td colSpan={5} className="px-4 py-3 text-right font-semibold">Amount due</td>
+                  <td className="px-4 py-3 text-right font-semibold">{fmtCents(balanceDueCents)}</td>
+                  <td />
+                </tr>
+              </>
+            ) : null}
           </tfoot>
         </table>
       </div>
+
+      {documentType === "invoice" && bookingPayments.unappliedPaidCents > totalCents && !manualEntry ? (
+        <p className="mt-3 rounded-xl border border-warning/30 bg-warning/5 px-4 py-3 text-sm text-warning">
+          Existing booking payments exceed this invoice total. The invoice will show zero due; review the extra payment before issuing another invoice.
+        </p>
+      ) : null}
 
       {error ? <p className="mt-4 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">{error}</p> : null}
 

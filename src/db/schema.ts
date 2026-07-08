@@ -447,6 +447,22 @@ export const documentNumberSequences = pgTable(
   },
 );
 
+export const documentPredefinedItems = pgTable(
+  "document_predefined_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    label: text("label").notNull(),
+    description: text("description").notNull(),
+    itemType: text("item_type").notNull().default("other"),
+    unitPriceCents: integer("unit_price_cents").notNull().default(0),
+    sortOrder: integer("sort_order").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("document_predefined_items_active_idx").on(table.active, table.sortOrder)],
+);
+
 export const invoices = pgTable(
   "invoices",
   {

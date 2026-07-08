@@ -2,7 +2,7 @@
 
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
-import { businessSettings, communicationSettings, bookingRules, documentNumberSequences } from "@/db/schema";
+import { businessSettings, communicationSettings, bookingRules, documentNumberSequences, documentPredefinedItems } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/activity-log/record";
@@ -199,5 +199,78 @@ export async function updateDocumentSequence(formData: FormData) {
     return { ok: true };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Failed to update document sequence." };
+  }
+}
+
+const itemTypes = new Set(["service", "product", "fee", "discount", "other"]);
+
+function moneyToCents(value: FormDataEntryValue | null) {
+  return Math.round((Number.parseFloat(String(value ?? "0")) || 0) * 100);
+}
+
+function parsePredefinedItem(formData: FormData) {
+  const label = String(formData.get("label") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim() || label;
+  const itemType = String(formData.get("itemType") ?? "other");
+  const unitPriceCents = moneyToCents(formData.get("unitPrice"));
+  const sortOrder = Number.parseInt(String(formData.get("sortOrder") ?? "0"), 10) || 0;
+  const active = formData.get("active") === "on";
+
+  if (label.length < 2) return { ok: false as const, error: "Item label is required." };
+  if (!itemTypes.has(itemType)) return { ok: false as const, error: "Choose a valid item type." };
+  if (unitPriceCents < 0) return { ok: false as const, error: "Price cannot be negative." };
+
+  return { ok: true as const, data: { label, description, itemType, unitPriceCents, sortOrder, active } };
+}
+
+export async function createDocumentPredefinedItem(formData: FormData) {
+  const user = await requirePermission("settings:manage");
+  try {
+    const parsed = parsePredefinedItem(formData);
+    if (!parsed.ok) return { ok: false, error: parsed.error };
+    const db = getDb();
+    const [item] = await db.insert(documentPredefinedItems).values(parsed.data).returning({ id: documentPredefinedItems.id });
+    await recordActivity(user.id, "document_predefined_item.created", "document_predefined_item", item.id, `Created predefined item ${parsed.data.label}`);
+    revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard/documents");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to create predefined item." };
+  }
+}
+
+export async function updateDocumentPredefinedItem(formData: FormData) {
+  const user = await requirePermission("settings:manage");
+  try {
+    const id = String(formData.get("id") ?? "");
+    if (!id) return { ok: false, error: "Item ID is required." };
+    const parsed = parsePredefinedItem(formData);
+    if (!parsed.ok) return { ok: false, error: parsed.error };
+    const db = getDb();
+    await db.update(documentPredefinedItems).set({ ...parsed.data, updatedAt: new Date() }).where(eq(documentPredefinedItems.id, id));
+    await recordActivity(user.id, "document_predefined_item.updated", "document_predefined_item", id, `Updated predefined item ${parsed.data.label}`);
+    revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard/documents");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to update predefined item." };
+  }
+}
+
+export async function deleteDocumentPredefinedItem(formData: FormData) {
+  const user = await requirePermission("settings:manage");
+  try {
+    const id = String(formData.get("id") ?? "");
+    if (!id) return { ok: false, error: "Item ID is required." };
+    const db = getDb();
+    const [item] = await db.select({ label: documentPredefinedItems.label }).from(documentPredefinedItems).where(eq(documentPredefinedItems.id, id)).limit(1);
+    if (!item) return { ok: false, error: "Predefined item not found." };
+    await db.delete(documentPredefinedItems).where(eq(documentPredefinedItems.id, id));
+    await recordActivity(user.id, "document_predefined_item.deleted", "document_predefined_item", id, `Deleted predefined item ${item.label}`);
+    revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard/documents");
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Failed to delete predefined item." };
   }
 }
