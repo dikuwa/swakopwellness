@@ -10,6 +10,7 @@ import {
   toggleServiceActive,
   toggleServicePublic,
 } from "@/services/actions";
+import { ServiceActions, ServiceActiveForm, ServicePublicForm } from "./service-row-actions";
 import {
   Layers,
   CheckCircle2,
@@ -18,8 +19,6 @@ import {
   Plus,
   Tag,
   Sliders,
-  Pencil,
-  Trash2
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -191,34 +190,10 @@ export default async function ServicesPage() {
                       : "\u2014"}
                   </td>
                   <td className="py-3.5 px-4">
-                    <form action={toggleServiceActive.bind(null, s.id)}>
-                      <button
-                        type="submit"
-                        className={`inline-flex items-center gap-1.5 cursor-pointer rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          s.active
-                            ? "bg-green-50 text-green-700"
-                            : "bg-red-50 text-red-700"
-                        }`}
-                      >
-                        <span className={`h-1.5 w-1.5 rounded-full ${s.active ? "bg-green-600" : "bg-red-600"}`} />
-                        {s.active ? "Active" : "Inactive"}
-                      </button>
-                    </form>
+                    <ServiceActiveForm action={toggleServiceActive.bind(null, s.id)} active={s.active} />
                   </td>
                   <td className="py-3.5 px-4">
-                    <form action={toggleServicePublic.bind(null, s.id)}>
-                      <button
-                        type="submit"
-                        className={`inline-flex items-center gap-1.5 cursor-pointer rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          s.publicVisible
-                            ? "bg-green-50 text-green-700"
-                            : "bg-gray-50 text-gray-500"
-                        }`}
-                      >
-                        <span className={`h-1.5 w-1.5 rounded-full ${s.publicVisible ? "bg-green-600" : "bg-gray-400"}`} />
-                        {s.publicVisible ? "Visible" : "Hidden"}
-                      </button>
-                    </form>
+                    <ServicePublicForm action={toggleServicePublic.bind(null, s.id)} publicVisible={s.publicVisible} />
                   </td>
                   <td className="py-3.5 px-4">
                     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${s.featured ? "text-amber-700 bg-amber-50" : "text-muted-foreground bg-surface-muted"}`}>
@@ -228,24 +203,7 @@ export default async function ServicesPage() {
                   </td>
                   <td className="py-3.5 px-4 text-center text-muted-foreground font-mono text-xs">{s.sortOrder}</td>
                   <td className="py-3.5 px-4">
-                    <div className="flex items-center justify-end gap-2">
-                      <Link
-                        href={`/dashboard/services/${s.id}/edit`}
-                        className="flex h-8 items-center gap-1 rounded-lg border border-border px-3 text-xs font-semibold transition-colors hover:bg-surface-muted"
-                      >
-                        <Pencil className="h-3 w-3 text-muted-foreground" />
-                        Edit
-                      </Link>
-                      <form action={archiveService.bind(null, s.id)}>
-                        <button
-                          type="submit"
-                          className="flex h-8 cursor-pointer items-center gap-1 rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                          Archive
-                        </button>
-                      </form>
-                    </div>
+                    <ServiceActions serviceId={s.id} archiveAction={archiveService.bind(null, s.id)} />
                   </td>
                 </tr>
               ))}

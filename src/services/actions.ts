@@ -4,7 +4,19 @@ import { and, asc, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
-import { mediaAssets, serviceCategories, serviceFaqs, serviceImages, serviceQuestions, services } from "@/db/schema";
+import {
+  bookings,
+  documentLineItems,
+  invoiceLineItems,
+  mediaAssets,
+  quotationLineItems,
+  receiptLineItems,
+  serviceCategories,
+  serviceFaqs,
+  serviceImages,
+  serviceQuestions,
+  services,
+} from "@/db/schema";
 import { recordActivity } from "@/activity-log/record";
 import { deleteFile, uploadFile } from "@/lib/storage";
 
@@ -233,24 +245,59 @@ export async function archiveService(id: string) {
   const user = await requirePermission("services:manage");
   const db = getDb();
 
-  const [service] = await db
-    .update(services)
-    .set({
-      archivedAt: new Date(),
-      active: false,
-      publicVisible: false,
-      updatedAt: new Date(),
-    })
+  const [existing] = await db
+    .select({ name: services.name })
+    .from(services)
     .where(eq(services.id, id))
-    .returning({ name: services.name });
+    .limit(1);
 
-  if (service) {
+  if (!existing) {
+    revalidateServiceManagement();
+    return;
+  }
+
+  const [bookingRef, invoiceRef, quotationRef, receiptRef, documentRef] = await Promise.all([
+    db.select({ id: bookings.id }).from(bookings).where(eq(bookings.serviceId, id)).limit(1),
+    db.select({ id: invoiceLineItems.id }).from(invoiceLineItems).where(eq(invoiceLineItems.serviceId, id)).limit(1),
+    db.select({ id: quotationLineItems.id }).from(quotationLineItems).where(eq(quotationLineItems.serviceId, id)).limit(1),
+    db.select({ id: receiptLineItems.id }).from(receiptLineItems).where(eq(receiptLineItems.serviceId, id)).limit(1),
+    db.select({ id: documentLineItems.id }).from(documentLineItems).where(eq(documentLineItems.serviceId, id)).limit(1),
+  ]);
+
+  const hasHistoricalReferences =
+    bookingRef.length > 0 ||
+    invoiceRef.length > 0 ||
+    quotationRef.length > 0 ||
+    receiptRef.length > 0 ||
+    documentRef.length > 0;
+
+  if (hasHistoricalReferences) {
+    await db
+      .update(services)
+      .set({
+        archivedAt: new Date(),
+        active: false,
+        publicVisible: false,
+        updatedAt: new Date(),
+      })
+      .where(eq(services.id, id));
+
     await recordActivity(
       user.id,
       "archive",
       "service",
       id,
-      `Archived service "${service.name}"`,
+      `Archived service "${existing.name}"`,
+    );
+  } else {
+    await db.delete(services).where(eq(services.id, id));
+
+    await recordActivity(
+      user.id,
+      "delete",
+      "service",
+      id,
+      `Deleted service "${existing.name}"`,
     );
   }
 
