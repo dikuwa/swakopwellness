@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { CreditCard } from "lucide-react";
@@ -12,14 +12,40 @@ interface PaymentPanelProps {
   clientId?: string | null;
 }
 
+interface BookingOption {
+  id: string;
+  reference: string;
+  clientName: string;
+  serviceName: string;
+}
+
 export function PaymentPanel({ bookingId, invoiceId, clientId }: PaymentPanelProps) {
   const router = useRouter();
+  const [bookings, setBookings] = useState<BookingOption[]>([]);
+  const [selectedBookingId, setSelectedBookingId] = useState(bookingId ?? "");
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState("cash");
   const [reference, setReference] = useState("");
+  const [loadingBookings, setLoadingBookings] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
-  const hasContext = !!bookingId || !!invoiceId || !!clientId;
+  const hasContext = !!selectedBookingId || !!invoiceId || !!clientId;
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/bookings?status=active")
+      .then((res) => (res.ok ? res.json() : Promise.reject(new Error("Could not load bookings."))))
+      .then((data) => {
+        if (!cancelled) setBookings(data.bookings ?? []);
+      })
+      .catch((err) => setMessage(err.message))
+      .finally(() => {
+        if (!cancelled) setLoadingBookings(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function submit() {
     setSubmitting(true);
@@ -29,7 +55,7 @@ export function PaymentPanel({ bookingId, invoiceId, clientId }: PaymentPanelPro
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          bookingId,
+          bookingId: selectedBookingId || null,
           invoiceId,
           clientId,
           method,
@@ -64,7 +90,23 @@ export function PaymentPanel({ bookingId, invoiceId, clientId }: PaymentPanelPro
         <CreditCard className="mt-1 h-5 w-5 text-primary" aria-hidden="true" />
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-3">
+      <div className="mt-6 grid gap-4">
+        <div>
+          <Label htmlFor="paymentBooking" className="mb-2">Booking</Label>
+          <Select
+            id="paymentBooking"
+            value={selectedBookingId}
+            onChange={setSelectedBookingId}
+            searchable
+            showClear
+            disabled={loadingBookings || !!invoiceId}
+            placeholder={invoiceId ? "Using selected invoice" : loadingBookings ? "Loading bookings..." : "Select booking"}
+            options={bookings.map((booking) => ({
+              value: booking.id,
+              label: `${booking.reference} - ${booking.clientName} - ${booking.serviceName}`,
+            }))}
+          />
+        </div>
         <div>
           <Label htmlFor="paymentAmount" className="mb-2">Amount (N$)</Label>
           <Input id="paymentAmount" type="number" min="0.01" step="0.01" value={amount} onChange={(event) => setAmount(event.target.value)} />
@@ -78,8 +120,9 @@ export function PaymentPanel({ bookingId, invoiceId, clientId }: PaymentPanelPro
             options={[
               { value: "cash", label: "Cash" },
               { value: "card", label: "Card" },
-              { value: "eft", label: "EFT" },
-              { value: "voucher", label: "Voucher" },
+              { value: "eft", label: "Bank Transfer / EFT" },
+              { value: "mobile", label: "Mobile Payment" },
+              { value: "other", label: "Other" },
             ]}
           />
         </div>
@@ -95,10 +138,10 @@ export function PaymentPanel({ bookingId, invoiceId, clientId }: PaymentPanelPro
         </p>
       ) : null}
 
-      <div className="mt-6 flex justify-end">
+      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         {!hasContext ? (
-          <p className="mr-auto text-sm text-muted-foreground">Select Pay on an unpaid invoice to link a payment.</p>
-        ) : null}
+          <p className="text-sm text-muted-foreground">Select a booking or choose Pay on an unpaid invoice.</p>
+        ) : <span />}
         <Button type="button" onClick={submit} disabled={submitting || !amount || !hasContext}>
           {submitting ? "Recording..." : "Record Payment"}
         </Button>

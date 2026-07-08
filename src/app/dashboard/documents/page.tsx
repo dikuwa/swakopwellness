@@ -50,6 +50,11 @@ function statusVariant(status: string) {
   return "muted" as const;
 }
 
+function typeLabel(type: string) {
+  if (type === "quotation") return "Quote";
+  return type.charAt(0).toUpperCase() + type.slice(1);
+}
+
 export default async function DocumentsPage(props: {
   searchParams: Promise<{ page?: string; type?: string; status?: string; from?: string; to?: string; q?: string; invoiceId?: string }>;
 }) {
@@ -123,7 +128,7 @@ export default async function DocumentsPage(props: {
                   </td>
                   <td className="px-4 py-3">{row.clientName}</td>
                   <td className="px-4 py-3">{row.bookingReference ?? "Manual"}</td>
-                  <td className="px-4 py-3 capitalize">{row.type}</td>
+                  <td className="px-4 py-3">{typeLabel(row.type)}</td>
                   <td className="px-4 py-3">{row.issueDate.toLocaleDateString("en-GB")}</td>
                   <td className="px-4 py-3">
                     <Badge variant={statusVariant(row.status)} className="capitalize">{row.status.replaceAll("_", " ")}</Badge>
@@ -136,6 +141,11 @@ export default async function DocumentsPage(props: {
                       {row.type === "invoice" && row.sourceInvoiceId && row.balanceCents > 0 ? (
                         <Link href={`/dashboard/documents?invoiceId=${row.sourceInvoiceId}`} className="font-semibold text-primary hover:underline">
                           Pay
+                        </Link>
+                      ) : null}
+                      {row.type === "quotation" && row.sourceQuotationId && row.status === "accepted" ? (
+                        <Link href={`/dashboard/quotations/${row.sourceQuotationId}`} className="font-semibold text-primary hover:underline">
+                          Convert
                         </Link>
                       ) : null}
                     </div>

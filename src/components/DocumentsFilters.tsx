@@ -37,7 +37,7 @@ export function DocumentsFilters() {
           onChange={setType}
           showClear
           options={[
-            { value: "quotation", label: "Quotation" },
+            { value: "quotation", label: "Quote" },
             { value: "invoice", label: "Invoice" },
             { value: "receipt", label: "Receipt" },
           ]}
@@ -57,6 +57,8 @@ export function DocumentsFilters() {
             { value: "partially_paid", label: "Partially paid" },
             { value: "paid", label: "Paid" },
             { value: "active", label: "Active" },
+            { value: "converted", label: "Converted" },
+            { value: "cancelled", label: "Cancelled" },
             { value: "voided", label: "Voided" },
           ]}
           placeholder="All statuses"
