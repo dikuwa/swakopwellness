@@ -144,6 +144,8 @@ export function ChatWidget() {
 
   const beginBooking = () => {
     if (humanPaused) return;
+    setDraft(emptyDraft);
+    setError("");
     addUser("Book an appointment");
     addAssistant("Please choose a service. These appointments are requests until our staff confirm availability.", "service");
   };
@@ -336,6 +338,12 @@ export function ChatWidget() {
 
             <div className="border-t border-border px-5 py-4">
               {error ? <p className="mb-3 rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</p> : null}
+
+              {!humanPaused && step !== "menu" && step !== "service" && step !== "summary" ? (
+                <button type="button" onClick={beginBooking} className="mb-3 h-10 w-full rounded-xl border border-primary/30 bg-primary/5 text-sm font-semibold text-primary hover:bg-primary/10">
+                  Book appointment
+                </button>
+              ) : null}
 
               {humanPaused ? (
                 <button type="button" onClick={resumeAssistant} className="h-11 w-full rounded-xl border border-border text-sm font-semibold hover:bg-surface-muted">

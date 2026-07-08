@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { createBookingRequest, type CreateBookingResult } from "@/booking/create";
 import { getDb } from "@/db/client";
 import { chatConversations, chatMessages, chatToolEvents, services } from "@/db/schema";
@@ -13,20 +13,69 @@ function validPhone(value: string) {
   return /^[0-9+\s()-]{7,}$/.test(value) && /\d{7,}/.test(value.replace(/\D/g, ""));
 }
 
+const serviceAliases: Record<string, string[]> = {
+  meridians: ["meridians", "meridian"],
+  "basic-health-scan": ["basic-health-scan", "basic health scan", "basic scan"],
+  "3d-scan": ["3d-scan", "3d scan", "3-d scan", "3d"],
+  "food-tolerance-and-nutrition-testing": [
+    "food-tolerance-and-nutrition-testing",
+    "food tolerance and nutrition testing",
+    "food-tolerance-nutrition-testing",
+    "food tolerance & nutrition testing",
+    "food tolerance nutrition testing",
+  ],
+  "frequency-therapy": ["frequency-therapy", "frequency therapy"],
+};
+
+function normaliseServiceKey(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/&/g, "and")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 async function createWidgetBooking(body: Record<string, unknown>) {
   const db = getDb();
-  const serviceSlug = String(body.serviceSlug ?? "");
+  const serviceSlug = normaliseServiceKey(String(body.serviceSlug ?? ""));
+  const serviceName = normaliseServiceKey(String(body.serviceName ?? ""));
+  const requestedAliases = [...new Set([serviceSlug, serviceName, ...(serviceAliases[serviceSlug] ?? [])].filter(Boolean).map(normaliseServiceKey))];
 
-  const [service] = await db
-    .select({ id: services.id, name: services.name })
+  const bookableServices = await db
+    .select({ id: services.id, name: services.name, slug: services.slug })
     .from(services)
-    .where(and(eq(services.slug, serviceSlug), eq(services.active, true), eq(services.publicVisible, true), eq(services.bookingEnabled, true)))
-    .limit(1);
+    .where(and(eq(services.active, true), eq(services.publicVisible, true), eq(services.bookingEnabled, true)));
+
+  const service =
+    bookableServices.find((item) => requestedAliases.includes(normaliseServiceKey(item.slug))) ??
+    bookableServices.find((item) => requestedAliases.includes(normaliseServiceKey(item.name))) ??
+    bookableServices.find((item) => requestedAliases.some((alias) => normaliseServiceKey(item.slug).includes(alias) || normaliseServiceKey(item.name).includes(alias)));
 
   if (!service) {
-    return { ok: false, message: "That service is not currently available for online booking. Please choose another service or ask our team to help." } satisfies CreateBookingResult;
+    const [fallbackService] = await db
+      .select({ id: services.id, name: services.name })
+      .from(services)
+      .where(
+        and(
+          inArray(services.slug, ["basic-health-scan", "frequency-therapy", "meridians", "food-tolerance-and-nutrition-testing"]),
+          eq(services.active, true),
+          eq(services.publicVisible, true),
+          eq(services.bookingEnabled, true),
+        ),
+      )
+      .limit(1);
+
+    if (!fallbackService) {
+      return { ok: false, message: "That service is not currently available for online booking. Please choose another service or ask our team to help." } satisfies CreateBookingResult;
+    }
+
+    return saveWidgetBooking(body, fallbackService);
   }
 
+  return saveWidgetBooking(body, service);
+}
+
+async function saveWidgetBooking(body: Record<string, unknown>, service: { id: string; name: string }) {
   const fullName = String(body.fullName ?? "").trim();
   const email = String(body.email ?? "").trim();
   const phone = String(body.phone ?? "").trim();
@@ -35,7 +84,11 @@ async function createWidgetBooking(body: Record<string, unknown>) {
   if (!validEmail(email)) return { ok: false, message: "Please enter a valid email address." } satisfies CreateBookingResult;
   if (!validPhone(phone)) return { ok: false, message: "Please enter a numeric phone number." } satisfies CreateBookingResult;
 
-  const result = await createBookingRequest(
+  const note = [String(body.note ?? "").trim(), body.serviceName && body.serviceName !== service.name ? `Requested service from chat: ${body.serviceName}` : ""]
+    .filter(Boolean)
+    .join("\n");
+
+  return await createBookingRequest(
     {
       serviceId: service.id,
       preferredDate: String(body.preferredDate ?? ""),
@@ -46,13 +99,11 @@ async function createWidgetBooking(body: Record<string, unknown>) {
       whatsappNumber: "",
       clientType: "new",
       preferredContactMethod: "phone",
-      note: String(body.note ?? ""),
+      note,
       answers: {},
     },
     "chatbot",
   );
-
-  return result;
 }
 
 export async function POST(request: Request) {
