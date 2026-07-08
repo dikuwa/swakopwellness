@@ -28,7 +28,7 @@ export default async function ServicesPage() {
             {services.map((service) => (
               <article key={service.id} className="flex h-full overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_8px_30px_oklch(0.235_0.025_158_/_0.04)]">
                 <div className="flex min-h-full w-full flex-col">
-                {service.featuredImage?.publicUrl ? (
+                {service.featuredImage ? (
                   // eslint-disable-next-line @next/next/no-img-element -- media URLs are administrator-managed public URLs.
                   <img src={service.featuredImage.publicUrl} alt={service.featuredImage.altText ?? service.name} className="aspect-[16/9] w-full object-cover" loading="lazy" />
                 ) : (

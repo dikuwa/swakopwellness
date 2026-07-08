@@ -5,6 +5,7 @@ import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { services, serviceCategories, mediaAssets } from "@/db/schema";
 import { DashboardShell } from "@/dashboard/shell";
+import { getMediaUrl } from "@/lib/media-url";
 import {
   archiveService,
   toggleServiceActive,
@@ -44,6 +45,7 @@ export default async function ServicesPage() {
       publicVisible: services.publicVisible,
       featured: services.featured,
       sortOrder: services.sortOrder,
+      featuredImageId: mediaAssets.id,
       featuredImageUrl: mediaAssets.publicUrl,
     })
     .from(services)
@@ -159,9 +161,9 @@ export default async function ServicesPage() {
                   <td className="py-3.5 px-4">
                     <div className="flex items-center gap-3">
                       <div className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border border-border bg-surface-muted">
-                        {s.featuredImageUrl ? (
+                        {s.featuredImageId ? (
                           <img
-                            src={s.featuredImageUrl}
+                            src={getMediaUrl({ id: s.featuredImageId, publicUrl: s.featuredImageUrl })}
                             alt={s.name}
                             className="h-full w-full object-cover"
                             loading="lazy"

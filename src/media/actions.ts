@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { mediaAssets, serviceImages, services } from "@/db/schema";
+import { getMediaUrl } from "@/lib/media-url";
 import { uploadFile, deleteFile } from "@/lib/storage";
 import sizeOf from "image-size";
 
@@ -37,7 +38,7 @@ export type MediaWithUsage = {
 export async function getMediaAssets() {
   await requirePermission("settings:manage");
   const db = getDb();
-  return db
+  const assets = await db
     .select({
       id: mediaAssets.id,
       storageKey: mediaAssets.storageKey,
@@ -51,6 +52,8 @@ export async function getMediaAssets() {
     })
     .from(mediaAssets)
     .orderBy(desc(mediaAssets.createdAt));
+
+  return assets.map((asset) => ({ ...asset, publicUrl: getMediaUrl(asset) }));
 }
 
 export async function getMediaWithUsage(): Promise<MediaWithUsage[]> {
@@ -111,6 +114,7 @@ export async function getMediaWithUsage(): Promise<MediaWithUsage[]> {
 
   return assets.map((a) => ({
     ...a,
+    publicUrl: getMediaUrl(a),
     usedAsFeatured: featuredMap.get(a.id) ?? null,
     usedAsGallery: galleryMap.get(a.id) ?? [],
   }));
@@ -164,7 +168,7 @@ export async function uploadMediaAction(formData: FormData) {
     .returning();
 
   revalidatePath("/dashboard/media");
-  return { asset };
+  return { asset: { ...asset, publicUrl: getMediaUrl(asset) } };
 }
 
 export async function uploadMultipleMediaAction(formData: FormData) {
@@ -322,7 +326,7 @@ export async function replaceMediaFileAction(id: string, formData: FormData) {
       .where(eq(mediaAssets.id, id));
 
     revalidatePath("/dashboard/media");
-    return { success: true, publicUrl };
+    return { success: true, publicUrl: getMediaUrl({ id, publicUrl }) };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Replace failed.";
     return { error: message };
@@ -376,7 +380,7 @@ export async function uploadMediaAndReturnAction(formData: FormData) {
       });
 
     revalidatePath("/dashboard/media");
-    return { asset };
+    return { asset: { ...asset, publicUrl: getMediaUrl(asset) } };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Upload failed.";
     return { error: message };

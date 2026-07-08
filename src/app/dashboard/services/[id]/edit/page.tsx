@@ -6,6 +6,7 @@ import { getDb } from "@/db/client";
 import { mediaAssets, services, serviceCategories, serviceFaqs, serviceImages } from "@/db/schema";
 import { createServiceFaq, deleteServiceFaq, toggleServiceFaqActive, updateService, updateServiceFaq } from "@/services/actions";
 import { DashboardShell } from "@/dashboard/shell";
+import { getMediaUrl } from "@/lib/media-url";
 import { EditServiceClient } from "./edit-page-client";
 
 export const dynamic = "force-dynamic";
@@ -68,7 +69,8 @@ export default async function EditServicePage({ params }: PageProps) {
     const assetMap = new Map(assets.map((a) => [a.id, a]));
     galleryImages = galleryEntries
       .map((g) => assetMap.get(g.mediaAssetId))
-      .filter(Boolean) as { id: string; publicUrl: string | null; altText: string | null }[];
+      .filter(Boolean)
+      .map((asset) => ({ ...asset, publicUrl: getMediaUrl(asset) })) as { id: string; publicUrl: string | null; altText: string | null }[];
   }
 
   // Fetch all media assets for the GalleryManager library picker
@@ -82,6 +84,8 @@ export default async function EditServicePage({ params }: PageProps) {
     })
     .from(mediaAssets)
     .orderBy(desc(mediaAssets.createdAt));
+
+  const normalizedMedia = allMedia.map((asset) => ({ ...asset, publicUrl: getMediaUrl(asset) }));
 
   return (
     <DashboardShell>
@@ -108,7 +112,7 @@ export default async function EditServicePage({ params }: PageProps) {
           featuredImageId: service.featuredImageId,
         }}
         galleryImages={galleryImages}
-        allMedia={allMedia}
+        allMedia={normalizedMedia}
         faqsSlot={
           <section className="rounded-xl border border-border bg-background p-6">
             <h2 className="text-lg font-semibold">Service FAQs</h2>

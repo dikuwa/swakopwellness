@@ -2,8 +2,22 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { getDb } from "@/db/client";
 import { bookingRules, businessSettings, communicationSettings, faqs, mediaAssets, policies, serviceFaqs, serviceImages, serviceQuestions, services } from "@/db/schema";
+import { getMediaUrl } from "@/lib/media-url";
 
 export type BusinessSettingsWithImage = Awaited<ReturnType<typeof getBusinessSettings>>;
+
+type MediaSelection = {
+  id: string | null;
+  publicUrl: string | null;
+  altText: string | null;
+  width: number | null;
+  height: number | null;
+};
+
+function normalizeMediaAsset(asset: MediaSelection | null | undefined) {
+  if (!asset?.id) return null;
+  return { ...asset, publicUrl: getMediaUrl(asset) };
+}
 
 export function formatMoney(cents: number, symbol = "N$") {
   return `${symbol}${(cents / 100).toLocaleString("en-NA", { maximumFractionDigits: 0 })}`;
@@ -26,7 +40,7 @@ export async function getBusinessSettings() {
     .leftJoin(mediaAssets, eq(businessSettings.technologyImageId, mediaAssets.id))
     .limit(1);
   if (!row) notFound();
-  return { ...row.settings, technologyImage: row.technologyImage ?? null };
+  return { ...row.settings, technologyImage: normalizeMediaAsset(row.technologyImage) };
 }
 
 export async function getCommunicationSettings() {
@@ -54,7 +68,7 @@ export async function getPublicServices() {
     .where(and(eq(services.active, true), eq(services.publicVisible, true)))
     .orderBy(asc(services.sortOrder), asc(services.name));
 
-  return rows.map((r) => ({ ...r.service, featuredImage: r.featuredImage }));
+  return rows.map((r) => ({ ...r.service, featuredImage: normalizeMediaAsset(r.featuredImage) }));
 }
 
 export async function getFeaturedServices() {
@@ -101,7 +115,12 @@ export async function getServiceBySlug(slug: string) {
     .where(eq(serviceImages.serviceId, row.service.id))
     .orderBy(asc(serviceImages.sortOrder));
 
-  return { ...row.service, featuredImage: row.featuredImage, faqs: serviceSpecificFaqs, gallery: galleryEntries };
+  return {
+    ...row.service,
+    featuredImage: normalizeMediaAsset(row.featuredImage),
+    faqs: serviceSpecificFaqs,
+    gallery: galleryEntries.map((asset) => ({ ...asset, publicUrl: getMediaUrl(asset) })),
+  };
 }
 
 export async function getPublicFaqs() {

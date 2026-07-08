@@ -1,5 +1,5 @@
-import { writeFile, unlink } from "node:fs/promises";
-import { join } from "node:path";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
 import { env } from "./env";
 
 type S3ClientType = import("@aws-sdk/client-s3").S3Client;
@@ -55,6 +55,7 @@ export async function uploadFile(
   if (!r2Configured()) {
     const buffer = body instanceof Blob ? Buffer.from(await body.arrayBuffer()) : Buffer.from(body);
     const filePath = join(LOCAL_UPLOAD_DIR, key);
+    await mkdir(dirname(filePath), { recursive: true });
     await writeFile(filePath, buffer);
     return `/uploads/${key}`;
   }
@@ -74,6 +75,25 @@ export async function uploadFile(
   }
   const endpoint = getEndpoint().replace(/\/+$/, "");
   return `${endpoint}/${env.R2_BUCKET_NAME}/${key}`;
+}
+
+export async function getFile(key: string): Promise<Uint8Array> {
+  if (!r2Configured()) {
+    const filePath = join(LOCAL_UPLOAD_DIR, key);
+    return new Uint8Array(await readFile(filePath));
+  }
+
+  const { GetObjectCommand } = await import("@aws-sdk/client-s3");
+  const cmd = new GetObjectCommand({
+    Bucket: env.R2_BUCKET_NAME,
+    Key: key,
+  });
+  const object = await (await getClient()).send(cmd);
+  const bytes = await object.Body?.transformToByteArray();
+  if (!bytes) {
+    throw new Error("Stored file is empty.");
+  }
+  return new Uint8Array(bytes);
 }
 
 export async function deleteFile(key: string): Promise<void> {

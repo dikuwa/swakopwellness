@@ -18,6 +18,7 @@ import {
   services,
 } from "@/db/schema";
 import { recordActivity } from "@/activity-log/record";
+import { getMediaUrl } from "@/lib/media-url";
 import { deleteFile, uploadFile } from "@/lib/storage";
 
 function generateSlug(name: string): string {
@@ -866,7 +867,7 @@ export async function uploadServiceFeaturedImage(serviceId: string, formData: Fo
     revalidateServiceManagement();
     revalidatePath(`/dashboard/services/${serviceId}/edit`);
 
-    return { ok: true as const, publicUrl: asset.publicUrl };
+    return { ok: true as const, publicUrl: getMediaUrl(asset) };
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to upload image.";
     return { ok: false as const, error: message };

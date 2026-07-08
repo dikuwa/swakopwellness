@@ -3,6 +3,7 @@ import Link from "next/link";
 import { AlertTriangle, ArrowLeft, CheckCircle2, Clock, Phone } from "lucide-react";
 import { PageShell } from "@/public/components";
 import { formatMoney, getBusinessSettings, getCommunicationSettings, getPublicServices, getServiceBySlug } from "@/public/data";
+import { getMediaUrl } from "@/lib/media-url";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,7 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
               </div>
             </div>
             <div className="overflow-hidden rounded-2xl border border-border bg-surface">
-              {service.featuredImage?.publicUrl ? (
+              {service.featuredImage ? (
                 // eslint-disable-next-line @next/next/no-img-element -- media URLs are administrator-managed public URLs.
                 <img src={service.featuredImage.publicUrl} alt={service.featuredImage.altText ?? service.name} className="aspect-[4/3] w-full object-cover" loading="lazy" />
               ) : (
@@ -102,8 +103,8 @@ export default async function ServiceDetailPage({ params }: { params: Promise<{ 
             <div className="mt-5 grid grid-cols-2 gap-4 sm:grid-cols-3">
               {gallery.map((img) => (
                 <div key={img.id} className="overflow-hidden rounded-2xl border border-border bg-surface">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- media URLs are administrator-managed public URLs. */}
-                  <img src={img.publicUrl ?? ""} alt={img.altText ?? ""} className="aspect-square w-full object-cover" loading="lazy" />
+                 {/* eslint-disable-next-line @next/next/no-img-element -- media URLs are administrator-managed public URLs. */}
+                  <img src={getMediaUrl(img)} alt={img.altText ?? ""} className="aspect-square w-full object-cover" loading="lazy" />
                 </div>
               ))}
             </div>
