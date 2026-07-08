@@ -12,8 +12,8 @@ export const bookingStatuses = [
 
 export type BookingStatus = (typeof bookingStatuses)[number];
 
-export function getInitialBookingStatus(hasFlaggedSuitability: boolean): BookingStatus {
-  return hasFlaggedSuitability ? "requires_review" : "new_request";
+export function getInitialBookingStatus(hasFlaggedSuitability: boolean, hasScheduleConflict = false): BookingStatus {
+  return hasFlaggedSuitability || hasScheduleConflict ? "requires_review" : "new_request";
 }
 
 export const validTransitions: Record<string, string[]> = {

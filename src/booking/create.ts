@@ -9,7 +9,7 @@ import { getInitialBookingStatus } from "./status";
 import { bookingRequestSchema, hasAtLeastOneContact, isContactMethodAvailable, parseDateTime, type BookingRequestInput } from "./validation";
 
 export type CreateBookingResult =
-  | { ok: true; reference: string; status: string; bookingId?: string; clientId?: string }
+  | { ok: true; reference: string; status: string; bookingId?: string; clientId?: string; scheduleConflict?: { reference: string; status: string } }
   | { ok: false; message: string };
 
 type BookingSource = "website_form" | "chatbot" | "manual_admin";
@@ -70,8 +70,7 @@ export async function createBookingRequest(input: unknown, source: BookingSource
       if (duplicate) return { ok: true, reference: duplicate.reference, status: "duplicate_returned" } satisfies CreateBookingResult;
     }
 
-    // Conflict detection: check for overlapping time ranges across all services
-    // (single-practitioner clinic — any booking at the same time conflicts)
+    // Conflict detection: check for overlapping time ranges for the same service.
     const serviceDuration = service.durationMinutes ?? 30;
     const conflictStatuses = ["new_request", "requires_review", "contacting_client", "awaiting_client_response", "confirmed", "rescheduled"];
     const newEnd = new Date(preferredAt.getTime() + serviceDuration * 60 * 1000);
@@ -81,6 +80,7 @@ export async function createBookingRequest(input: unknown, source: BookingSource
       .from(bookings)
       .where(
         and(
+          eq(bookings.serviceId, service.id),
           or(...conflictStatuses.map((s) => eq(bookings.status, s))),
           // existing.start < new.end
           lt(bookings.preferredAt, newEnd),
@@ -94,7 +94,7 @@ export async function createBookingRequest(input: unknown, source: BookingSource
       if (source === "manual_admin") {
         return { ok: false, message: `Time conflict: there is already a ${conflict.status.replaceAll("_", " ")} booking (${conflict.reference}) overlapping with this time slot.` } satisfies CreateBookingResult;
       }
-      // For public bookings, proceed but mark for review so staff can handle the conflict
+      // For public bookings, proceed but mark for review so staff can reschedule.
     }
 
     const [existingClient] = duplicateConditions.length > 0
@@ -145,7 +145,7 @@ export async function createBookingRequest(input: unknown, source: BookingSource
       };
     });
     const hasFlaggedSuitability = answers.some((answer) => answer.flagged);
-    const status = getInitialBookingStatus(hasFlaggedSuitability);
+    const status = getInitialBookingStatus(hasFlaggedSuitability, Boolean(conflict));
     let reference = createBookingReference();
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const existing = await tx.select({ id: bookings.id }).from(bookings).where(eq(bookings.reference, reference)).limit(1);
@@ -176,16 +176,36 @@ export async function createBookingRequest(input: unknown, source: BookingSource
       await tx.insert(bookingAnswers).values(answers.map((answer) => ({ ...answer, bookingId: booking.id })));
     }
 
-    await tx.insert(bookingStatusHistory).values({ bookingId: booking.id, toStatus: status, note: "Booking request created." });
+    await tx.insert(bookingStatusHistory).values({
+      bookingId: booking.id,
+      toStatus: status,
+      note: conflict ? `Booking request created with a time conflict against ${conflict.reference}. Staff must reschedule one booking.` : "Booking request created.",
+    });
     await tx.update(clients).set({ lastBookingAt: new Date(), updatedAt: new Date() }).where(eq(clients.id, client.id));
 
-    return { ok: true as const, reference: booking.reference, status, bookingId: booking.id, clientId: client.id };
+    return {
+      ok: true as const,
+      reference: booking.reference,
+      status,
+      bookingId: booking.id,
+      clientId: client.id,
+      scheduleConflict: conflict ? { reference: conflict.reference, status: conflict.status } : undefined,
+    };
   });
 
   if (result.ok && result.status !== "duplicate_returned") {
     const sourceLabel = source === "manual_admin" ? "Admin" : source === "chatbot" ? "Chatbot" : "Website";
     const needsReview = result.status === "requires_review";
-    await notifyStaff("booking.created", `New booking ${result.reference}`, `${sourceLabel} booking request for ${data.fullName} (${result.reference})${needsReview ? " — requires review" : ""}`, "booking", result.bookingId);
+    await notifyStaff("booking.created", `New booking ${result.reference}`, `${sourceLabel} booking request for ${data.fullName} (${result.reference})${needsReview ? " — requires review. Check for suitability or schedule conflicts and reschedule where needed." : ""}`, "booking", result.bookingId);
+    if (result.scheduleConflict) {
+      await notifyStaff(
+        "booking.conflict",
+        `Booking conflict ${result.reference}`,
+        `Same-service time conflict: ${result.reference} overlaps with ${result.scheduleConflict.reference}. Keep one booking and reschedule the other with the client.`,
+        "booking",
+        result.bookingId,
+      );
+    }
     if (result.bookingId) {
       sendBookingNotificationToStaff(result.bookingId).catch(console.error);
       sendBookingConfirmation(result.bookingId).catch(console.error);

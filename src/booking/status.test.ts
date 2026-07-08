@@ -12,6 +12,11 @@ describe("booking status", () => {
     assert.equal(getInitialBookingStatus(true), "requires_review");
     assert.equal(getInitialBookingStatus(false), "new_request");
   });
+
+  it("marks schedule conflicts for review", () => {
+    assert.equal(getInitialBookingStatus(false, true), "requires_review");
+    assert.equal(getInitialBookingStatus(true, true), "requires_review");
+  });
 });
 
 describe("valid transitions", () => {
