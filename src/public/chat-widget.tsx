@@ -68,6 +68,12 @@ function today() {
   return new Date().toISOString().split("T")[0];
 }
 
+function parsePreferredDateTime(date: string, time: string) {
+  if (!date || !time) return null;
+  const parsed = new Date(`${date}T${time}:00`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 function renderMessage(content: string) {
   return content.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
     if (part.startsWith("**") && part.endsWith("**")) {
@@ -189,16 +195,35 @@ export function ChatWidget() {
   };
 
   const selectService = (service: ChatService) => {
+    setError("");
     setDraft((prev) => ({ ...prev, serviceName: service.name, serviceSlug: service.slug }));
     addUser(`**${service.name}** (**${service.price}**, **${service.duration}**)`);
     addAssistant("Great choice. Please choose your **preferred date** and **time**. Staff will confirm final availability.", "datetime");
   };
 
   const saveDateTime = () => {
-    if (!draft.preferredDate || !draft.preferredTime) {
+    if (!draft.preferredDate && !draft.preferredTime) {
       setError("Please choose a preferred date and time.");
       return;
     }
+    if (!draft.preferredDate) {
+      setError("Please choose a preferred date.");
+      return;
+    }
+    if (!draft.preferredTime) {
+      setError("Please choose a preferred time.");
+      return;
+    }
+    const preferredAt = parsePreferredDateTime(draft.preferredDate, draft.preferredTime);
+    if (!preferredAt) {
+      setError("That date or time does not look valid. Please choose it again.");
+      return;
+    }
+    if (preferredAt.getTime() <= Date.now()) {
+      setError("Please choose a future date and time.");
+      return;
+    }
+
     setError("");
     addUser(`**${draft.preferredDate}** at **${draft.preferredTime}**`);
     addAssistant("Thank you. Please share your **full name**, **email address**, and **phone number**. You can use formats like **081...**, **+264...**, **264...**, or a landline number.", "contact");
@@ -265,7 +290,22 @@ export function ChatWidget() {
         "done",
       );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      const message = err instanceof Error ? err.message : "Something went wrong. Please try again.";
+      if (message.toLowerCase().includes("date") || message.toLowerCase().includes("time")) {
+        setStep("datetime");
+        setError(`${message} Please edit the date or time below.`);
+        addAssistant("I could not save that request because the **date or time** needs attention. Please edit it below and continue.", "datetime");
+      } else if (message.toLowerCase().includes("email") || message.toLowerCase().includes("phone") || message.toLowerCase().includes("name")) {
+        setStep("contact");
+        setError(`${message} Please edit your contact details below.`);
+        addAssistant("I could not save that request because the **contact details** need attention. Please edit them below and continue.", "contact");
+      } else if (message.toLowerCase().includes("service")) {
+        setStep("service");
+        setError(`${message} Please choose a service again.`);
+        addAssistant("I could not save that request because the **service** needs attention. Please choose it again.", "service");
+      } else {
+        setError(message);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -450,7 +490,12 @@ export function ChatWidget() {
                   <button type="button" onClick={confirmBooking} disabled={submitting} className="h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
                     {submitting ? "Saving..." : "Confirm booking request"}
                   </button>
-                  <button type="button" onClick={() => setStep("service")} className="h-10 rounded-xl border border-border text-sm font-semibold hover:bg-surface-muted">Change details</button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button type="button" onClick={() => { setError(""); setStep("service"); }} className="h-10 rounded-xl border border-border text-sm font-semibold hover:bg-surface-muted">Edit service</button>
+                    <button type="button" onClick={() => { setError(""); setStep("datetime"); }} className="h-10 rounded-xl border border-border text-sm font-semibold hover:bg-surface-muted">Edit date/time</button>
+                    <button type="button" onClick={() => { setError(""); setStep("contact"); }} className="h-10 rounded-xl border border-border text-sm font-semibold hover:bg-surface-muted">Edit contact</button>
+                    <button type="button" onClick={() => { setError(""); setStep("notes"); }} className="h-10 rounded-xl border border-border text-sm font-semibold hover:bg-surface-muted">Edit notes</button>
+                  </div>
                 </div>
               ) : null}
 
