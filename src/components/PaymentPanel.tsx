@@ -19,6 +19,10 @@ interface BookingOption {
   serviceName: string;
 }
 
+function bookingLabel(booking: BookingOption) {
+  return `${booking.reference} - ${booking.clientName}`;
+}
+
 export function PaymentPanel({ bookingId, invoiceId, clientId }: PaymentPanelProps) {
   const router = useRouter();
   const [bookings, setBookings] = useState<BookingOption[]>([]);
@@ -103,8 +107,15 @@ export function PaymentPanel({ bookingId, invoiceId, clientId }: PaymentPanelPro
             placeholder={invoiceId ? "Using selected invoice" : loadingBookings ? "Loading bookings..." : "Select booking"}
             options={bookings.map((booking) => ({
               value: booking.id,
-              label: `${booking.reference} - ${booking.clientName} - ${booking.serviceName}`,
+              label: bookingLabel(booking),
+              serviceName: booking.serviceName,
             }))}
+            renderOption={(option) => (
+              <span className="grid min-w-0 gap-0.5">
+                <span className="truncate font-semibold">{option.label}</span>
+                <span className="truncate text-xs opacity-75">{String(option.serviceName ?? "")}</span>
+              </span>
+            )}
           />
         </div>
         <div>
@@ -138,11 +149,11 @@ export function PaymentPanel({ bookingId, invoiceId, clientId }: PaymentPanelPro
         </p>
       ) : null}
 
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mt-6 grid gap-3">
         {!hasContext ? (
           <p className="text-sm text-muted-foreground">Select a booking or choose Pay on an unpaid invoice.</p>
-        ) : <span />}
-        <Button type="button" onClick={submit} disabled={submitting || !amount || !hasContext}>
+        ) : null}
+        <Button type="button" onClick={submit} disabled={submitting || !amount || !hasContext} className="h-12 w-full whitespace-nowrap">
           {submitting ? "Recording..." : "Record Payment"}
         </Button>
       </div>

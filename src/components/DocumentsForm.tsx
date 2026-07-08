@@ -61,6 +61,10 @@ function normaliseLineItem(item: Omit<LineItem, "key">): LineItem {
   return { ...item, key: newKey(item.source) };
 }
 
+function bookingLabel(booking: BookingOption) {
+  return `${booking.reference} - ${booking.clientName}`;
+}
+
 export function DocumentsForm({ clients, initialType = "quotation" }: { clients: ClientOption[]; initialType?: DocumentType }) {
   const router = useRouter();
   const [bookings, setBookings] = useState<BookingOption[]>([]);
@@ -279,8 +283,15 @@ export function DocumentsForm({ clients, initialType = "quotation" }: { clients:
             placeholder={loadingBookings ? "Loading bookings..." : "Select booking"}
             options={bookings.map((booking) => ({
               value: booking.id,
-              label: `${booking.reference} - ${booking.clientName} - ${booking.serviceName}`,
+              label: bookingLabel(booking),
+              serviceName: booking.serviceName,
             }))}
+            renderOption={(option) => (
+              <span className="grid min-w-0 gap-0.5">
+                <span className="truncate font-semibold">{option.label}</span>
+                <span className="truncate text-xs opacity-75">{String(option.serviceName ?? "")}</span>
+              </span>
+            )}
           />
         </div>
         <div>
@@ -335,19 +346,25 @@ export function DocumentsForm({ clients, initialType = "quotation" }: { clients:
         </div>
       ) : null}
 
-      <div className="mt-6 rounded-2xl border border-border bg-surface-muted p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mt-6 rounded-2xl border border-border bg-surface-muted p-4 sm:p-5">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(460px,560px)] xl:items-end">
           <div>
             <h3 className="text-sm font-semibold">Additional Items</h3>
             <p className="mt-1 text-xs text-muted-foreground">Add predefined charges or custom document rows.</p>
           </div>
-          <div className="flex flex-col gap-2 sm:w-[420px] sm:flex-row">
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto]">
             <Select
               value={selectedPredefined}
               onChange={addPredefinedItem}
-              options={predefinedItems.map((item) => ({ value: item.value, label: `${item.label} - ${fmtCents(item.unitPriceCents)}` }))}
+              options={predefinedItems.map((item) => ({ value: item.value, label: item.label, price: fmtCents(item.unitPriceCents) }))}
               placeholder="Select predefined item"
               showClear
+              renderOption={(option) => (
+                <span className="flex min-w-0 items-center justify-between gap-3">
+                  <span className="truncate">{option.label}</span>
+                  <span className="shrink-0 text-xs opacity-75">{String(option.price ?? "")}</span>
+                </span>
+              )}
             />
             <Button type="button" variant="secondary" onClick={addCustomItem} className="shrink-0 gap-2">
               <Plus className="h-4 w-4" aria-hidden="true" />
@@ -358,16 +375,16 @@ export function DocumentsForm({ clients, initialType = "quotation" }: { clients:
       </div>
 
       <div className="mt-6 overflow-x-auto rounded-xl border border-border">
-        <table className="w-full min-w-[820px] text-left text-sm">
+        <table className="w-full min-w-[1080px] table-fixed text-left text-sm">
           <thead className="bg-surface-muted text-muted-foreground">
             <tr>
-              <th className="px-4 py-3">Line Item</th>
-              <th className="px-4 py-3">Type</th>
-              <th className="px-4 py-3 text-right">Qty</th>
-              <th className="px-4 py-3 text-right">Unit Price</th>
-              <th className="px-4 py-3 text-right">Discount</th>
-              <th className="px-4 py-3 text-right">Total</th>
-              <th className="px-4 py-3 text-right">Remove</th>
+              <th className="w-[280px] px-4 py-3">Line Item</th>
+              <th className="w-[180px] px-4 py-3">Type</th>
+              <th className="w-[110px] px-4 py-3 text-right">Qty</th>
+              <th className="w-[160px] px-4 py-3 text-right">Unit Price</th>
+              <th className="w-[160px] px-4 py-3 text-right">Discount</th>
+              <th className="w-[130px] px-4 py-3 text-right">Total</th>
+              <th className="w-[90px] px-4 py-3 text-right">Remove</th>
             </tr>
           </thead>
           <tbody>
