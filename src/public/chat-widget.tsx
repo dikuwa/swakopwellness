@@ -1,64 +1,100 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { MessageCircle, Send, X, Sparkles } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { MessageCircle, Send, Sparkles, X } from "lucide-react";
 
-const SUGGESTED_QUESTIONS = [
-  "What services do you offer?",
-  "How do I book an appointment?",
-  "How long does an assessment take?",
-  "Where are you located?",
-  "Can I speak to a staff member?",
+const SERVICES = [
+  { name: "Meridians", slug: "meridians", price: "N$200", duration: "20 minutes" },
+  { name: "Basic Health Scan", slug: "basic-health-scan", price: "N$650", duration: "30 minutes" },
+  { name: "3D Scan", slug: "3d-scan", price: "Ask team", duration: "Staff will confirm" },
+  { name: "Food Tolerance & Nutrition Testing", slug: "food-tolerance-and-nutrition-testing", price: "N$300", duration: "20 minutes" },
+  { name: "Frequency Therapy", slug: "frequency-therapy", price: "N$500", duration: "30 minutes" },
 ];
 
 const FAQ_ANSWERS: Record<string, string> = {
-  "What services do you offer?":
-    "We offer Basic Health Scan (N$650), Frequency Therapy (N$500), Meridians (N$200), and Food Tolerance and Nutrition Testing (N$300). Visit our Services page for full details.",
-  "How do I book an appointment?":
-    "You can book online through our booking form, chat to book here, call us, or visit us in person. All appointments are by request — we'll confirm availability with you.",
-  "How long does an assessment take?":
-    "A Basic Health Scan takes approximately 20–30 minutes. Other services vary — we'll confirm the duration when we contact you.",
-  "Where are you located?":
-    "We are at Shop 11, Wasserfall Street, Swakopmund, Namibia. We're open Monday to Friday, 08:00–17:00.",
-  "Can I speak to a staff member?":
-    "Absolutely. You can call us during business hours, send an enquiry through our Contact page, or visit us in person.",
+  "what services do you offer?":
+    "We offer Meridians, Basic Health Scan, 3D Scan, Food Tolerance & Nutrition Testing, and Frequency Therapy. These services are complementary and non-invasive.",
+  "how do i book an appointment?":
+    "Choose Book an appointment here, select a service, share your preferred time and contact details, then staff will contact you to finalise availability.",
+  "how long does an assessment take?":
+    "Most appointments take about 20 to 30 minutes, depending on the service. Staff will confirm the exact time with you.",
+  "where are you located?":
+    "Swakop Wellness Centre is in Swakopmund, Namibia. You can also use the Contact page for current location and contact details.",
+  "is this medical treatment?":
+    "No. Swakop Wellness services are complementary wellness support and do not replace conventional medical diagnosis, treatment, or professional medical advice.",
+  "can i speak to a staff member?":
+    "Yes. Share your contact details through the booking or contact form, and a team member will follow up directly.",
 };
+
+type FlowStep = "menu" | "question" | "service" | "datetime" | "contact" | "safety" | "notes" | "summary" | "done" | "stopped";
 
 type Message = {
   role: "assistant" | "user";
   content: string;
 };
 
+type BookingDraft = {
+  serviceName: string;
+  serviceSlug: string;
+  preferredDate: string;
+  preferredTime: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  note: string;
+};
+
+const emptyDraft: BookingDraft = {
+  serviceName: "",
+  serviceSlug: "",
+  preferredDate: "",
+  preferredTime: "",
+  fullName: "",
+  email: "",
+  phone: "",
+  note: "",
+};
+
+function emailLooksValid(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function phoneLooksValid(value: string) {
+  return /^[0-9+\s()-]{7,}$/.test(value.trim()) && /\d{7,}/.test(value.replace(/\D/g, ""));
+}
+
+function today() {
+  return new Date().toISOString().split("T")[0];
+}
+
 export function ChatWidget() {
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState<"chat" | "form" | "done">("chat");
+  const [step, setStep] = useState<FlowStep>("menu");
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Hello! I can help answer questions about our services or collect a booking request. How can I help?" },
+    { role: "assistant", content: "Hi there 👋, welcome to Swakop Wellness Centre! How can I help you today?" },
   ]);
-  const [name, setName] = useState("");
-  const [contact, setContact] = useState("");
-  const [contactType, setContactType] = useState<"phone" | "email">("phone");
+  const [draft, setDraft] = useState<BookingDraft>(emptyDraft);
+  const [question, setQuestion] = useState("");
+  const [isTyping, setIsTyping] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [humanPaused, setHumanPaused] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isTyping]);
 
-  // Close on Escape
   useEffect(() => {
     if (!open) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+    const handler = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [open]);
 
-  // Trap focus within the panel when open
   useEffect(() => {
     if (!open || !panelRef.current) return;
     const panel = panelRef.current;
@@ -68,13 +104,13 @@ export function ChatWidget() {
     const first = focusable[0];
     const last = focusable[focusable.length - 1];
 
-    function handleTab(e: KeyboardEvent) {
-      if (e.key !== "Tab") return;
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
+    function handleTab(event: KeyboardEvent) {
+      if (event.key !== "Tab") return;
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
         last?.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
         first?.focus();
       }
     }
@@ -84,59 +120,115 @@ export function ChatWidget() {
     return () => panel.removeEventListener("keydown", handleTab);
   }, [open, step]);
 
-  const askQuestion = (question: string) => {
-    setMessages((prev) => [...prev, { role: "user", content: question }]);
-    const answer = FAQ_ANSWERS[question];
-    if (answer) {
-      setTimeout(() => {
-        setMessages((prev) => [...prev, { role: "assistant", content: answer }]);
-      }, 400);
-    }
+  const addUser = (content: string) => {
+    setMessages((prev) => [...prev, { role: "user", content }]);
   };
 
-  const startBookingRequest = () => {
-    setMessages((prev) => [
-      ...prev,
-      { role: "user", content: "I&apos;d like to book an appointment." },
-      { role: "assistant", content: "I can help with that! Please share your name and contact details so our team can follow up with you." },
-    ]);
-    setStep("form");
+  const addAssistant = (content: string, nextStep?: FlowStep) => {
+    setIsTyping(true);
+    window.setTimeout(() => {
+      setMessages((prev) => [...prev, { role: "assistant", content }]);
+      if (nextStep) setStep(nextStep);
+      setIsTyping(false);
+    }, 450);
   };
 
-  const submitContact = async () => {
-    if (!name.trim()) {
-      setError("Please enter your name.");
-      return;
-    }
-    if (!contact.trim()) {
-      setError("Please provide a phone number or email.");
+  const resetChat = () => {
+    setStep("menu");
+    setDraft(emptyDraft);
+    setQuestion("");
+    setError("");
+    setHumanPaused(false);
+    setMessages([{ role: "assistant", content: "Hi there 👋, welcome to Swakop Wellness Centre! How can I help you today?" }]);
+  };
+
+  const beginBooking = () => {
+    if (humanPaused) return;
+    addUser("Book an appointment");
+    addAssistant("Please choose a service. These appointments are requests until our staff confirm availability.", "service");
+  };
+
+  const beginQuestion = () => {
+    if (humanPaused) return;
+    addUser("Ask a question");
+    addAssistant("Sure. Ask me a question about our services, bookings, safety, or location.", "question");
+  };
+
+  const selectService = (service: (typeof SERVICES)[number]) => {
+    setDraft((prev) => ({ ...prev, serviceName: service.name, serviceSlug: service.slug }));
+    addUser(`${service.name} (${service.price}, ${service.duration})`);
+    addAssistant("Great choice. Please choose your preferred date and time. Staff will confirm final availability.", "datetime");
+  };
+
+  const saveDateTime = () => {
+    if (!draft.preferredDate || !draft.preferredTime) {
+      setError("Please choose a preferred date and time.");
       return;
     }
     setError("");
-    setSubmitting(true);
+    addUser(`${draft.preferredDate} at ${draft.preferredTime}`);
+    addAssistant("Thank you. Please share your full name, email address, and numeric phone number.", "contact");
+  };
 
+  const saveContact = () => {
+    if (!draft.fullName.trim()) {
+      setError("Please enter your full name.");
+      return;
+    }
+    if (!emailLooksValid(draft.email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    if (!phoneLooksValid(draft.phone)) {
+      setError("Please enter a numeric phone number.");
+      return;
+    }
+    setError("");
+    addUser(`${draft.fullName} · ${draft.email} · ${draft.phone}`);
+    addAssistant("Before we continue, please answer these suitability questions.", "safety");
+  };
+
+  const answerSafety = (answers: { chemotherapy: string; medication: string; device: string }) => {
+    const hasConcern = Object.values(answers).some((answer) => answer === "yes");
+    addUser(`Suitability answers: ${Object.entries(answers).map(([key, value]) => `${key}: ${value}`).join(", ")}`);
+    if (hasConcern) {
+      addAssistant(
+        "Thank you for letting us know. For your safety and scan accuracy, please postpone this scan and speak with our team before booking. Our services are complementary and do not replace medical advice.",
+        "stopped",
+      );
+      return;
+    }
+    addAssistant("Thanks. You can add any preferences or notes, or skip this step.", "notes");
+  };
+
+  const showSummary = () => {
+    addUser(draft.note.trim() ? `Notes: ${draft.note.trim()}` : "No additional notes");
+    addAssistant(
+      `Please confirm your booking request:\nService: ${draft.serviceName}\nPreferred time: ${draft.preferredDate} at ${draft.preferredTime}\nName: ${draft.fullName}\nEmail: ${draft.email}\nPhone: ${draft.phone}\nNotes: ${draft.note.trim() || "None"}`,
+      "summary",
+    );
+  };
+
+  const confirmBooking = async () => {
+    setSubmitting(true);
+    setError("");
+    addUser("Confirm booking request");
     try {
       const res = await fetch("/api/chat-widget", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: name.trim(),
-          contact,
-          contactType,
-          message: messages.map((m) => `${m.role}: ${m.content}`).join("\n"),
+          type: "booking",
+          ...draft,
+          message: messages.map((message) => `${message.role}: ${message.content}`).join("\n"),
         }),
       });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        throw new Error(data.error ?? "Failed to send. Please try again.");
-      }
-
-      setStep("done");
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "Thanks! Your message has been received. Our team will get back to you during business hours. You can also call us directly for faster assistance." },
-      ]);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Failed to save booking request.");
+      addAssistant(
+        `Thank you. Your request has been saved with reference ${data.reference}. Staff will contact you to finalise the appointment.`,
+        "done",
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
@@ -144,9 +236,38 @@ export function ChatWidget() {
     }
   };
 
+  const askQuestion = (value: string) => {
+    const text = value.trim();
+    if (!text) return;
+    setQuestion("");
+    addUser(text);
+    const key = text.toLowerCase();
+    const direct = FAQ_ANSWERS[key];
+    const answer =
+      direct ??
+      (key.includes("diagnos") || key.includes("medical")
+        ? FAQ_ANSWERS["is this medical treatment?"]
+        : key.includes("book")
+          ? FAQ_ANSWERS["how do i book an appointment?"]
+          : key.includes("staff") || key.includes("human") || key.includes("person")
+            ? FAQ_ANSWERS["can i speak to a staff member?"]
+            : "I do not have that exact answer from the website content. I can help you request an appointment, or our team can follow up with you directly.");
+    addAssistant(answer, "question");
+  };
+
+  const requestHuman = () => {
+    addUser("I would like to speak to a team member");
+    addAssistant("A member of our team has joined the chat to assist you directly.", "question");
+    setHumanPaused(true);
+  };
+
+  const resumeAssistant = () => {
+    setHumanPaused(false);
+    addAssistant("You’re now chatting with our assistant again.", "menu");
+  };
+
   return (
     <>
-      {/* Trigger button */}
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -156,31 +277,24 @@ export function ChatWidget() {
         <MessageCircle className="h-6 w-6" aria-hidden="true" />
       </button>
 
-      {/* Chat panel */}
       {open && (
         <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-40 bg-foreground/20 md:bg-transparent md:pointer-events-none"
-            onClick={() => setOpen(false)}
-          />
-
+          <div className="fixed inset-0 z-40 bg-foreground/20 md:pointer-events-none md:bg-transparent" onClick={() => setOpen(false)} />
           <div
             ref={panelRef}
-            className="fixed inset-x-0 bottom-0 z-50 mx-auto flex h-[85vh] w-full max-w-md flex-col rounded-t-3xl border border-border bg-surface shadow-[0_-20px_80px_oklch(0.235_0.025_158_/_0.12)] md:bottom-6 md:right-6 md:inset-x-auto md:h-[600px] md:max-h-[80vh] md:w-[380px] md:rounded-3xl md:shadow-[0_20px_80px_oklch(0.235_0.025_158_/_0.15)]"
+            className="fixed inset-x-0 bottom-0 z-50 mx-auto flex h-[85vh] w-full max-w-md flex-col rounded-t-3xl border border-border bg-surface shadow-[0_-20px_80px_oklch(0.235_0.025_158_/_0.12)] md:bottom-6 md:right-6 md:inset-x-auto md:h-[640px] md:max-h-[82vh] md:w-[400px] md:rounded-3xl md:shadow-[0_20px_80px_oklch(0.235_0.025_158_/_0.15)]"
             role="dialog"
-            aria-label="Chat widget"
+            aria-label="Swakop Wellness booking assistant"
             aria-modal="true"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between rounded-t-3xl bg-primary px-5 py-4 text-primary-foreground md:rounded-t-3xl">
+            <div className="flex items-center justify-between rounded-t-3xl bg-primary px-5 py-4 text-primary-foreground">
               <div className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-foreground/20">
                   <Sparkles className="h-4 w-4" aria-hidden="true" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold">Swakop Wellness</p>
-                  <p className="text-[11px] opacity-75">Chat with us</p>
+                  <p className="text-[11px] opacity-75">Booking assistant</p>
                 </div>
               </div>
               <button
@@ -193,150 +307,169 @@ export function ChatWidget() {
               </button>
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3" role="log" aria-label="Chat messages" aria-live="polite">
-              {messages.map((msg, i) => (
-                <div
-                  key={i}
-                  className={`flex ${msg.role === "assistant" ? "justify-start" : "justify-end"}`}
-                >
+            <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4" role="log" aria-label="Chat messages" aria-live="polite">
+              {messages.map((message, index) => (
+                <div key={index} className={`flex ${message.role === "assistant" ? "justify-start" : "justify-end"}`}>
                   <div
-                    className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-6 ${
-                      msg.role === "assistant"
-                        ? "bg-surface-muted text-foreground rounded-bl-sm"
-                        : "bg-primary/10 text-foreground rounded-br-sm"
+                    className={`max-w-[88%] whitespace-pre-line rounded-2xl px-4 py-2.5 text-sm leading-6 ${
+                      message.role === "assistant" ? "rounded-bl-sm bg-surface-muted text-foreground" : "rounded-br-sm bg-primary/10 text-foreground"
                     }`}
                   >
-                    {msg.content}
+                    {message.content}
                   </div>
                 </div>
               ))}
-              {submitting && (
+              {isTyping || submitting ? (
                 <div className="flex justify-start">
-                  <div className="max-w-[85%] rounded-2xl rounded-bl-sm bg-surface-muted px-4 py-2.5 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/40" style={{ animationDelay: "0ms" }} />
-                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/40" style={{ animationDelay: "150ms" }} />
-                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/40" style={{ animationDelay: "300ms" }} />
+                  <div className="rounded-2xl rounded-bl-sm bg-surface-muted px-4 py-2.5 text-sm text-muted-foreground">
+                    <span className="sr-only">typing...</span>
+                    <span className="flex items-center gap-1" aria-hidden="true">
+                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/40" />
+                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/40 [animation-delay:150ms]" />
+                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/40 [animation-delay:300ms]" />
                     </span>
                   </div>
                 </div>
-              )}
+              ) : null}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Suggested questions / Form / Done */}
             <div className="border-t border-border px-5 py-4">
-              {step === "chat" && (
+              {error ? <p className="mb-3 rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</p> : null}
+
+              {humanPaused ? (
+                <button type="button" onClick={resumeAssistant} className="h-11 w-full rounded-xl border border-border text-sm font-semibold hover:bg-surface-muted">
+                  Resume assistant
+                </button>
+              ) : null}
+
+              {!humanPaused && step === "menu" ? (
+                <div className="grid gap-2">
+                  <button type="button" onClick={beginBooking} className="h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+                    Book an appointment
+                  </button>
+                  <button type="button" onClick={beginQuestion} className="h-11 rounded-xl border border-border px-4 text-sm font-semibold hover:bg-surface-muted">
+                    Ask a question
+                  </button>
+                </div>
+              ) : null}
+
+              {!humanPaused && step === "service" ? (
                 <div className="space-y-2">
-                  <p className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Suggested questions</p>
+                  {SERVICES.map((service) => (
+                    <button
+                      key={service.slug}
+                      type="button"
+                      onClick={() => selectService(service)}
+                      className="flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-background px-3 py-2 text-left text-sm transition-colors hover:border-primary hover:bg-surface-muted"
+                    >
+                      <span className="font-semibold">{service.name}</span>
+                      <span className="text-xs text-muted-foreground">{service.price} · {service.duration}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+
+              {!humanPaused && step === "datetime" ? (
+                <div className="grid gap-3">
+                  <input type="date" min={today()} value={draft.preferredDate} onChange={(event) => setDraft((prev) => ({ ...prev, preferredDate: event.target.value }))} className="h-11 rounded-xl border border-border bg-background px-3 text-sm" />
+                  <input type="time" value={draft.preferredTime} onChange={(event) => setDraft((prev) => ({ ...prev, preferredTime: event.target.value }))} className="h-11 rounded-xl border border-border bg-background px-3 text-sm" />
+                  <button type="button" onClick={saveDateTime} className="h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Continue</button>
+                </div>
+              ) : null}
+
+              {!humanPaused && step === "contact" ? (
+                <div className="grid gap-3">
+                  <input placeholder="Full name" value={draft.fullName} onChange={(event) => setDraft((prev) => ({ ...prev, fullName: event.target.value }))} className="h-11 rounded-xl border border-border bg-background px-3 text-sm" />
+                  <input placeholder="Email address" type="email" value={draft.email} onChange={(event) => setDraft((prev) => ({ ...prev, email: event.target.value }))} className="h-11 rounded-xl border border-border bg-background px-3 text-sm" />
+                  <input placeholder="Phone number" type="tel" value={draft.phone} onChange={(event) => setDraft((prev) => ({ ...prev, phone: event.target.value }))} className="h-11 rounded-xl border border-border bg-background px-3 text-sm" />
+                  <button type="button" onClick={saveContact} className="h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Continue</button>
+                </div>
+              ) : null}
+
+              {!humanPaused && step === "safety" ? <SafetyQuestions onSubmit={answerSafety} /> : null}
+
+              {!humanPaused && step === "notes" ? (
+                <div className="grid gap-3">
+                  <textarea placeholder="Additional preferences or notes (optional)" value={draft.note} onChange={(event) => setDraft((prev) => ({ ...prev, note: event.target.value }))} rows={3} className="rounded-xl border border-border bg-background px-3 py-2 text-sm" />
+                  <button type="button" onClick={showSummary} className="h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Review request</button>
+                </div>
+              ) : null}
+
+              {!humanPaused && step === "summary" ? (
+                <div className="grid gap-2">
+                  <button type="button" onClick={confirmBooking} disabled={submitting} className="h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
+                    {submitting ? "Saving..." : "Confirm booking request"}
+                  </button>
+                  <button type="button" onClick={() => setStep("service")} className="h-10 rounded-xl border border-border text-sm font-semibold hover:bg-surface-muted">Change details</button>
+                </div>
+              ) : null}
+
+              {!humanPaused && step === "question" ? (
+                <div className="space-y-3">
                   <div className="flex flex-wrap gap-2">
-                    {SUGGESTED_QUESTIONS.map((q) => (
-                      <button
-                        key={q}
-                        type="button"
-                        onClick={() => askQuestion(q)}
-                        className="rounded-xl border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:border-primary hover:text-primary"
-                      >
-                        {q}
+                    {Object.keys(FAQ_ANSWERS).slice(0, 5).map((item) => (
+                      <button key={item} type="button" onClick={() => askQuestion(item)} className="rounded-xl border border-border px-3 py-1.5 text-xs font-medium hover:border-primary hover:text-primary">
+                        {item.replace(/^\w/, (char) => char.toUpperCase())}
                       </button>
                     ))}
                   </div>
-                  <button
-                    type="button"
-                    onClick={startBookingRequest}
-                    className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-                  >
-                    I&apos;d like to book
-                  </button>
-                </div>
-              )}
-
-              {step === "form" && (
-                <div className="space-y-3">
-                  <div>
-                    <label htmlFor="cw-name" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">Your name</label>
-                    <input
-                      id="cw-name"
-                      type="text"
-                      value={name}
-                      onChange={(e) => { setName(e.target.value); setError(""); }}
-                      placeholder="Full name"
-                      className="mt-1 h-10 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-primary"
-                    />
+                  <div className="flex gap-2">
+                    <input value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") askQuestion(question); }} placeholder="Type your question" className="h-10 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-sm" />
+                    <button type="button" onClick={() => askQuestion(question)} className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground" aria-label="Send question">
+                      <Send className="h-4 w-4" />
+                    </button>
                   </div>
-                  <div>
-                    <label htmlFor="cw-contact" className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-                      {contactType === "phone" ? "Phone number" : "Email address"}
-                    </label>
-                    <div className="mt-1 flex gap-2">
-                      <button
-                        type="button"
-                        onClick={() => { setContactType("phone"); setContact(""); }}
-                        className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
-                          contactType === "phone"
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-border text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        Phone
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => { setContactType("email"); setContact(""); }}
-                        className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
-                          contactType === "email"
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-border text-muted-foreground hover:text-foreground"
-                        }`}
-                      >
-                        Email
-                      </button>
-                    </div>
-                    <input
-                      id="cw-contact"
-                      type={contactType === "email" ? "email" : "tel"}
-                      value={contact}
-                      onChange={(e) => { setContact(e.target.value); setError(""); }}
-                      placeholder={contactType === "phone" ? "+264 64 463 200" : "you@example.com"}
-                      className="mt-2 h-10 w-full rounded-xl border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-primary"
-                    />
-                  </div>
-
-                  {error && (
-                    <p className="text-xs text-destructive" role="alert">{error}</p>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={submitContact}
-                    disabled={submitting}
-                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
-                  >
-                    {submitting ? "Sending..." : "Send message"}
-                    <Send className="h-3.5 w-3.5" aria-hidden="true" />
-                  </button>
-                  <p className="text-[10px] text-muted-foreground text-center">
-                    Your details will be shared with our team for follow-up.
-                  </p>
+                  <button type="button" onClick={requestHuman} className="h-10 w-full rounded-xl border border-border text-sm font-semibold hover:bg-surface-muted">Connect me to the team</button>
                 </div>
-              )}
+              ) : null}
 
-              {step === "done" && (
-                <button
-                  type="button"
-                  onClick={() => { setOpen(false); setStep("chat"); setMessages([
-                    { role: "assistant", content: "Hello! I can help answer questions about our services or collect a booking request. How can I help?" },
-                  ]); setName(""); setContact(""); setError(""); }}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-                >
-                  Close
+              {step === "done" || step === "stopped" ? (
+                <button type="button" onClick={resetChat} className="h-11 w-full rounded-xl bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+                  Start again
                 </button>
-              )}
+              ) : null}
             </div>
           </div>
         </>
       )}
     </>
+  );
+}
+
+function SafetyQuestions({ onSubmit }: { onSubmit: (answers: { chemotherapy: string; medication: string; device: string }) => void }) {
+  const [answers, setAnswers] = useState({ chemotherapy: "no", medication: "no", device: "no" });
+  const questions = [
+    ["chemotherapy", "Are you currently undergoing chemotherapy?"],
+    ["medication", "Are you taking strong medications like antibiotics?"],
+    ["device", "Do you have a pacemaker or implanted medical device?"],
+  ] as const;
+
+  return (
+    <div className="space-y-3">
+      {questions.map(([key, label]) => (
+        <fieldset key={key} className="rounded-xl bg-surface-muted p-3">
+          <legend className="text-xs font-semibold">{label}</legend>
+          <div className="mt-2 flex gap-2">
+            {["no", "yes"].map((value) => (
+              <label key={value} className="flex items-center gap-1.5 text-xs font-medium">
+                <input
+                  type="radio"
+                  name={key}
+                  value={value}
+                  checked={answers[key] === value}
+                  onChange={() => setAnswers((prev) => ({ ...prev, [key]: value }))}
+                  className="accent-primary"
+                />
+                {value === "yes" ? "Yes" : "No"}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      ))}
+      <button type="button" onClick={() => onSubmit(answers)} className="h-11 w-full rounded-xl bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+        Continue
+      </button>
+    </div>
   );
 }
