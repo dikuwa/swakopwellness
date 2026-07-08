@@ -112,6 +112,35 @@ async function saveWidgetBooking(body: Record<string, unknown>, service: { id: s
   );
 }
 
+function parseTranscript(body: Record<string, unknown>) {
+  const transcript = body.transcript;
+  if (Array.isArray(transcript)) {
+    return transcript
+      .map((message) => {
+        if (!message || typeof message !== "object") return null;
+        const role = "role" in message ? String(message.role) : "";
+        const content = "content" in message ? String(message.content ?? "").trim() : "";
+        if (!["assistant", "user"].includes(role) || !content) return null;
+        return { role, content };
+      })
+      .filter((message): message is { role: string; content: string } => Boolean(message));
+  }
+
+  const legacy = String(body.message ?? "").trim();
+  if (!legacy) return [];
+
+  const messages: { role: string; content: string }[] = [];
+  for (const line of legacy.split("\n")) {
+    const match = /^(assistant|user):\s*(.*)$/i.exec(line);
+    if (match) {
+      messages.push({ role: match[1].toLowerCase(), content: match[2].trim() });
+    } else if (messages.length > 0) {
+      messages[messages.length - 1].content += `\n${line}`;
+    }
+  }
+  return messages.filter((message) => message.content.trim());
+}
+
 export async function GET() {
   try {
     const db = getDb();
@@ -148,6 +177,7 @@ export async function POST(request: Request) {
     if (body?.type === "booking") {
       const db = getDb();
       const result = await createWidgetBooking(body);
+      const submittedMessages = parseTranscript(body);
 
       const [conversation] = await db
         .insert(chatConversations)
@@ -159,11 +189,17 @@ export async function POST(request: Request) {
         .returning({ id: chatConversations.id });
 
       await db.insert(chatMessages).values([
-        {
-          conversationId: conversation.id,
-          role: "user",
-          content: String(body.message ?? "Submitted guided chat booking request."),
-        },
+        ...(submittedMessages.length > 0
+          ? submittedMessages.map((message) => ({
+              conversationId: conversation.id,
+              role: message.role,
+              content: message.content,
+            }))
+          : [{
+              conversationId: conversation.id,
+              role: "user",
+              content: "Submitted guided chat booking request.",
+            }]),
         {
           conversationId: conversation.id,
           role: "assistant",

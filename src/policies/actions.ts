@@ -52,9 +52,8 @@ export async function createPolicy(data: FormData) {
     revalidatePath("/dashboard/policies");
     return { ok: true as const };
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Failed to create policy.";
-    return { ok: false as const, error: message };
+    console.error("Failed to create policy:", err);
+    return { ok: false as const, error: "Failed to create policy. Please check the fields and try again." };
   }
 }
 
@@ -99,9 +98,8 @@ export async function updatePolicy(id: string, data: FormData) {
     revalidatePath("/dashboard/policies");
     return { ok: true as const };
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Failed to update policy.";
-    return { ok: false as const, error: message };
+    console.error("Failed to update policy:", err);
+    return { ok: false as const, error: "Failed to update policy. Please check the fields and try again." };
   }
 }
 

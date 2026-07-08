@@ -94,7 +94,6 @@ export function ChatWidget() {
   const [isTyping, setIsTyping] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [humanPaused, setHumanPaused] = useState(false);
   const [services, setServices] = useState<ChatService[]>([]);
   const [servicesLoading, setServicesLoading] = useState(false);
   const [servicesError, setServicesError] = useState("");
@@ -176,12 +175,10 @@ export function ChatWidget() {
     setDraft(emptyDraft);
     setQuestion("");
     setError("");
-    setHumanPaused(false);
     setMessages([{ role: "assistant", content: "Hi there 👋, welcome to Swakop Wellness Centre! How can I help you today?" }]);
   };
 
   const beginBooking = () => {
-    if (humanPaused) return;
     setDraft(emptyDraft);
     setError("");
     addUser("Book an appointment");
@@ -189,7 +186,6 @@ export function ChatWidget() {
   };
 
   const beginQuestion = () => {
-    if (humanPaused) return;
     addUser("Ask a question");
     addAssistant("Sure. Ask me a question about our services, bookings, safety, or location.", "question");
   };
@@ -279,6 +275,7 @@ export function ChatWidget() {
         body: JSON.stringify({
           type: "booking",
           ...draft,
+          transcript: messages,
           message: messages.map((message) => `${message.role}: ${message.content}`).join("\n"),
         }),
       });
@@ -335,13 +332,7 @@ export function ChatWidget() {
 
   const requestHuman = () => {
     addUser("I would like to speak to a team member");
-    addAssistant("A member of our team has joined the chat to assist you directly.", "question");
-    setHumanPaused(true);
-  };
-
-  const resumeAssistant = () => {
-    setHumanPaused(false);
-    addAssistant("You’re now chatting with our assistant again.", "menu");
+    addAssistant("A team member has **not joined this live chat yet**. I can keep helping here, or you can share a booking request/contact details and staff will follow up directly.", "question");
   };
 
   return (
@@ -415,19 +406,13 @@ export function ChatWidget() {
             <div className="border-t border-border px-5 py-4">
               {error ? <p className="mb-3 rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</p> : null}
 
-              {!humanPaused && step !== "menu" && step !== "service" && step !== "summary" ? (
+              {step !== "menu" && step !== "service" && step !== "summary" ? (
                 <button type="button" onClick={beginBooking} className="mb-3 h-10 w-full rounded-xl border border-primary/30 bg-primary/5 text-sm font-semibold text-primary hover:bg-primary/10">
                   Book appointment
                 </button>
               ) : null}
 
-              {humanPaused ? (
-                <button type="button" onClick={resumeAssistant} className="h-11 w-full rounded-xl border border-border text-sm font-semibold hover:bg-surface-muted">
-                  Resume assistant
-                </button>
-              ) : null}
-
-              {!humanPaused && step === "menu" ? (
+              {step === "menu" ? (
                 <div className="grid gap-2">
                   <button type="button" onClick={beginBooking} className="h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
                     Book an appointment
@@ -438,7 +423,7 @@ export function ChatWidget() {
                 </div>
               ) : null}
 
-              {!humanPaused && step === "service" ? (
+              {step === "service" ? (
                 <div className="space-y-2">
                   {servicesLoading ? <p className="rounded-xl bg-surface-muted px-3 py-2 text-sm text-muted-foreground">Loading current services...</p> : null}
                   {servicesError ? <p className="rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">{servicesError}</p> : null}
@@ -459,7 +444,7 @@ export function ChatWidget() {
                 </div>
               ) : null}
 
-              {!humanPaused && step === "datetime" ? (
+              {step === "datetime" ? (
                 <div className="grid gap-3">
                   <input type="date" min={today()} value={draft.preferredDate} onChange={(event) => setDraft((prev) => ({ ...prev, preferredDate: event.target.value }))} className="h-11 rounded-xl border border-border bg-background px-3 text-sm" />
                   <input type="time" value={draft.preferredTime} onChange={(event) => setDraft((prev) => ({ ...prev, preferredTime: event.target.value }))} className="h-11 rounded-xl border border-border bg-background px-3 text-sm" />
@@ -467,7 +452,7 @@ export function ChatWidget() {
                 </div>
               ) : null}
 
-              {!humanPaused && step === "contact" ? (
+              {step === "contact" ? (
                 <div className="grid gap-3">
                   <input placeholder="Full name" value={draft.fullName} onChange={(event) => setDraft((prev) => ({ ...prev, fullName: event.target.value }))} className="h-11 rounded-xl border border-border bg-background px-3 text-sm" />
                   <input placeholder="Email address" type="email" value={draft.email} onChange={(event) => setDraft((prev) => ({ ...prev, email: event.target.value }))} className="h-11 rounded-xl border border-border bg-background px-3 text-sm" />
@@ -476,16 +461,16 @@ export function ChatWidget() {
                 </div>
               ) : null}
 
-              {!humanPaused && step === "safety" ? <SafetyQuestions onSubmit={answerSafety} /> : null}
+              {step === "safety" ? <SafetyQuestions onSubmit={answerSafety} /> : null}
 
-              {!humanPaused && step === "notes" ? (
+              {step === "notes" ? (
                 <div className="grid gap-3">
                   <textarea placeholder="Additional preferences or notes (optional)" value={draft.note} onChange={(event) => setDraft((prev) => ({ ...prev, note: event.target.value }))} rows={3} className="rounded-xl border border-border bg-background px-3 py-2 text-sm" />
                   <button type="button" onClick={showSummary} className="h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Review request</button>
                 </div>
               ) : null}
 
-              {!humanPaused && step === "summary" ? (
+              {step === "summary" ? (
                 <div className="grid gap-2">
                   <button type="button" onClick={confirmBooking} disabled={submitting} className="h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90 disabled:opacity-60">
                     {submitting ? "Saving..." : "Confirm booking request"}
@@ -499,7 +484,7 @@ export function ChatWidget() {
                 </div>
               ) : null}
 
-              {!humanPaused && step === "question" ? (
+              {step === "question" ? (
                 <div className="space-y-3">
                   <div className="flex flex-wrap gap-2">
                     {Object.keys(FAQ_ANSWERS).slice(0, 5).map((item) => (

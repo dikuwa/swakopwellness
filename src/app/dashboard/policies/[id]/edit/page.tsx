@@ -38,9 +38,14 @@ export default async function EditPolicyPage({ params }: PageProps) {
     );
   }
 
+  async function updatePolicyAction(data: FormData) {
+    "use server";
+    return updatePolicy(id, data);
+  }
+
   return (
     <PolicyForm
-      action={async (data) => updatePolicy(id, data)}
+      action={updatePolicyAction}
       initialData={{
         title: policy.title,
         slug: policy.slug,

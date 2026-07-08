@@ -34,8 +34,35 @@ function DetailItem({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
+function renderMessageContent(content: string) {
+  return content.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+    return <span key={index}>{part}</span>;
+  });
+}
+
+function expandLegacyTranscript(role: string, content: string, createdAt: Date) {
+  const lines = content.split("\n");
+  const hasTranscriptMarkers = lines.some((line) => /^(assistant|user):\s*/i.test(line));
+  if (!hasTranscriptMarkers) return [{ role, content, createdAt }];
+
+  const messages: { role: string; content: string; createdAt: Date }[] = [];
+  for (const line of lines) {
+    const match = /^(assistant|user):\s*(.*)$/i.exec(line);
+    if (match) {
+      messages.push({ role: match[1].toLowerCase(), content: match[2].trim(), createdAt });
+    } else if (messages.length > 0) {
+      messages[messages.length - 1].content += `\n${line}`;
+    }
+  }
+  return messages.filter((message) => message.content.trim());
+}
+
 function ChatMessage({ role, content, createdAt }: { role: string; content: string; createdAt: Date }) {
   const isUser = role === "user";
+  const roleLabel = isUser ? "Client" : "Assistant";
 
   return (
     <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : "flex-row"}`}>
@@ -57,14 +84,14 @@ function ChatMessage({ role, content, createdAt }: { role: string; content: stri
         isUser ? "items-end" : "items-start"
       }`}>
         <span className="text-[11px] font-medium text-muted-foreground">
-          {isUser ? "User" : "Chatbot"}
+          {roleLabel}
         </span>
         <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
           isUser
             ? "bg-primary/10 text-foreground rounded-tr-md"
             : "bg-surface-muted text-foreground rounded-tl-md"
         }`}>
-          {content}
+          {renderMessageContent(content)}
         </div>
         <span className="text-[10px] text-muted-foreground">
           {createdAt.toLocaleString("en-GB", {
@@ -192,14 +219,14 @@ export default async function ChatConversationDetailPage(props: { params: Promis
           <p className="mt-6 text-center text-sm text-muted-foreground">No messages recorded.</p>
         ) : (
           <div className="mt-5 space-y-5">
-            {conversation.messages.map((message, index) => (
-              <ChatMessage
-                key={message.id}
-                role={message.role}
-                content={message.content}
-                createdAt={message.createdAt}
-              />
-            ))}
+            {conversation.messages.flatMap((message) => expandLegacyTranscript(message.role, message.content, message.createdAt).map((item, index) => (
+                <ChatMessage
+                  key={`${message.id}-${index}`}
+                  role={item.role}
+                  content={item.content}
+                  createdAt={item.createdAt}
+                />
+              )))}
           </div>
         )}
       </section>

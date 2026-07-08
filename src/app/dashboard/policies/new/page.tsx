@@ -11,5 +11,10 @@ export const metadata: Metadata = {
 
 export default async function NewPolicyPage() {
   await requirePermission("settings:manage");
-  return <PolicyForm action={createPolicy} />;
+  async function createPolicyAction(data: FormData) {
+    "use server";
+    return createPolicy(data);
+  }
+
+  return <PolicyForm action={createPolicyAction} />;
 }

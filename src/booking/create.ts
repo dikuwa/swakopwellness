@@ -23,6 +23,7 @@ export async function createBookingRequest(input: unknown, source: BookingSource
   const alternativeAt = data.alternativeDate && data.alternativeTime ? parseDateTime(data.alternativeDate, data.alternativeTime) : null;
 
   if (!preferredAt) return { ok: false, message: "Choose a valid preferred date and time." };
+  if (preferredAt.getTime() <= Date.now()) return { ok: false, message: "Please choose a future preferred date and time." };
   if (!hasAtLeastOneContact(data)) return { ok: false, message: "Provide at least one contact method." };
 
   const db = getDb();
