@@ -382,15 +382,18 @@ function DashboardSidebar({
 
 // ── Sign-out button ──────────────────────────────────────
 
-function SignOutButton() {
+function SignOutButton({ collapsed = false }: { collapsed?: boolean }) {
   return (
     <form action={logoutAction}>
       <button
         type="submit"
-        className="flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground"
+        aria-label="Sign out"
+        className={`flex w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground ${
+          collapsed ? "justify-center px-2" : ""
+        }`}
       >
         <LogOut className="h-4 w-4 shrink-0" aria-hidden="true" />
-        <span>Sign out</span>
+        {!collapsed && <span>Sign out</span>}
       </button>
     </form>
   );
@@ -613,7 +616,7 @@ export function DashboardLayout({
         <div className="border-t border-border p-2 sm:p-4">
           {collapsed ? (
             <Tooltip label="Sign out">
-              <SignOutButton />
+              <SignOutButton collapsed />
             </Tooltip>
           ) : (
             <SignOutButton />
