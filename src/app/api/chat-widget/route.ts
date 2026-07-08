@@ -1,16 +1,22 @@
 import { NextResponse } from "next/server";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { createBookingRequest, type CreateBookingResult } from "@/booking/create";
 import { getDb } from "@/db/client";
-import { chatConversations, chatMessages, chatToolEvents, services } from "@/db/schema";
+import { businessSettings, chatConversations, chatMessages, chatToolEvents, services } from "@/db/schema";
 import { approvedBookingSummary } from "@/chatbot/safety";
 
 function validEmail(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim());
 }
 
 function validPhone(value: string) {
-  return /^[0-9+\s()-]{7,}$/.test(value) && /\d{7,}/.test(value.replace(/\D/g, ""));
+  const trimmed = value.trim();
+  const digits = trimmed.replace(/\D/g, "");
+  return /^[+\d\s().-]+$/.test(trimmed) && digits.length >= 7 && digits.length <= 15 && !/^(\d)\1+$/.test(digits);
+}
+
+function formatMoney(cents: number, symbol = "N$") {
+  return `${symbol}${(cents / 100).toLocaleString("en-NA", { maximumFractionDigits: 0 })}`;
 }
 
 const serviceAliases: Record<string, string[]> = {
@@ -82,7 +88,7 @@ async function saveWidgetBooking(body: Record<string, unknown>, service: { id: s
 
   if (!fullName) return { ok: false, message: "Please enter your full name." } satisfies CreateBookingResult;
   if (!validEmail(email)) return { ok: false, message: "Please enter a valid email address." } satisfies CreateBookingResult;
-  if (!validPhone(phone)) return { ok: false, message: "Please enter a numeric phone number." } satisfies CreateBookingResult;
+  if (!validPhone(phone)) return { ok: false, message: "Please enter a valid phone number. You can use 081..., +264..., 264..., or a landline number." } satisfies CreateBookingResult;
 
   const note = [String(body.note ?? "").trim(), body.serviceName && body.serviceName !== service.name ? `Requested service from chat: ${body.serviceName}` : ""]
     .filter(Boolean)
@@ -104,6 +110,36 @@ async function saveWidgetBooking(body: Record<string, unknown>, service: { id: s
     },
     "chatbot",
   );
+}
+
+export async function GET() {
+  try {
+    const db = getDb();
+    const [business] = await db.select({ currencySymbol: businessSettings.currencySymbol }).from(businessSettings).limit(1);
+    const currencySymbol = business?.currencySymbol ?? "N$";
+    const bookableServices = await db
+      .select({
+        name: services.name,
+        slug: services.slug,
+        priceCents: services.priceCents,
+        durationMinutes: services.durationMinutes,
+      })
+      .from(services)
+      .where(and(eq(services.active, true), eq(services.publicVisible, true), eq(services.bookingEnabled, true)))
+      .orderBy(asc(services.sortOrder), asc(services.name));
+
+    return NextResponse.json({
+      services: bookableServices.map((service) => ({
+        name: service.name,
+        slug: service.slug,
+        price: formatMoney(service.priceCents, currencySymbol),
+        duration: `${service.durationMinutes ?? 30} minutes`,
+      })),
+    });
+  } catch (e) {
+    console.error("Chat widget data error:", e);
+    return NextResponse.json({ services: [] }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {

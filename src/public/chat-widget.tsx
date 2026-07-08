@@ -3,19 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle, Send, Sparkles, X } from "lucide-react";
 
-const SERVICES = [
-  { name: "Meridians", slug: "meridians", price: "N$200", duration: "20 minutes" },
-  { name: "Basic Health Scan", slug: "basic-health-scan", price: "N$650", duration: "30 minutes" },
-  { name: "3D Scan", slug: "3d-scan", price: "Ask team", duration: "Staff will confirm" },
-  { name: "Food Tolerance & Nutrition Testing", slug: "food-tolerance-and-nutrition-testing", price: "N$300", duration: "20 minutes" },
-  { name: "Frequency Therapy", slug: "frequency-therapy", price: "N$500", duration: "30 minutes" },
-];
-
 const FAQ_ANSWERS: Record<string, string> = {
   "what services do you offer?":
-    "We offer Meridians, Basic Health Scan, 3D Scan, Food Tolerance & Nutrition Testing, and Frequency Therapy. These services are complementary and non-invasive.",
+    "We offer live bookable wellness services shown in this chat. Prices and durations are pulled from the website settings so they stay current.",
   "how do i book an appointment?":
-    "Choose Book an appointment here, select a service, share your preferred time and contact details, then staff will contact you to finalise availability.",
+    "Choose **Book an appointment**, select a service, share your preferred time and contact details, then staff will contact you to finalise availability.",
   "how long does an assessment take?":
     "Most appointments take about 20 to 30 minutes, depending on the service. Staff will confirm the exact time with you.",
   "where are you located?":
@@ -31,6 +23,13 @@ type FlowStep = "menu" | "question" | "service" | "datetime" | "contact" | "safe
 type Message = {
   role: "assistant" | "user";
   content: string;
+};
+
+type ChatService = {
+  name: string;
+  slug: string;
+  price: string;
+  duration: string;
 };
 
 type BookingDraft = {
@@ -56,15 +55,26 @@ const emptyDraft: BookingDraft = {
 };
 
 function emailLooksValid(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim());
 }
 
 function phoneLooksValid(value: string) {
-  return /^[0-9+\s()-]{7,}$/.test(value.trim()) && /\d{7,}/.test(value.replace(/\D/g, ""));
+  const trimmed = value.trim();
+  const digits = trimmed.replace(/\D/g, "");
+  return /^[+\d\s().-]+$/.test(trimmed) && digits.length >= 7 && digits.length <= 15 && !/^(\d)\1+$/.test(digits);
 }
 
 function today() {
   return new Date().toISOString().split("T")[0];
+}
+
+function renderMessage(content: string) {
+  return content.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      return <strong key={index}>{part.slice(2, -2)}</strong>;
+    }
+    return <span key={index}>{part}</span>;
+  });
 }
 
 export function ChatWidget() {
@@ -79,6 +89,9 @@ export function ChatWidget() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [humanPaused, setHumanPaused] = useState(false);
+  const [services, setServices] = useState<ChatService[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(false);
+  const [servicesError, setServicesError] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -94,6 +107,25 @@ export function ChatWidget() {
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [open]);
+
+  useEffect(() => {
+    if (!open || services.length > 0 || servicesLoading || servicesError) return;
+    async function loadServices() {
+      setServicesLoading(true);
+      setServicesError("");
+      try {
+        const response = await fetch("/api/chat-widget");
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error("Could not load current services.");
+        setServices(Array.isArray(data.services) ? data.services : []);
+      } catch {
+        setServicesError("Current services could not be loaded. Please try again or ask our team for help.");
+      } finally {
+        setServicesLoading(false);
+      }
+    }
+    void loadServices();
+  }, [open, services.length, servicesLoading, servicesError]);
 
   useEffect(() => {
     if (!open || !panelRef.current) return;
@@ -147,7 +179,7 @@ export function ChatWidget() {
     setDraft(emptyDraft);
     setError("");
     addUser("Book an appointment");
-    addAssistant("Please choose a service. These appointments are requests until our staff confirm availability.", "service");
+    addAssistant("Please choose a **service**. Prices and durations are loaded from the current website data. These appointments are requests until our staff confirm availability.", "service");
   };
 
   const beginQuestion = () => {
@@ -156,10 +188,10 @@ export function ChatWidget() {
     addAssistant("Sure. Ask me a question about our services, bookings, safety, or location.", "question");
   };
 
-  const selectService = (service: (typeof SERVICES)[number]) => {
+  const selectService = (service: ChatService) => {
     setDraft((prev) => ({ ...prev, serviceName: service.name, serviceSlug: service.slug }));
-    addUser(`${service.name} (${service.price}, ${service.duration})`);
-    addAssistant("Great choice. Please choose your preferred date and time. Staff will confirm final availability.", "datetime");
+    addUser(`**${service.name}** (**${service.price}**, **${service.duration}**)`);
+    addAssistant("Great choice. Please choose your **preferred date** and **time**. Staff will confirm final availability.", "datetime");
   };
 
   const saveDateTime = () => {
@@ -168,8 +200,8 @@ export function ChatWidget() {
       return;
     }
     setError("");
-    addUser(`${draft.preferredDate} at ${draft.preferredTime}`);
-    addAssistant("Thank you. Please share your full name, email address, and numeric phone number.", "contact");
+    addUser(`**${draft.preferredDate}** at **${draft.preferredTime}**`);
+    addAssistant("Thank you. Please share your **full name**, **email address**, and **phone number**. You can use formats like **081...**, **+264...**, **264...**, or a landline number.", "contact");
   };
 
   const saveContact = () => {
@@ -182,11 +214,11 @@ export function ChatWidget() {
       return;
     }
     if (!phoneLooksValid(draft.phone)) {
-      setError("Please enter a numeric phone number.");
+      setError("Please enter a valid phone number. You can use 081..., +264..., 264..., or a landline number.");
       return;
     }
     setError("");
-    addUser(`${draft.fullName} · ${draft.email} · ${draft.phone}`);
+    addUser(`**${draft.fullName}** · **${draft.email}** · **${draft.phone}**`);
     addAssistant("Before we continue, please answer these suitability questions.", "safety");
   };
 
@@ -206,7 +238,7 @@ export function ChatWidget() {
   const showSummary = () => {
     addUser(draft.note.trim() ? `Notes: ${draft.note.trim()}` : "No additional notes");
     addAssistant(
-      `Please confirm your booking request:\nService: ${draft.serviceName}\nPreferred time: ${draft.preferredDate} at ${draft.preferredTime}\nName: ${draft.fullName}\nEmail: ${draft.email}\nPhone: ${draft.phone}\nNotes: ${draft.note.trim() || "None"}`,
+      `Please confirm your booking request:\n**Service:** **${draft.serviceName}**\n**Preferred date:** **${draft.preferredDate}**\n**Preferred time:** **${draft.preferredTime}**\n**Name:** **${draft.fullName}**\n**Email:** **${draft.email}**\n**Phone:** **${draft.phone}**\n**Notes:** **${draft.note.trim() || "None"}**`,
       "summary",
     );
   };
@@ -227,8 +259,9 @@ export function ChatWidget() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Failed to save booking request.");
+      const statusMessage = data.status === "requires_review" ? "Your request is **under review** so staff can confirm suitability or scheduling." : "Your request has been saved.";
       addAssistant(
-        `Thank you. Your request has been saved with reference ${data.reference}. Staff will contact you to finalise the appointment.`,
+        `Thank you. ${statusMessage}\n**Reference:** **${data.reference}**\n**Service:** **${draft.serviceName}**\n**Date:** **${draft.preferredDate}**\n**Time:** **${draft.preferredTime}**\n**Email:** **${draft.email}**\n**Phone:** **${draft.phone}**\nStaff will contact you to finalise the appointment.`,
         "done",
       );
     } catch (err) {
@@ -244,7 +277,10 @@ export function ChatWidget() {
     setQuestion("");
     addUser(text);
     const key = text.toLowerCase();
-    const direct = FAQ_ANSWERS[key];
+    const servicesAnswer = services.length
+      ? `Current bookable services are ${services.map((service) => `**${service.name}** (**${service.price}**, **${service.duration}**)`).join(", ")}. These services are complementary and non-invasive.`
+      : FAQ_ANSWERS["what services do you offer?"];
+    const direct = key === "what services do you offer?" ? servicesAnswer : FAQ_ANSWERS[key];
     const answer =
       direct ??
       (key.includes("diagnos") || key.includes("medical")
@@ -317,7 +353,7 @@ export function ChatWidget() {
                       message.role === "assistant" ? "rounded-bl-sm bg-surface-muted text-foreground" : "rounded-br-sm bg-primary/10 text-foreground"
                     }`}
                   >
-                    {message.content}
+                    {renderMessage(message.content)}
                   </div>
                 </div>
               ))}
@@ -364,7 +400,12 @@ export function ChatWidget() {
 
               {!humanPaused && step === "service" ? (
                 <div className="space-y-2">
-                  {SERVICES.map((service) => (
+                  {servicesLoading ? <p className="rounded-xl bg-surface-muted px-3 py-2 text-sm text-muted-foreground">Loading current services...</p> : null}
+                  {servicesError ? <p className="rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">{servicesError}</p> : null}
+                  {!servicesLoading && !servicesError && services.length === 0 ? (
+                    <p className="rounded-xl bg-surface-muted px-3 py-2 text-sm text-muted-foreground">No online services are available right now. Please ask our team for help.</p>
+                  ) : null}
+                  {services.map((service) => (
                     <button
                       key={service.slug}
                       type="button"
@@ -390,7 +431,7 @@ export function ChatWidget() {
                 <div className="grid gap-3">
                   <input placeholder="Full name" value={draft.fullName} onChange={(event) => setDraft((prev) => ({ ...prev, fullName: event.target.value }))} className="h-11 rounded-xl border border-border bg-background px-3 text-sm" />
                   <input placeholder="Email address" type="email" value={draft.email} onChange={(event) => setDraft((prev) => ({ ...prev, email: event.target.value }))} className="h-11 rounded-xl border border-border bg-background px-3 text-sm" />
-                  <input placeholder="Phone number" type="tel" value={draft.phone} onChange={(event) => setDraft((prev) => ({ ...prev, phone: event.target.value }))} className="h-11 rounded-xl border border-border bg-background px-3 text-sm" />
+                  <input placeholder="Phone number, e.g. 081..., +264..., or landline" type="tel" value={draft.phone} onChange={(event) => setDraft((prev) => ({ ...prev, phone: event.target.value }))} className="h-11 rounded-xl border border-border bg-background px-3 text-sm" />
                   <button type="button" onClick={saveContact} className="h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">Continue</button>
                 </div>
               ) : null}
