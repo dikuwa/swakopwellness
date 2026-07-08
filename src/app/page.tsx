@@ -67,25 +67,32 @@ export default async function Home() {
           </div>
           <div className="mt-8 grid items-stretch gap-5 md:grid-cols-2 lg:grid-cols-4">
             {services.map((service) => (
-              <article key={service.id} className="flex h-full overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_8px_30px_oklch(0.235_0.025_158_/_0.04)] transition-shadow duration-200 hover:shadow-[0_12px_34px_oklch(0.235_0.025_158_/_0.08)]">
+              <Link
+                key={service.id}
+                href={`/services/${service.slug}`}
+                className="group block h-full cursor-pointer rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                aria-label={`View ${formatServiceTitle(service.name, service.slug)}`}
+              >
+              <article className="flex h-full overflow-hidden rounded-2xl border border-border bg-surface shadow-[0_8px_30px_oklch(0.235_0.025_158_/_0.04)] transition-all duration-300 ease-out group-hover:-translate-y-0.5 group-hover:border-primary/25 group-hover:shadow-[0_18px_45px_oklch(0.235_0.025_158_/_0.12)]">
                 <div className="flex min-h-full w-full flex-col">
                   {service.featuredImage ? (
-                    <div className="relative aspect-[4/3] overflow-hidden bg-surface-muted">
+                    <div className="relative aspect-[4/3] overflow-hidden bg-[#f7f1e8]">
                       {/* eslint-disable-next-line @next/next/no-img-element -- media URLs are administrator-managed public URLs. */}
                       <img
                         src={service.featuredImage.publicUrl}
                         alt={service.featuredImage.altText ?? formatServiceTitle(service.name, service.slug)}
-                        className="h-full w-full object-cover object-center saturate-[0.92] contrast-[0.96] brightness-[0.98]"
+                        className="h-full w-full object-cover object-center saturate-[0.92] contrast-[0.96] brightness-[0.98] transition-transform duration-700 ease-out group-hover:scale-[1.045]"
                         loading="lazy"
                       />
-                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/20 via-secondary/15 to-accent/10 mix-blend-multiply" />
-                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-surface via-surface/70 to-transparent" />
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/15 via-secondary/10 to-accent/10 mix-blend-multiply" />
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#fbf7ef]/88 via-[#fbf7ef]/35 to-transparent" />
+                      <div className="pointer-events-none absolute inset-0 bg-[#f8f2e8]/10" />
                       <div className="pointer-events-none absolute inset-0 ring-1 ring-inset ring-primary/10" />
                     </div>
                   ) : (
                     <div className="relative aspect-[4/3] overflow-hidden bg-[linear-gradient(135deg,oklch(0.924_0.025_116),oklch(0.988_0.009_85))]">
                       <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/15 via-secondary/20 to-accent/15" />
-                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-surface via-surface/70 to-transparent" />
+                      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[#fbf7ef]/88 via-[#fbf7ef]/35 to-transparent" />
                     </div>
                   )}
                 <div className="flex flex-1 flex-col p-5">
@@ -96,11 +103,12 @@ export default async function Home() {
                   <p className="mt-3 text-sm leading-6 text-muted-foreground">{service.shortDescription}</p>
                   <div className="mt-auto flex items-center justify-between gap-3 pt-5 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1"><Clock className="h-4 w-4" />{service.durationMinutes ?? 30} minutes</span>
-                    <Link href={`/services/${service.slug}`} className="font-semibold text-primary">Learn more</Link>
+                    <span className="font-semibold text-primary transition-colors group-hover:text-primary/85">Learn more</span>
                   </div>
                 </div>
                 </div>
               </article>
+              </Link>
             ))}
           </div>
         </section>
