@@ -52,6 +52,14 @@ interface Props {
   onFeaturedImageChange?: (publicUrl: string | null) => void;
 }
 
+type ServiceActionState = {
+  ok: boolean;
+  error?: string;
+  serviceId?: string;
+  values?: Record<string, string>;
+  nonce?: number;
+} | null;
+
 function generateSlug(name: string): string {
   return name
     .toLowerCase()
@@ -86,8 +94,16 @@ export function ServiceForm({ categories, action, initialData, serviceId, galler
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [state, formAction, isPending] = useActionState(
-    async (_prev: unknown, formData: FormData) => action(formData),
-    null as { ok: boolean; error?: string; serviceId?: string } | null,
+    async (_prev: unknown, formData: FormData): Promise<ServiceActionState> => {
+      const values = Object.fromEntries(
+        Array.from(formData.entries())
+          .filter(([, value]) => typeof value === "string")
+          .map(([key, value]) => [key, String(value)]),
+      );
+      const result = await action(formData);
+      return result.ok ? result : { ...result, values, nonce: Date.now() };
+    },
+    null as ServiceActionState,
   );
 
   useEffect(() => {
@@ -103,6 +119,16 @@ export function ServiceForm({ categories, action, initialData, serviceId, galler
         toast.error(state.error as string);
       }
   }, [state, router, isEdit]);
+
+  const valueFor = (name: string, fallback: string | number | null | undefined = "") => {
+    if (state?.ok === false && state.values && name in state.values) return state.values[name];
+    return fallback ?? "";
+  };
+
+  const checkedFor = (name: string, fallback: boolean) => {
+    if (state?.ok === false && state.values) return state.values[name] === "on";
+    return fallback;
+  };
 
   const effectiveServiceId = serviceId;
 
@@ -185,7 +211,7 @@ export function ServiceForm({ categories, action, initialData, serviceId, galler
         </div>
       )}
 
-      <form action={formAction} className="mt-8 pb-24 relative">
+      <form key={state?.ok === false ? state.nonce : "service-form"} action={formAction} className="mt-8 pb-24 relative">
         <div className="grid gap-8 lg:grid-cols-[1fr_360px] items-start">
           {/* Main Column: Information */}
           <div className="space-y-6">
@@ -205,7 +231,7 @@ export function ServiceForm({ categories, action, initialData, serviceId, galler
                     name="name"
                     type="text"
                     required
-                    defaultValue={initialData?.name ?? ""}
+                    defaultValue={valueFor("name", initialData?.name)}
                     onChange={handleNameChange}
                     className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
@@ -221,7 +247,7 @@ export function ServiceForm({ categories, action, initialData, serviceId, galler
                     id="slug"
                     name="slug"
                     type="text"
-                    defaultValue={initialData?.slug ?? ""}
+                    defaultValue={valueFor("slug", initialData?.slug)}
                     onChange={handleSlugChange}
                     placeholder="Auto-generated from name"
                     className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -268,7 +294,9 @@ export function ServiceForm({ categories, action, initialData, serviceId, galler
                       min="0"
                       required
                       defaultValue={
-                        initialData
+                        state?.ok === false
+                          ? valueFor("price")
+                          : initialData
                           ? (initialData.priceCents / 100).toFixed(0)
                           : ""
                       }
@@ -292,7 +320,7 @@ export function ServiceForm({ categories, action, initialData, serviceId, galler
                     name="duration"
                     type="number"
                     min="0"
-                    defaultValue={initialData?.durationMinutes ?? ""}
+                    defaultValue={valueFor("duration", initialData?.durationMinutes)}
                     placeholder="e.g. 30"
                     className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
@@ -309,7 +337,7 @@ export function ServiceForm({ categories, action, initialData, serviceId, galler
                     name="sortOrder"
                     type="number"
                     min="0"
-                    defaultValue={initialData?.sortOrder ?? 0}
+                    defaultValue={valueFor("sortOrder", initialData?.sortOrder ?? 0)}
                     className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
@@ -326,7 +354,7 @@ export function ServiceForm({ categories, action, initialData, serviceId, galler
                   id="shortDescription"
                   name="shortDescription"
                   rows={2}
-                  defaultValue={initialData?.shortDescription ?? ""}
+                  defaultValue={valueFor("shortDescription", initialData?.shortDescription)}
                   className="w-full resize-y rounded-xl border border-border bg-surface p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
@@ -342,7 +370,7 @@ export function ServiceForm({ categories, action, initialData, serviceId, galler
                   id="fullDescription"
                   name="fullDescription"
                   rows={5}
-                  defaultValue={initialData?.fullDescription ?? ""}
+                  defaultValue={valueFor("fullDescription", initialData?.fullDescription)}
                   className="w-full resize-y rounded-xl border border-border bg-surface p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
@@ -362,7 +390,7 @@ export function ServiceForm({ categories, action, initialData, serviceId, galler
                   id="benefits"
                   name="benefits"
                   rows={3}
-                  defaultValue={(initialData?.benefits ?? []).join(", ")}
+                  defaultValue={valueFor("benefits", (initialData?.benefits ?? []).join(", "))}
                   placeholder="Relaxation, Stress relief, Improved energy"
                   className="w-full resize-y rounded-xl border border-border bg-surface p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
@@ -379,7 +407,7 @@ export function ServiceForm({ categories, action, initialData, serviceId, galler
                   id="whatToExpect"
                   name="whatToExpect"
                   rows={3}
-                  defaultValue={initialData?.whatToExpect ?? ""}
+                  defaultValue={valueFor("whatToExpect", initialData?.whatToExpect)}
                   className="w-full resize-y rounded-xl border border-border bg-surface p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
@@ -395,7 +423,7 @@ export function ServiceForm({ categories, action, initialData, serviceId, galler
                   id="preparation"
                   name="preparation"
                   rows={3}
-                  defaultValue={initialData?.preparation ?? ""}
+                  defaultValue={valueFor("preparation", initialData?.preparation)}
                   className="w-full resize-y rounded-xl border border-border bg-surface p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
@@ -411,7 +439,7 @@ export function ServiceForm({ categories, action, initialData, serviceId, galler
                   id="safetyInformation"
                   name="safetyInformation"
                   rows={3}
-                  defaultValue={initialData?.safetyInformation ?? ""}
+                  defaultValue={valueFor("safetyInformation", initialData?.safetyInformation)}
                   className="w-full resize-y rounded-xl border border-border bg-surface p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                 />
               </div>
@@ -486,7 +514,7 @@ export function ServiceForm({ categories, action, initialData, serviceId, galler
                   <input
                     type="checkbox"
                     name="publicVisible"
-                    defaultChecked={initialData?.publicVisible ?? true}
+                    defaultChecked={checkedFor("publicVisible", initialData?.publicVisible ?? true)}
                     className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
                   />
                   Publicly visible
@@ -495,7 +523,7 @@ export function ServiceForm({ categories, action, initialData, serviceId, galler
                   <input
                     type="checkbox"
                     name="bookingEnabled"
-                    defaultChecked={initialData?.bookingEnabled ?? true}
+                    defaultChecked={checkedFor("bookingEnabled", initialData?.bookingEnabled ?? true)}
                     className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
                   />
                   Booking enabled
@@ -504,7 +532,7 @@ export function ServiceForm({ categories, action, initialData, serviceId, galler
                   <input
                     type="checkbox"
                     name="featured"
-                    defaultChecked={initialData?.featured ?? false}
+                    defaultChecked={checkedFor("featured", initialData?.featured ?? false)}
                     className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
                   />
                   Featured offering

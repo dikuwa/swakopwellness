@@ -21,7 +21,46 @@ import { recordActivity } from "@/activity-log/record";
 import { deleteFile, uploadFile } from "@/lib/storage";
 
 function generateSlug(name: string): string {
-  return name.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+  return name
+    .toLowerCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+function isUniqueViolation(err: unknown) {
+  if (typeof err !== "object" || err === null) return false;
+  const error = err as { code?: string; cause?: { code?: string } };
+  return error.code === "23505" || error.cause?.code === "23505";
+}
+
+async function getAvailableServiceSlug(baseSlug: string, excludeServiceId?: string) {
+  const db = getDb();
+  const safeBase = generateSlug(baseSlug) || "service";
+  const existing = await db
+    .select({ id: services.id, slug: services.slug })
+    .from(services);
+
+  const used = new Set(existing.filter((row) => row.id !== excludeServiceId).map((row) => row.slug));
+  if (!used.has(safeBase)) return safeBase;
+
+  for (let i = 2; i < 1000; i++) {
+    const candidate = `${safeBase}-${i}`;
+    if (!used.has(candidate)) return candidate;
+  }
+
+  return `${safeBase}-${crypto.randomUUID().slice(0, 8)}`;
+}
+
+function serviceActionError(err: unknown, fallback: string) {
+  if (isUniqueViolation(err)) {
+    return "A service with this slug already exists. Please use a different slug.";
+  }
+  if (err instanceof Error && !err.message.startsWith("Failed query:")) {
+    return err.message;
+  }
+  return fallback;
 }
 
 function revalidateServiceManagement() {
@@ -42,7 +81,7 @@ export async function createService(data: FormData) {
   const name = (data.get("name") as string)?.trim();
   if (!name) return { ok: false as const, error: "Name is required." };
 
-  const slug = (data.get("slug") as string)?.trim() || generateSlug(name);
+  const requestedSlug = (data.get("slug") as string)?.trim() || generateSlug(name);
   const categoryId = (data.get("categoryId") as string) || null;
   const shortDescription = (data.get("shortDescription") as string) || "";
   const fullDescription = (data.get("fullDescription") as string) || "";
@@ -63,6 +102,7 @@ export async function createService(data: FormData) {
   const sortOrder = parseInt(data.get("sortOrder") as string) || 0;
 
   try {
+    const slug = await getAvailableServiceSlug(requestedSlug);
     const [service] = await db
       .insert(services)
       .values({
@@ -167,9 +207,7 @@ export async function createService(data: FormData) {
 
     return { ok: true as const, serviceId: service.id };
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Failed to create service.";
-    return { ok: false as const, error: message };
+    return { ok: false as const, error: serviceActionError(err, "Failed to create service.") };
   }
 }
 
@@ -178,7 +216,7 @@ export async function updateService(id: string, data: FormData) {
   const db = getDb();
 
   const name = (data.get("name") as string)?.trim() || "";
-  const slug = (data.get("slug") as string)?.trim() || generateSlug(name);
+  const requestedSlug = (data.get("slug") as string)?.trim() || generateSlug(name);
   const categoryId = (data.get("categoryId") as string) || null;
   const shortDescription = (data.get("shortDescription") as string) || "";
   const fullDescription = (data.get("fullDescription") as string) || "";
@@ -200,6 +238,7 @@ export async function updateService(id: string, data: FormData) {
   const featuredImageId = (data.get("featuredImageId") as string) || null;
 
   try {
+    const slug = await getAvailableServiceSlug(requestedSlug, id);
     await db
       .update(services)
       .set({
@@ -235,9 +274,7 @@ export async function updateService(id: string, data: FormData) {
 
     return { ok: true as const };
   } catch (err) {
-    const message =
-      err instanceof Error ? err.message : "Failed to update service.";
-    return { ok: false as const, error: message };
+    return { ok: false as const, error: serviceActionError(err, "Failed to update service.") };
   }
 }
 
