@@ -62,7 +62,7 @@ export default async function ReceiptDetailPage(props: { params: Promise<{ id: s
 
   return (
     <DashboardShell>
-      <Link href="/dashboard/receipts" className="text-sm text-muted-foreground hover:text-foreground">&larr; Back to receipts</Link>
+      <Link href="/dashboard/documents?type=receipt" className="text-sm text-muted-foreground hover:text-foreground">&larr; Back to documents</Link>
         <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div>
             <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">Receipt</p>

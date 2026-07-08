@@ -135,8 +135,7 @@ export default async function DashboardPage() {
         {/* Quick action buttons */}
         <div className="flex flex-wrap items-center gap-2">
           <LinkButton href="/dashboard/bookings/new" variant="secondary" size="sm">New Booking</LinkButton>
-          <LinkButton href="/dashboard/invoices/new" variant="secondary" size="sm">New Invoice</LinkButton>
-          <LinkButton href="/dashboard/receipts/new" variant="secondary" size="sm">New Receipt</LinkButton>
+          <LinkButton href="/dashboard/documents" variant="secondary" size="sm">New Document</LinkButton>
           <LinkButton href="/dashboard/clients" variant="secondary" size="sm">Clients</LinkButton>
           <LinkButton href="/dashboard/follow-ups" variant="secondary" size="sm">Follow-ups</LinkButton>
         </div>
@@ -300,8 +299,8 @@ export default async function DashboardPage() {
                   <span className="text-sm font-semibold text-primary">{fmtCurrency(revenue30d.value)}</span>
                 </div>
               </div>
-              <Link href="/dashboard/invoices" className="mt-3 inline-block text-sm font-medium text-primary transition-colors hover:text-primary/80">
-                View Invoices &rarr;
+              <Link href="/dashboard/documents?type=invoice" className="mt-3 inline-block text-sm font-medium text-primary transition-colors hover:text-primary/80">
+                View Documents &rarr;
               </Link>
             </div>
           </Card>

@@ -56,7 +56,7 @@ export default async function QuotationDetailPage(props: { params: Promise<{ id:
     <DashboardShell>
       <div className="flex items-start justify-between gap-4">
           <div>
-            <Link href="/dashboard/quotations" className="text-sm text-muted-foreground hover:text-foreground">&larr; Quotations</Link>
+            <Link href="/dashboard/documents?type=quotation" className="text-sm text-muted-foreground hover:text-foreground">&larr; Documents</Link>
             <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">{quotation.quotationNumber}</h1>
           </div>
           <StatusBadge status={quotation.status} />

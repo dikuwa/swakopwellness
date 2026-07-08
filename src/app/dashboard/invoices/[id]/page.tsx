@@ -49,7 +49,7 @@ export default async function InvoiceDetailPage(props: { params: Promise<{ id: s
     <DashboardShell>
       <div className="flex items-start justify-between gap-4">
           <div>
-            <Link href="/dashboard/invoices" className="text-sm text-muted-foreground hover:text-foreground">&larr; Invoices</Link>
+            <Link href="/dashboard/documents?type=invoice" className="text-sm text-muted-foreground hover:text-foreground">&larr; Documents</Link>
             <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">{invoice.invoiceNumber}</h1>
           </div>
           <StatusBadge status={invoice.status} />
@@ -126,16 +126,10 @@ export default async function InvoiceDetailPage(props: { params: Promise<{ id: s
           {canRecordPayment && (
             <>
               <Link
-                href={`/dashboard/payments/new?invoice_id=${invoice.id}`}
+                href={`/dashboard/documents?invoiceId=${invoice.id}`}
                 className="h-11 rounded-xl border border-border px-5 text-sm font-semibold transition-colors hover:bg-surface-muted flex items-center"
               >
                 Record Payment
-              </Link>
-              <Link
-                href={`/dashboard/receipts/new?invoice_id=${invoice.id}`}
-                className="h-11 rounded-xl border border-border px-5 text-sm font-semibold transition-colors hover:bg-surface-muted flex items-center"
-              >
-                Create Receipt
               </Link>
             </>
           )}

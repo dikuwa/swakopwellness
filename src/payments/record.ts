@@ -52,6 +52,9 @@ export async function recordPayment(input: RecordPaymentInput): Promise<PaymentR
     if (input.invoiceId) {
       const [inv] = await tx.select().from(invoices).where(eq(invoices.id, input.invoiceId)).limit(1);
       if (inv) {
+        if (input.amountCents > inv.balanceCents) {
+          return { ok: false, message: "Payment cannot exceed the outstanding invoice balance." } as PaymentResult;
+        }
         const newPaid = inv.amountPaidCents + input.amountCents;
         const newBalance = inv.totalCents - newPaid;
         const status = newBalance <= 0 ? "paid" : newPaid > 0 ? "partially_paid" : inv.status;
@@ -74,7 +77,7 @@ export async function recordPayment(input: RecordPaymentInput): Promise<PaymentR
     let receiptId: string | undefined;
     let receiptNumber: string | undefined;
 
-    if (input.generateReceipt) {
+    if (input.generateReceipt || newInvoiceStatus === "paid") {
       const { getNextDocumentNumber } = await import("@/documents/number");
       try {
         const num = await getNextDocumentNumber("receipt");
@@ -120,4 +123,3 @@ export async function recordPayment(input: RecordPaymentInput): Promise<PaymentR
   }
   return result;
 }
-

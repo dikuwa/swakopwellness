@@ -1,20 +1,5 @@
-import type { Metadata } from "next";
-import { requirePermission } from "@/auth/session";
-import { getClients, getBookableServicesForManualUse } from "@/dashboard/data";
-import { InvoiceForm } from "./invoice-form";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-
-export const metadata: Metadata = {
-  title: "New Invoice — Dashboard",
-};
-
-export default async function NewInvoicePage() {
-  await requirePermission("documents:create");
-  const [{ rows: clients }, services] = await Promise.all([
-    getClients(),
-    getBookableServicesForManualUse(),
-  ]);
-
-  return <InvoiceForm clients={clients} services={services} />;
+export default function NewInvoiceRedirect() {
+  redirect("/dashboard/documents?type=invoice");
 }

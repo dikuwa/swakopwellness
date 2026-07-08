@@ -12,7 +12,6 @@ import {
     CircleHelp,
     CreditCard,
     ExternalLink,
-    FileSignature,
     FileText,
     FolderTree,
     HeartPulse,
@@ -22,7 +21,6 @@ import {
     LogOut,
     Menu,
     MessageCircle,
-    ReceiptText,
     Settings,
     ShieldCheck,
     UserRoundCog,
@@ -49,9 +47,7 @@ const iconMap: Record<string, typeof LayoutDashboard> = {
   "/dashboard/policies": ShieldCheck,
 
   "/dashboard/chat-conversations": MessageCircle,
-  "/dashboard/invoices": FileText,
-  "/dashboard/quotations": FileSignature,
-  "/dashboard/receipts": ReceiptText,
+  "/dashboard/documents": FileText,
   "/dashboard/payments": CreditCard,
   "/dashboard/reports": ChartNoAxesCombined,
   "/dashboard/notifications": Bell,
@@ -114,9 +110,7 @@ const linkGroups: NavGroup[] = [
   {
     label: "FINANCE & DOCUMENTS",
     links: [
-      { href: "/dashboard/invoices", label: "Invoices" },
-      { href: "/dashboard/quotations", label: "Quotations" },
-      { href: "/dashboard/receipts", label: "Receipts" },
+      { href: "/dashboard/documents", label: "Documents" },
       { href: "/dashboard/payments", label: "Payments" },
       { href: "/dashboard/reports", label: "Reports" },
     ],

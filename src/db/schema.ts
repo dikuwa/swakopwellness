@@ -668,6 +668,73 @@ export const receiptsRelations = relations(receipts, ({ one, many }) => ({
   lineItems: many(receiptLineItems),
 }));
 
+export const documents = pgTable(
+  "documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    documentNumber: text("document_number").notNull().unique(),
+    type: text("type").notNull(),
+    clientId: uuid("client_id").notNull().references(() => clients.id, { onDelete: "restrict" }),
+    bookingId: uuid("booking_id").references(() => bookings.id, { onDelete: "set null" }),
+    sourceInvoiceId: uuid("source_invoice_id").references(() => invoices.id, { onDelete: "set null" }),
+    sourceQuotationId: uuid("source_quotation_id").references(() => quotations.id, { onDelete: "set null" }),
+    sourceReceiptId: uuid("source_receipt_id").references(() => receipts.id, { onDelete: "set null" }),
+    issueDate: timestamp("issue_date", { withTimezone: true }).notNull(),
+    validUntil: timestamp("valid_until", { withTimezone: true }),
+    dueDate: timestamp("due_date", { withTimezone: true }),
+    subtotalCents: integer("subtotal_cents").notNull().default(0),
+    discountCents: integer("discount_cents").notNull().default(0),
+    taxCents: integer("tax_cents").notNull().default(0),
+    totalCents: integer("total_cents").notNull().default(0),
+    amountPaidCents: integer("amount_paid_cents").notNull().default(0),
+    balanceCents: integer("balance_cents").notNull().default(0),
+    status: text("status").notNull().default("draft"),
+    manualEntry: boolean("manual_entry").notNull().default(false),
+    metadata: jsonb("metadata").$type<Record<string, unknown>>(),
+    createdByUserId: uuid("created_by_user_id").references(() => users.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("documents_type_idx").on(table.type),
+    index("documents_status_idx").on(table.status),
+    index("documents_client_idx").on(table.clientId),
+    index("documents_booking_idx").on(table.bookingId),
+    index("documents_issue_date_idx").on(table.issueDate),
+  ],
+);
+
+export const documentLineItems = pgTable(
+  "document_line_items",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    documentId: uuid("document_id").notNull().references(() => documents.id, { onDelete: "cascade" }),
+    serviceId: uuid("service_id").references(() => services.id, { onDelete: "set null" }),
+    description: text("description").notNull(),
+    quantity: integer("quantity").notNull().default(1),
+    unitPriceCents: integer("unit_price_cents").notNull(),
+    discountCents: integer("discount_cents").notNull().default(0),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("document_line_items_document_idx").on(table.documentId)],
+);
+
+export const documentsRelations = relations(documents, ({ one, many }) => ({
+  client: one(clients, { fields: [documents.clientId], references: [clients.id] }),
+  booking: one(bookings, { fields: [documents.bookingId], references: [bookings.id] }),
+  sourceInvoice: one(invoices, { fields: [documents.sourceInvoiceId], references: [invoices.id] }),
+  sourceQuotation: one(quotations, { fields: [documents.sourceQuotationId], references: [quotations.id] }),
+  sourceReceipt: one(receipts, { fields: [documents.sourceReceiptId], references: [receipts.id] }),
+  createdBy: one(users, { fields: [documents.createdByUserId], references: [users.id] }),
+  lineItems: many(documentLineItems),
+}));
+
+export const documentLineItemsRelations = relations(documentLineItems, ({ one }) => ({
+  document: one(documents, { fields: [documentLineItems.documentId], references: [documents.id] }),
+  service: one(services, { fields: [documentLineItems.serviceId], references: [services.id] }),
+}));
+
 export const notifications = pgTable(
   "notifications",
   {

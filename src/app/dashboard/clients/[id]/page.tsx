@@ -93,18 +93,11 @@ export default async function DashboardClientDetailPage(props: { params: Promise
         {canCreateDocument && (
           <>
             <Link
-              href={`/dashboard/quotations/new?client_id=${id}`}
+              href="/dashboard/documents?type=quotation"
               className="inline-flex h-10 items-center gap-2 rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted"
             >
               <FileText className="h-4 w-4" aria-hidden="true" />
-              New Quotation
-            </Link>
-            <Link
-              href={`/dashboard/invoices/new?client_id=${id}`}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted"
-            >
-              <FileText className="h-4 w-4" aria-hidden="true" />
-              New Invoice
+              New Document
             </Link>
           </>
         )}
