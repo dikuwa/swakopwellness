@@ -41,6 +41,8 @@ type ChatService = {
   shortDescription: string;
 };
 
+const bookingFlowSteps: FlowStep[] = ["service", "datetime", "contact", "safety", "notes", "summary"];
+
 type BookingDraft = {
   serviceName: string;
   serviceSlug: string;
@@ -136,6 +138,18 @@ function hasBookingIntent(value: string) {
     || text.includes("come in for")
     || text.includes("set up a time")
     || text.includes("make a booking");
+}
+
+function hasServiceDiscoveryIntent(value: string) {
+  const text = value.toLowerCase();
+  return text.includes("what do you offer")
+    || text.includes("what services")
+    || text.includes("your services")
+    || text.includes("services do you")
+    || text.includes("price")
+    || text.includes("prices")
+    || text.includes("cost")
+    || text.includes("how much");
 }
 
 function hasHumanIntent(value: string) {
@@ -415,6 +429,8 @@ export function ChatWidget() {
   const askQuestion = async (value: string) => {
     const text = value.trim();
     if (!text) return;
+    const activeStep = step;
+    const keepBookingFlowOpen = bookingFlowSteps.includes(activeStep);
     setQuestion("");
     addUser(text);
 
@@ -441,7 +457,16 @@ export function ChatWidget() {
     }
 
     if (hasBookingIntent(text)) {
-      beginBooking({ addTriggerMessage: false });
+      if (keepBookingFlowOpen) {
+        addAssistant("You’re already in the booking flow, and you can keep asking questions here before you continue.", activeStep);
+      } else {
+        beginBooking({ addTriggerMessage: false });
+      }
+      return;
+    }
+
+    if (hasServiceDiscoveryIntent(text) && !keepBookingFlowOpen) {
+      beginBooking({ addTriggerMessage: false, intro: "Of course. Here are the services you can choose from." });
       return;
     }
 
@@ -456,13 +481,13 @@ export function ChatWidget() {
       const answer = response.ok && typeof data.answer === "string" ? data.answer : fallbackQuestionAnswer(text);
       window.setTimeout(() => {
         setMessages((prev) => [...prev, { role: "assistant", content: answer }]);
-        setStep("question");
+        setStep(keepBookingFlowOpen ? activeStep : "question");
         setIsTyping(false);
       }, 450);
     } catch {
       window.setTimeout(() => {
         setMessages((prev) => [...prev, { role: "assistant", content: fallbackQuestionAnswer(text) }]);
-        setStep("question");
+        setStep(keepBookingFlowOpen ? activeStep : "question");
         setIsTyping(false);
       }, 450);
     }
@@ -670,23 +695,24 @@ export function ChatWidget() {
                 </div>
               ) : null}
 
-              {step === "menu" || step === "question" ? (
-                <div className="space-y-3">
-                  <div className="flex gap-2">
-                    <input value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void askQuestion(question); }} placeholder={conversationStatus === "human_active" ? "Message the team" : "Ask a question or book an appointment..."} className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-primary" />
-                    <button type="button" onClick={() => void askQuestion(question)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground" aria-label="Send message">
-                      <Send className="h-4 w-4" />
-                    </button>
-                  </div>
-                  {teamMessage ? <p className="text-xs text-muted-foreground">{teamMessage}</p> : null}
-                </div>
-              ) : null}
-
               {step === "done" || step === "stopped" ? (
                 <button type="button" onClick={resetChat} className="h-11 w-full rounded-xl bg-primary text-sm font-semibold text-primary-foreground hover:bg-primary/90">
                   Start again
                 </button>
               ) : null}
+
+              <div className={step === "menu" || step === "question" ? "space-y-3" : "mt-3 space-y-3 border-t border-border pt-3"}>
+                {bookingFlowSteps.includes(step) ? (
+                  <p className="text-xs text-muted-foreground">You can ask anything here before you continue booking.</p>
+                ) : null}
+                <div className="flex gap-2">
+                  <input value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void askQuestion(question); }} placeholder={conversationStatus === "human_active" ? "Message the team" : "Ask a question or book an appointment..."} className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-primary" />
+                  <button type="button" onClick={() => void askQuestion(question)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground" aria-label="Send message">
+                    <Send className="h-4 w-4" />
+                  </button>
+                </div>
+                {teamMessage ? <p className="text-xs text-muted-foreground">{teamMessage}</p> : null}
+              </div>
             </div>
           </div>
         </>
