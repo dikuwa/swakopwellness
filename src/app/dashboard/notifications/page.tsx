@@ -28,7 +28,6 @@ export default async function NotificationsPage() {
       <div>
         <p className="text-sm font-medium tracking-[0.16em] text-muted-foreground uppercase">Management</p>
         <h1 className="text-3xl font-semibold tracking-[-0.035em]">Notifications</h1>
-        <p className="mt-2 max-w-2xl text-sm text-muted-foreground">Open related bookings, documents, payments, and staff alerts directly from one clean register.</p>
       </div>
       <NotificationList items={items} />
     </DashboardShell>
