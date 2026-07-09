@@ -8,6 +8,7 @@ import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
 import { DocumentPreview } from "@/components/document-preview";
 import { hasPermission } from "@/auth/permissions";
+import { PendingSubmitButton } from "@/app/dashboard/pending-submit-button";
 import { voidReceiptAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -143,12 +144,12 @@ export default async function ReceiptDetailPage(props: { params: Promise<{ id: s
                 className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 placeholder="Reason for voiding"
               />
-              <button
-                type="submit"
+              <PendingSubmitButton
+                pendingChildren="Voiding..."
                 className="h-11 rounded-xl bg-[oklch(0.55_0.20_36)] px-5 text-sm font-semibold text-white transition-colors hover:bg-[oklch(0.45_0.20_36)]"
               >
                 Void Receipt
-              </button>
+              </PendingSubmitButton>
             </form>
           </div>
         )}

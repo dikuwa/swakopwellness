@@ -5,6 +5,7 @@ import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
 import { DocumentPreview } from "@/components/document-preview";
 import { getInvoiceById, getClientById } from "@/dashboard/data";
+import { PendingSubmitButton } from "@/app/dashboard/pending-submit-button";
 import { emailInvoiceAction, issueInvoiceAction, voidInvoiceAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -103,24 +104,24 @@ export default async function InvoiceDetailPage(props: { params: Promise<{ id: s
               </Link>
               <form action={issueInvoiceAction}>
                 <input type="hidden" name="invoice_id" value={invoice.id} />
-                <button
-                  type="submit"
+                <PendingSubmitButton
+                  pendingChildren="Issuing..."
                   className="h-11 rounded-xl bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
                 >
                   Issue Invoice
-                </button>
+                </PendingSubmitButton>
               </form>
             </>
           )}
           {canEmail && (
             <form action={emailInvoiceAction}>
               <input type="hidden" name="invoice_id" value={invoice.id} />
-              <button
-                type="submit"
+              <PendingSubmitButton
+                pendingChildren="Sending..."
                 className="h-11 rounded-xl border border-border px-5 text-sm font-semibold transition-colors hover:bg-surface-muted"
               >
                 Email Invoice
-              </button>
+              </PendingSubmitButton>
             </form>
           )}
           {canRecordPayment && (
@@ -154,12 +155,12 @@ export default async function InvoiceDetailPage(props: { params: Promise<{ id: s
                   required
                   className="h-11 flex-1 rounded-xl border border-border bg-background px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
-                <button
-                  type="submit"
+                <PendingSubmitButton
+                  pendingChildren="Voiding..."
                   className="h-11 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-700"
                 >
                   Confirm Void
-                </button>
+                </PendingSubmitButton>
               </form>
             </details>
           )}

@@ -7,6 +7,7 @@ import { hasPermission } from "@/auth/permissions";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
 import { getDashboardChatConversationById } from "@/dashboard/data";
+import { PendingSubmitButton } from "@/app/dashboard/pending-submit-button";
 import { updateChatConversationStatus } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -132,9 +133,12 @@ export default async function ChatConversationDetailPage(props: { params: Promis
             <form action={async (formData) => { "use server"; await updateChatConversationStatus(formData); }}>
               <input type="hidden" name="conversationId" value={conversation.id} />
               <input type="hidden" name="status" value={nextStatus} />
-              <button type="submit" className="h-10 rounded-xl border border-border px-3 text-sm font-semibold capitalize hover:bg-surface-muted transition-colors">
+              <PendingSubmitButton
+                pendingChildren={nextStatus === "closed" ? "Closing..." : "Reopening..."}
+                className="h-10 rounded-xl border border-border px-3 text-sm font-semibold capitalize hover:bg-surface-muted transition-colors"
+              >
                 {nextStatus === "closed" ? "Close" : "Reopen"}
-              </button>
+              </PendingSubmitButton>
             </form>
           ) : null}
         </div>

@@ -6,6 +6,7 @@ import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { policies } from "@/db/schema";
 import { DashboardShell } from "@/dashboard/shell";
+import { PendingSubmitButton } from "@/app/dashboard/pending-submit-button";
 import { deletePolicy, togglePolicyPublic } from "@/policies/actions";
 
 export const dynamic = "force-dynamic";
@@ -95,8 +96,8 @@ export default async function PoliciesPage() {
                     </td>
                     <td className="py-3.5 px-4">
                       <form action={togglePolicyPublic.bind(null, policy.id)}>
-                        <button
-                          type="submit"
+                        <PendingSubmitButton
+                          pendingChildren={policy.publicVisible ? "Hiding..." : "Publishing..."}
                           className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                             policy.publicVisible
                               ? "bg-green-50 text-green-700"
@@ -105,7 +106,7 @@ export default async function PoliciesPage() {
                         >
                           <span className={`h-1.5 w-1.5 rounded-full ${policy.publicVisible ? "bg-green-600" : "bg-gray-400"}`} />
                           {policy.publicVisible ? "Public" : "Hidden"}
-                        </button>
+                        </PendingSubmitButton>
                       </form>
                     </td>
                     <td className="py-3.5 px-4">
@@ -117,12 +118,12 @@ export default async function PoliciesPage() {
                           Edit
                         </Link>
                         <form action={deletePolicy.bind(null, policy.id)}>
-                          <button
-                            type="submit"
+                          <PendingSubmitButton
+                            pendingChildren="Deleting..."
                             className="flex h-8 items-center rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
                           >
                             Delete
-                          </button>
+                          </PendingSubmitButton>
                         </form>
                       </div>
                     </td>

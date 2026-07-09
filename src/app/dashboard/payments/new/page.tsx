@@ -3,6 +3,7 @@ import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
 import { getClients } from "@/dashboard/data";
 import { DatePicker, Select, Checkbox } from "@/ui/components";
+import { PendingSubmitButton } from "@/app/dashboard/pending-submit-button";
 import { createPaymentAction } from "./actions";
 import { InvoiceSelector } from "./invoice-selector";
 
@@ -102,12 +103,12 @@ export default async function NewPaymentPage(props: { searchParams: Promise<{ in
             />
           </div>
 
-          <button
-            type="submit"
+          <PendingSubmitButton
+            pendingChildren="Recording..."
             className="h-11 rounded-xl bg-primary px-6 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
           >
             Record Payment
-          </button>
+          </PendingSubmitButton>
         </form>
     </DashboardShell>
   );

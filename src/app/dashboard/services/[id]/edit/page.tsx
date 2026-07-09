@@ -6,6 +6,7 @@ import { getDb } from "@/db/client";
 import { mediaAssets, services, serviceCategories, serviceFaqs, serviceImages } from "@/db/schema";
 import { createServiceFaq, deleteServiceFaq, toggleServiceFaqActive, updateService, updateServiceFaq } from "@/services/actions";
 import { DashboardShell } from "@/dashboard/shell";
+import { PendingSubmitButton } from "@/app/dashboard/pending-submit-button";
 import { getMediaUrl } from "@/lib/media-url";
 import { EditServiceClient } from "./edit-page-client";
 
@@ -157,12 +158,12 @@ export default async function EditServicePage({ params }: PageProps) {
                     className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
-                <button
-                  type="submit"
+                <PendingSubmitButton
+                  pendingChildren="Adding..."
                   className="h-11 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                 >
                   Add FAQ
-                </button>
+                </PendingSubmitButton>
               </div>
             </form>
 
@@ -205,12 +206,12 @@ export default async function EditServicePage({ params }: PageProps) {
                             className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                           />
                         </div>
-                        <button
-                          type="submit"
+                        <PendingSubmitButton
+                          pendingChildren="Saving..."
                           className="h-11 rounded-xl border border-border px-5 text-sm font-semibold transition-colors hover:bg-surface-muted"
                         >
                           Save
-                        </button>
+                        </PendingSubmitButton>
                       </div>
                     </div>
                   </form>
@@ -220,20 +221,20 @@ export default async function EditServicePage({ params }: PageProps) {
                       {faq.active ? "Active" : "Inactive"}
                     </span>
                     <form action={toggleServiceFaqActive.bind(null, faq.id)}>
-                      <button
-                        type="submit"
+                      <PendingSubmitButton
+                        pendingChildren={faq.active ? "Deactivating..." : "Activating..."}
                         className="h-8 rounded-lg border border-border px-3 text-xs font-semibold transition-colors hover:bg-surface-muted"
                       >
                         {faq.active ? "Deactivate" : "Activate"}
-                      </button>
+                      </PendingSubmitButton>
                     </form>
                     <form action={deleteServiceFaq.bind(null, faq.id)}>
-                      <button
-                        type="submit"
+                      <PendingSubmitButton
+                        pendingChildren="Deleting..."
                         className="h-8 rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
                       >
                         Delete
-                      </button>
+                      </PendingSubmitButton>
                     </form>
                   </div>
                 </article>

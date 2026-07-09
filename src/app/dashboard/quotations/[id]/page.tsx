@@ -5,6 +5,7 @@ import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
 import { DocumentPreview } from "@/components/document-preview";
 import { getClientById, getQuotationById } from "@/dashboard/data";
+import { PendingSubmitButton } from "@/app/dashboard/pending-submit-button";
 import { acceptQuotationAction, convertToInvoiceAction, duplicateQuotationAction, emailQuotationAction, issueQuotationAction, rejectQuotationAction, voidQuotationAction } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -141,24 +142,24 @@ export default async function QuotationDetailPage(props: { params: Promise<{ id:
               </Link>
               <form action={issueQuotationAction}>
                 <input type="hidden" name="quotation_id" value={quotation.id} />
-                <button
-                  type="submit"
+                <PendingSubmitButton
+                  pendingChildren="Issuing..."
                   className="h-11 rounded-xl bg-primary px-5 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
                 >
                   Issue Quotation
-                </button>
+                </PendingSubmitButton>
               </form>
             </>
           )}
           {canAccept && (
             <form action={acceptQuotationAction}>
               <input type="hidden" name="quotation_id" value={quotation.id} />
-              <button
-                type="submit"
+              <PendingSubmitButton
+                pendingChildren="Accepting..."
                 className="h-11 rounded-xl border border-green-600 px-5 text-sm font-semibold text-green-700 transition-colors hover:bg-green-50"
               >
                 Accept
-              </button>
+              </PendingSubmitButton>
             </form>
           )}
           {canReject && (
@@ -175,44 +176,44 @@ export default async function QuotationDetailPage(props: { params: Promise<{ id:
                   required
                   className="h-11 flex-1 rounded-xl border border-border bg-background px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
-                <button
-                  type="submit"
+                <PendingSubmitButton
+                  pendingChildren="Rejecting..."
                   className="h-11 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-700"
                 >
                   Confirm Reject
-                </button>
+                </PendingSubmitButton>
               </form>
             </details>
           )}
           {canConvert && (
             <form action={convertToInvoiceAction}>
               <input type="hidden" name="quotation_id" value={quotation.id} />
-              <button
-                type="submit"
+              <PendingSubmitButton
+                pendingChildren="Converting..."
                 className="h-11 rounded-xl bg-purple-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-purple-700"
               >
                 Convert to Invoice
-              </button>
+              </PendingSubmitButton>
             </form>
           )}
           <form action={duplicateQuotationAction}>
             <input type="hidden" name="quotation_id" value={quotation.id} />
-            <button
-              type="submit"
+            <PendingSubmitButton
+              pendingChildren="Duplicating..."
               className="h-11 rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted"
             >
               Duplicate
-            </button>
+            </PendingSubmitButton>
           </form>
           {canEmail && (
             <form action={emailQuotationAction}>
               <input type="hidden" name="quotation_id" value={quotation.id} />
-              <button
-                type="submit"
+              <PendingSubmitButton
+                pendingChildren="Sending..."
                 className="h-11 rounded-xl border border-border px-5 text-sm font-semibold transition-colors hover:bg-surface-muted"
               >
                 Email Quotation
-              </button>
+              </PendingSubmitButton>
             </form>
           )}
           {canDownload && (
@@ -238,12 +239,12 @@ export default async function QuotationDetailPage(props: { params: Promise<{ id:
                   required
                   className="h-11 flex-1 rounded-xl border border-border bg-background px-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 />
-                <button
-                  type="submit"
+                <PendingSubmitButton
+                  pendingChildren="Voiding..."
                   className="h-11 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white hover:bg-red-700"
                 >
                   Confirm Void
-                </button>
+                </PendingSubmitButton>
               </form>
             </details>
           )}

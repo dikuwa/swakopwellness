@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useActionState, useState, startTransition } from "react";
+import { Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
+import { PendingSubmitButton } from "@/app/dashboard/pending-submit-button";
 import { Select } from "@/ui/components";
 
 interface ServiceOption {
@@ -134,8 +136,9 @@ export function SuitabilityForms({
         <button
           type="submit"
           disabled={isPending}
-          className="flex h-11 items-center justify-center rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          className="flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
         >
+          {isPending ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
           {isPending ? "Creating..." : "Create"}
         </button>
       </form>
@@ -204,20 +207,20 @@ export function SuitabilityForms({
                     className="h-11 w-full rounded-xl border border-border bg-surface px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
-                <button
-                  type="submit"
+                <PendingSubmitButton
+                  pendingChildren="Updating..."
                   className="flex h-11 items-center justify-center rounded-xl border border-border px-5 text-sm font-semibold transition-colors hover:bg-surface-muted"
                 >
                   Update
-                </button>
+                </PendingSubmitButton>
               </form>
               <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
                 <span className="text-xs text-muted-foreground">
                   Applies to: {q.serviceName ?? "All services"}
                 </span>
                 <form action={toggleAction.bind(null, q.id)}>
-                  <button
-                    type="submit"
+                  <PendingSubmitButton
+                    pendingChildren={q.active ? "Deactivating..." : "Activating..."}
                     className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
                       q.active
                         ? "bg-green-50 text-green-700"
@@ -226,15 +229,15 @@ export function SuitabilityForms({
                   >
                     <span className={`h-1.5 w-1.5 rounded-full ${q.active ? "bg-green-600" : "bg-red-600"}`} />
                     {q.active ? "Active" : "Inactive"}
-                  </button>
+                  </PendingSubmitButton>
                 </form>
                 <form action={deleteAction.bind(null, q.id)}>
-                  <button
-                    type="submit"
+                  <PendingSubmitButton
+                    pendingChildren="Deleting..."
                     className="flex h-8 items-center gap-1 rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
                   >
                     Delete
-                  </button>
+                  </PendingSubmitButton>
                 </form>
               </div>
             </div>

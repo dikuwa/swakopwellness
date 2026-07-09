@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PendingSubmitButton } from "@/app/dashboard/pending-submit-button";
 import { EditCategoryForm } from "./category-form";
 
 interface Category {
@@ -76,20 +77,20 @@ export function ClientCategoryRow({ category, updateAction, toggleAction, archiv
             Edit
           </button>
           <form action={toggleAction.bind(null, category.id)}>
-            <button
-              type="submit"
+            <PendingSubmitButton
+              pendingChildren={category.active ? "Deactivating..." : "Activating..."}
               className="flex h-8 items-center rounded-lg border border-border px-3 text-xs font-semibold transition-colors hover:bg-surface-muted"
             >
               {category.active ? "Deactivate" : "Activate"}
-            </button>
+            </PendingSubmitButton>
           </form>
           <form action={archiveAction.bind(null, category.id)}>
-            <button
-              type="submit"
+            <PendingSubmitButton
+              pendingChildren="Archiving..."
               className="flex h-8 items-center rounded-lg border border-red-200 px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50"
             >
               Archive
-            </button>
+            </PendingSubmitButton>
           </form>
         </div>
       </td>

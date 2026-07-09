@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Select, DatePicker } from "@/ui/components";
+import { PendingSubmitButton } from "@/app/dashboard/pending-submit-button";
 import { updateInvoiceAction } from "./actions";
 import {
   DocumentLineItemsEditor,
@@ -231,12 +232,12 @@ export function InvoiceEditForm({
 
         {/* Actions */}
         <div className="flex items-center gap-4 border-t border-border pt-4">
-          <button
-            type="submit"
+          <PendingSubmitButton
+            pendingChildren="Updating..."
             className="h-11 rounded-xl bg-primary px-6 text-sm font-semibold text-white transition-colors hover:bg-primary/90"
           >
             Update Invoice
-          </button>
+          </PendingSubmitButton>
           <Link
             href={`/dashboard/invoices/${invoiceId}`}
             className="flex h-11 items-center rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted"

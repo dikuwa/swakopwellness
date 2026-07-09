@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
+import { useFormStatus } from "react-dom";
 import { CheckCircle2, Loader2, Plus, Trash2 } from "lucide-react";
 import { Select } from "@/ui/components";
 import { fmtCents } from "@/documents/calculate";
@@ -28,6 +29,41 @@ const PREDEFINED_ITEM_TYPE_OPTIONS = [
   { value: "other", label: "Other" },
 ];
 
+function PendingPresetButton({
+  children,
+  pendingChildren,
+  className,
+  formAction,
+  formNoValidate,
+  title,
+  "aria-label": ariaLabel,
+}: {
+  children: ReactNode;
+  pendingChildren: ReactNode;
+  className: string;
+  formAction?: (formData: FormData) => void | Promise<void>;
+  formNoValidate?: boolean;
+  title?: string;
+  "aria-label"?: string;
+}) {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      formAction={formAction}
+      formNoValidate={formNoValidate}
+      disabled={pending}
+      aria-busy={pending}
+      aria-label={ariaLabel}
+      title={title}
+      className={`${className} ${pending ? "cursor-wait opacity-70" : ""} disabled:opacity-60`}
+    >
+      {pending ? pendingChildren : children}
+    </button>
+  );
+}
+
 export function DocumentPredefinedItemsManager({ predefinedItems }: { predefinedItems: PredefinedItem[] }) {
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -41,17 +77,22 @@ export function DocumentPredefinedItemsManager({ predefinedItems }: { predefined
     successMessage: string,
     onSuccess?: () => void,
   ) => {
-    setSaving(label);
-    setError(null);
-    setSuccess(null);
-    const result = await action(formData);
-    if (!result.ok) {
-      setError(result.error ?? "Save failed");
-    } else {
-      setSuccess(successMessage);
-      onSuccess?.();
+    try {
+      setSaving(label);
+      setError(null);
+      setSuccess(null);
+      const result = await action(formData);
+      if (!result.ok) {
+        setError(result.error ?? "Save failed");
+      } else {
+        setSuccess(successMessage);
+        onSuccess?.();
+      }
+    } catch {
+      setError("Something went wrong while saving. Please try again.");
+    } finally {
+      setSaving(null);
     }
-    setSaving(null);
   };
 
   return (
@@ -120,14 +161,14 @@ export function DocumentPredefinedItemsManager({ predefinedItems }: { predefined
           </label>
         </div>
         <div className="mt-4">
-          <button
-            type="submit"
-            disabled={saving === "preset-new"}
+          <PendingPresetButton
             className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+            pendingChildren={<><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />Adding...</>}
           >
-            {saving === "preset-new" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}
-            {saving === "preset-new" ? "Adding..." : "Add item"}
-          </button>
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Add item
+          </PendingPresetButton>
+          {saving === "preset-new" ? <p className="mt-2 text-xs font-medium text-muted-foreground" role="status">Adding predefined item...</p> : null}
         </div>
       </form>
 
@@ -150,6 +191,7 @@ export function DocumentPredefinedItemsManager({ predefinedItems }: { predefined
             className="rounded-xl border border-border bg-surface p-4"
           >
             <input type="hidden" name="id" value={item.id} />
+            <fieldset disabled={saving === `preset-${item.id}` || saving === `preset-delete-${item.id}`} className="contents">
             <div className="grid gap-4 lg:grid-cols-[minmax(170px,1fr)_minmax(190px,1.3fr)_150px_130px_100px_90px_116px] lg:items-end">
               <div>
                 <label htmlFor={`preset-label-${item.id}`} className="mb-1.5 block text-sm font-medium lg:sr-only">Item name</label>
@@ -176,28 +218,28 @@ export function DocumentPredefinedItemsManager({ predefinedItems }: { predefined
                 Active
               </label>
               <div className="flex gap-2">
-                <button
-                  type="submit"
-                  disabled={saving === `preset-${item.id}`}
+                <PendingPresetButton
                   className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
+                  pendingChildren={<><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />Saving...</>}
                 >
-                  {saving === `preset-${item.id}` ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-                  {saving === `preset-${item.id}` ? "Saving" : "Save"}
-                </button>
-                <button
-                  type="submit"
+                  Save
+                </PendingPresetButton>
+                <PendingPresetButton
                   formNoValidate
                   formAction={async (fd) => handleAction(deleteDocumentPredefinedItem, fd, `preset-delete-${item.id}`, "Predefined item deleted.")}
-                  disabled={saving === `preset-delete-${item.id}`}
                   className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-muted-foreground transition-colors hover:bg-surface-muted hover:text-destructive disabled:opacity-50"
                   aria-label={`Delete ${item.label}`}
                   title={`Delete ${item.label}`}
+                  pendingChildren={<Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
                 >
-                  {saving === `preset-delete-${item.id}` ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Trash2 className="h-4 w-4" aria-hidden="true" />}
-                </button>
+                  <Trash2 className="h-4 w-4" aria-hidden="true" />
+                </PendingPresetButton>
               </div>
             </div>
-            <p className="mt-3 text-xs text-muted-foreground">Dropdown preview: {item.label} - {fmtCents(item.unitPriceCents)}</p>
+            </fieldset>
+            <p className="mt-3 text-xs text-muted-foreground">
+              {saving === `preset-${item.id}` ? "Saving item..." : saving === `preset-delete-${item.id}` ? "Deleting item..." : `Dropdown preview: ${item.label} - ${fmtCents(item.unitPriceCents)}`}
+            </p>
           </form>
         ))}
         {predefinedItems.length === 0 ? (

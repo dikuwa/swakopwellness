@@ -5,6 +5,7 @@ import { requirePermission } from "@/auth/session";
 import { getDb } from "@/db/client";
 import { users, userRoles, roles } from "@/db/schema";
 import { DashboardShell } from "@/dashboard/shell";
+import { PendingSubmitButton } from "@/app/dashboard/pending-submit-button";
 import { toggleUserActive } from "@/users/actions";
 
 export const dynamic = "force-dynamic";
@@ -84,12 +85,12 @@ export default async function UsersPage() {
                         Edit
                       </Link>
                       <form action={toggleUserActive.bind(null, u.id)}>
-                        <button
-                          type="submit"
+                        <PendingSubmitButton
+                          pendingChildren={u.active ? "Deactivating..." : "Activating..."}
                           className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold transition-colors hover:bg-surface-muted"
                         >
                           {u.active ? "Deactivate" : "Activate"}
-                        </button>
+                        </PendingSubmitButton>
                       </form>
                     </div>
                   </td>
