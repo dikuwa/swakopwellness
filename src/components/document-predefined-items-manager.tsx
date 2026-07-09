@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
-import { useFormStatus } from "react-dom";
 import { CheckCircle2, Loader2, Plus, Trash2 } from "lucide-react";
 import { Select } from "@/ui/components";
 import { fmtCents } from "@/documents/calculate";
@@ -35,6 +34,8 @@ function PendingPresetButton({
   className,
   formAction,
   formNoValidate,
+  pending,
+  onClick,
   title,
   "aria-label": ariaLabel,
 }: {
@@ -43,11 +44,11 @@ function PendingPresetButton({
   className: string;
   formAction?: (formData: FormData) => void | Promise<void>;
   formNoValidate?: boolean;
+  pending: boolean;
+  onClick?: () => void;
   title?: string;
   "aria-label"?: string;
 }) {
-  const { pending } = useFormStatus();
-
   return (
     <button
       type="submit"
@@ -57,6 +58,7 @@ function PendingPresetButton({
       aria-busy={pending}
       aria-label={ariaLabel}
       title={title}
+      onClick={onClick}
       className={`${className} ${pending ? "cursor-wait opacity-70" : ""} disabled:opacity-60`}
     >
       {pending ? pendingChildren : children}
@@ -164,6 +166,7 @@ export function DocumentPredefinedItemsManager({ predefinedItems }: { predefined
           <PendingPresetButton
             className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
             pendingChildren={<><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />Adding...</>}
+            pending={saving === "preset-new"}
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
             Add item
@@ -174,7 +177,7 @@ export function DocumentPredefinedItemsManager({ predefinedItems }: { predefined
 
       <div className="mt-5 space-y-3">
         {predefinedItems.length > 0 ? (
-          <div className="hidden grid-cols-[minmax(170px,1fr)_minmax(190px,1.3fr)_150px_130px_100px_90px_116px] gap-4 px-4 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground lg:grid">
+          <div className="hidden grid-cols-[minmax(170px,1fr)_minmax(190px,1.3fr)_150px_130px_100px_90px_180px] gap-4 px-4 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground lg:grid">
             <span>Item name</span>
             <span>Description</span>
             <span>Type</span>
@@ -192,7 +195,7 @@ export function DocumentPredefinedItemsManager({ predefinedItems }: { predefined
           >
             <input type="hidden" name="id" value={item.id} />
             <fieldset disabled={saving === `preset-${item.id}` || saving === `preset-delete-${item.id}`} className="contents">
-            <div className="grid gap-4 lg:grid-cols-[minmax(170px,1fr)_minmax(190px,1.3fr)_150px_130px_100px_90px_116px] lg:items-end">
+            <div className="grid gap-4 lg:grid-cols-[minmax(170px,1fr)_minmax(190px,1.3fr)_150px_130px_100px_90px_180px] lg:items-end">
               <div>
                 <label htmlFor={`preset-label-${item.id}`} className="mb-1.5 block text-sm font-medium lg:sr-only">Item name</label>
                 <input id={`preset-label-${item.id}`} name="label" defaultValue={item.label} required className="h-11 w-full rounded-xl border border-border bg-background px-3 text-sm" />
@@ -221,16 +224,20 @@ export function DocumentPredefinedItemsManager({ predefinedItems }: { predefined
                 <PendingPresetButton
                   className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
                   pendingChildren={<><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />Saving...</>}
+                  pending={saving === `preset-${item.id}`}
+                  onClick={() => setSaving(`preset-${item.id}`)}
                 >
                   Save
                 </PendingPresetButton>
                 <PendingPresetButton
                   formNoValidate
                   formAction={async (fd) => handleAction(deleteDocumentPredefinedItem, fd, `preset-delete-${item.id}`, "Predefined item deleted.")}
-                  className="flex h-11 w-11 items-center justify-center rounded-xl border border-border text-muted-foreground transition-colors hover:bg-surface-muted hover:text-destructive disabled:opacity-50"
+                  className="flex h-11 min-w-11 items-center justify-center gap-2 rounded-xl border border-border px-3 text-muted-foreground transition-colors hover:bg-surface-muted hover:text-destructive disabled:opacity-50"
                   aria-label={`Delete ${item.label}`}
                   title={`Delete ${item.label}`}
-                  pendingChildren={<Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+                  pendingChildren={<><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /><span>Deleting...</span></>}
+                  pending={saving === `preset-delete-${item.id}`}
+                  onClick={() => setSaving(`preset-delete-${item.id}`)}
                 >
                   <Trash2 className="h-4 w-4" aria-hidden="true" />
                 </PendingPresetButton>
