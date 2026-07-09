@@ -394,7 +394,7 @@ export function NotificationList({ items }: { items: Notification[] }) {
                             event.stopPropagation();
                             openNotification(notification);
                           }}
-                          className="h-7 min-w-0 gap-1 px-2.5 text-[12px]"
+                          className="h-6 min-w-0 gap-1 px-2 text-[11px]"
                         >
                           {navigatingId === notification.id ? <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" aria-hidden="true" /> : null}
                           {viewLabel(notification)}
