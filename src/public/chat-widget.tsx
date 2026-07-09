@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { MessageCircle, Send, Sparkles, X } from "lucide-react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { CalendarCheck, MessageCircle, Send, Sparkles, UserRound, X } from "lucide-react";
 
 const FAQ_ANSWERS: Record<string, string> = {
   "what services do you offer?":
@@ -90,6 +90,66 @@ function renderMessage(content: string) {
     }
     return <span key={index}>{part}</span>;
   });
+}
+
+function renderFormattedMessage(content: string) {
+  const lines = content.split("\n");
+  const nodes: ReactNode[] = [];
+  let bulletItems: string[] = [];
+
+  const flushBullets = () => {
+    if (bulletItems.length === 0) return;
+    const group = bulletItems;
+    bulletItems = [];
+    nodes.push(
+      <ul key={`list-${nodes.length}`} className="my-1.5 list-disc space-y-1 pl-4">
+        {group.map((item, index) => (
+          <li key={index}>{renderMessage(item)}</li>
+        ))}
+      </ul>,
+    );
+  };
+
+  lines.forEach((line, index) => {
+    const bullet = /^\s*[-*]\s+(.+)$/.exec(line);
+    if (bullet) {
+      bulletItems.push(bullet[1]);
+      return;
+    }
+
+    flushBullets();
+    if (!line.trim()) {
+      nodes.push(<div key={`space-${index}`} className="h-2" />);
+      return;
+    }
+    nodes.push(<p key={`line-${index}`}>{renderMessage(line)}</p>);
+  });
+
+  flushBullets();
+  return nodes;
+}
+
+function hasBookingIntent(value: string) {
+  const text = value.toLowerCase();
+  return /\b(book|booking|appointment|schedule|scheduled|reserve|reservation)\b/.test(text)
+    || text.includes("need to come in")
+    || text.includes("come in for")
+    || text.includes("set up a time")
+    || text.includes("make a booking");
+}
+
+function hasHumanIntent(value: string) {
+  const text = value.toLowerCase();
+  return text.includes("talk to human")
+    || text.includes("talk to a human")
+    || text.includes("talk to someone")
+    || text.includes("speak to a person")
+    || text.includes("speak to someone")
+    || text.includes("connect me to")
+    || text.includes("need a human")
+    || text.includes("real person")
+    || text.includes("staff member")
+    || text.includes("team member");
 }
 
 export function ChatWidget() {
@@ -224,16 +284,13 @@ export function ChatWidget() {
     setMessages([{ role: "assistant", content: "Hi there 👋 Welcome to Swakop Wellness Centre. I can help you book an appointment or answer a quick question." }]);
   };
 
-  const beginBooking = () => {
+  const beginBooking = (options: { addTriggerMessage?: boolean; intro?: string } = {}) => {
+    const { addTriggerMessage = true, intro = "Sure, I can help with that. Let’s get your appointment booked." } = options;
     setDraft(emptyDraft);
     setError("");
-    addUser("Book an appointment");
-    addAssistant("Please choose a **service**. Prices and durations are loaded from the current website data. These appointments are requests until our staff confirm availability.", "service");
-  };
-
-  const beginQuestion = () => {
-    addUser("Ask a question");
-    addAssistant("Sure. Ask me a question about our services, bookings, safety, or location.", "question");
+    setTeamMessage("");
+    if (addTriggerMessage) addUser("Book");
+    addAssistant(`${intro}\n\nPlease choose a **service**. Prices and durations are loaded from the current website data. These appointments are requests until our staff confirm availability.`, "service");
   };
 
   const selectService = (service: ChatService) => {
@@ -360,6 +417,7 @@ export function ChatWidget() {
     if (!text) return;
     setQuestion("");
     addUser(text);
+
     if (conversationId && conversationStatus === "human_active") {
       setTeamMessage("");
       try {
@@ -374,6 +432,16 @@ export function ChatWidget() {
       } catch {
         setError("Could not send your message to the team. Please try again.");
       }
+      return;
+    }
+
+    if (hasHumanIntent(text)) {
+      void requestHuman({ addTriggerMessage: false, transcript: [...messages, { role: "user", content: text }] });
+      return;
+    }
+
+    if (hasBookingIntent(text)) {
+      beginBooking({ addTriggerMessage: false });
       return;
     }
 
@@ -403,7 +471,7 @@ export function ChatWidget() {
   const fallbackQuestionAnswer = (text: string) => {
     const key = text.toLowerCase();
     const servicesAnswer = services.length
-      ? `Current bookable services are ${services.map((service) => `**${service.name}** (**${service.price}**, **${service.duration}**)`).join(", ")}. Swakop Wellness Centre provides complementary wellness services and does not replace conventional medical diagnosis or treatment.`
+      ? `Here are the current bookable services:\n\n${services.map((service) => `- **${service.name}** — **${service.price}**, ${service.duration}`).join("\n")}\n\nSwakop Wellness Centre provides complementary wellness services and does not replace conventional medical diagnosis or treatment.`
       : FAQ_ANSWERS["what services do you offer?"];
     return key === "what services do you offer?"
       ? servicesAnswer
@@ -417,10 +485,11 @@ export function ChatWidget() {
                 : "I’m not fully sure about that. I can connect you with our team for the correct answer.");
   };
 
-  const requestHuman = async () => {
+  const requestHuman = async (options: { addTriggerMessage?: boolean; transcript?: Message[] } = {}) => {
+    const { addTriggerMessage = true } = options;
     const requestMessage = "I would like to speak to a team member";
-    const transcript = [...messages, { role: "user" as const, content: requestMessage }];
-    addUser(requestMessage);
+    const transcript = options.transcript ?? (addTriggerMessage ? [...messages, { role: "user" as const, content: requestMessage }] : messages);
+    if (addTriggerMessage) addUser(requestMessage);
     setSubmitting(true);
     setError("");
     try {
@@ -436,7 +505,7 @@ export function ChatWidget() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error ?? "Could not request staff help.");
       if (data.conversationId) setConversationId(String(data.conversationId));
-      addAssistant("Thanks. Our team has received your request. If someone takes over this chat, you will see their replies here.", "question");
+      addAssistant("Sure — I’ve sent your request to the team.\n\nIf a team member takes over this chat, you’ll see their replies here.", "question");
     } catch {
       addAssistant("Sorry, I had trouble connecting that request. You can still book here or call the centre.", "question");
     } finally {
@@ -465,7 +534,7 @@ export function ChatWidget() {
             aria-label="Swakop Wellness booking assistant"
             aria-modal="true"
           >
-            <div className="flex items-center justify-between rounded-t-3xl bg-primary px-5 py-4 text-primary-foreground">
+            <div className="flex items-center justify-between rounded-t-3xl bg-primary px-4 py-4 text-primary-foreground">
               <div className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-foreground/20">
                   <Sparkles className="h-4 w-4" aria-hidden="true" />
@@ -475,14 +544,38 @@ export function ChatWidget() {
                   <p className="text-[11px] opacity-75">Booking assistant</p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-primary-foreground/20 transition-colors hover:bg-primary-foreground/30"
-                aria-label="Close chat"
-              >
-                <X className="h-4 w-4" aria-hidden="true" />
-              </button>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => beginBooking()}
+                  disabled={submitting}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary-foreground/15 px-3 text-xs font-semibold transition-colors hover:bg-primary-foreground/25 disabled:opacity-60"
+                  title="Book an appointment"
+                  aria-label="Book an appointment"
+                >
+                  <CalendarCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Book</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void requestHuman()}
+                  disabled={submitting}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-full bg-primary-foreground/15 px-3 text-xs font-semibold transition-colors hover:bg-primary-foreground/25 disabled:opacity-60"
+                  title="Talk to a human"
+                  aria-label="Talk to a human"
+                >
+                  <UserRound className="h-3.5 w-3.5" aria-hidden="true" />
+                  <span>Human</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-primary-foreground/15 transition-colors hover:bg-primary-foreground/25"
+                  aria-label="Close chat"
+                >
+                  <X className="h-4 w-4" aria-hidden="true" />
+                </button>
+              </div>
             </div>
 
             <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4" role="log" aria-label="Chat messages" aria-live="polite">
@@ -493,7 +586,7 @@ export function ChatWidget() {
                       message.role === "assistant" ? "rounded-bl-sm bg-surface-muted text-foreground" : "rounded-br-sm bg-primary/10 text-foreground"
                     }`}
                   >
-                    {renderMessage(message.content)}
+                    {renderFormattedMessage(message.content)}
                   </div>
                 </div>
               ))}
@@ -514,26 +607,6 @@ export function ChatWidget() {
 
             <div className="border-t border-border px-5 py-4">
               {error ? <p className="mb-3 rounded-xl border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">{error}</p> : null}
-
-              {step !== "menu" && step !== "service" && step !== "summary" ? (
-                <button type="button" onClick={beginBooking} className="mb-3 h-10 w-full rounded-xl border border-primary/30 bg-primary/5 text-sm font-semibold text-primary hover:bg-primary/10">
-                  Book appointment
-                </button>
-              ) : null}
-
-              {step === "menu" ? (
-                <div className="grid gap-2">
-                  <button type="button" onClick={beginBooking} className="h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
-                    Book appointment
-                  </button>
-                  <button type="button" onClick={beginQuestion} className="h-11 rounded-xl border border-border px-4 text-sm font-semibold hover:bg-surface-muted">
-                    Ask a question
-                  </button>
-                  <button type="button" onClick={requestHuman} className="h-11 rounded-xl border border-border px-4 text-sm font-semibold hover:bg-surface-muted">
-                    Talk to staff
-                  </button>
-                </div>
-              ) : null}
 
               {step === "service" ? (
                 <div className="space-y-2">
@@ -597,23 +670,15 @@ export function ChatWidget() {
                 </div>
               ) : null}
 
-              {step === "question" ? (
+              {step === "menu" || step === "question" ? (
                 <div className="space-y-3">
-                  <div className="flex flex-wrap gap-2">
-                    {Object.keys(FAQ_ANSWERS).slice(0, 5).map((item) => (
-                      <button key={item} type="button" onClick={() => void askQuestion(item)} className="rounded-xl border border-border px-3 py-1.5 text-xs font-medium hover:border-primary hover:text-primary">
-                        {item.replace(/^\w/, (char) => char.toUpperCase())}
-                      </button>
-                    ))}
-                  </div>
                   <div className="flex gap-2">
-                    <input value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void askQuestion(question); }} placeholder={conversationStatus === "human_active" ? "Message the team" : "Type your question"} className="h-10 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-sm" />
-                    <button type="button" onClick={() => void askQuestion(question)} className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground" aria-label="Send question">
+                    <input value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void askQuestion(question); }} placeholder={conversationStatus === "human_active" ? "Message the team" : "Ask a question or book an appointment..."} className="h-11 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-sm outline-none transition-colors focus:border-primary" />
+                    <button type="button" onClick={() => void askQuestion(question)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground" aria-label="Send message">
                       <Send className="h-4 w-4" />
                     </button>
                   </div>
                   {teamMessage ? <p className="text-xs text-muted-foreground">{teamMessage}</p> : null}
-                  <button type="button" onClick={() => void requestHuman()} className="h-10 w-full rounded-xl border border-border text-sm font-semibold hover:bg-surface-muted">Connect me to the team</button>
                 </div>
               ) : null}
 
