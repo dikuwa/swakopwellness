@@ -1,11 +1,20 @@
 "use server";
 
-import { requirePermission } from "@/auth/session";
+import { hasPermission, requireAuth, requirePermission } from "@/auth/session";
+import { redirect } from "next/navigation";
 import { getDb } from "@/db/client";
 import { businessSettings, communicationSettings, bookingRules, documentNumberSequences, documentPredefinedItems } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/activity-log/record";
+
+async function requirePredefinedItemPermission() {
+  const user = await requireAuth();
+  if (!hasPermission(user.permissions, "settings:manage") && !hasPermission(user.permissions, "services:manage")) {
+    redirect("/dashboard/denied");
+  }
+  return user;
+}
 
 export async function updateBusinessSettings(formData: FormData) {
   const user = await requirePermission("settings:manage");
@@ -224,7 +233,7 @@ function parsePredefinedItem(formData: FormData) {
 }
 
 export async function createDocumentPredefinedItem(formData: FormData) {
-  const user = await requirePermission("settings:manage");
+  const user = await requirePredefinedItemPermission();
   try {
     const parsed = parsePredefinedItem(formData);
     if (!parsed.ok) return { ok: false, error: parsed.error };
@@ -232,6 +241,7 @@ export async function createDocumentPredefinedItem(formData: FormData) {
     const [item] = await db.insert(documentPredefinedItems).values(parsed.data).returning({ id: documentPredefinedItems.id });
     await recordActivity(user.id, "document_predefined_item.created", "document_predefined_item", item.id, `Created predefined item ${parsed.data.label}`);
     revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard/services/additional-items");
     revalidatePath("/dashboard/documents");
     return { ok: true };
   } catch (e) {
@@ -240,7 +250,7 @@ export async function createDocumentPredefinedItem(formData: FormData) {
 }
 
 export async function updateDocumentPredefinedItem(formData: FormData) {
-  const user = await requirePermission("settings:manage");
+  const user = await requirePredefinedItemPermission();
   try {
     const id = String(formData.get("id") ?? "");
     if (!id) return { ok: false, error: "Item ID is required." };
@@ -250,6 +260,7 @@ export async function updateDocumentPredefinedItem(formData: FormData) {
     await db.update(documentPredefinedItems).set({ ...parsed.data, updatedAt: new Date() }).where(eq(documentPredefinedItems.id, id));
     await recordActivity(user.id, "document_predefined_item.updated", "document_predefined_item", id, `Updated predefined item ${parsed.data.label}`);
     revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard/services/additional-items");
     revalidatePath("/dashboard/documents");
     return { ok: true };
   } catch (e) {
@@ -258,7 +269,7 @@ export async function updateDocumentPredefinedItem(formData: FormData) {
 }
 
 export async function deleteDocumentPredefinedItem(formData: FormData) {
-  const user = await requirePermission("settings:manage");
+  const user = await requirePredefinedItemPermission();
   try {
     const id = String(formData.get("id") ?? "");
     if (!id) return { ok: false, error: "Item ID is required." };
@@ -268,6 +279,7 @@ export async function deleteDocumentPredefinedItem(formData: FormData) {
     await db.delete(documentPredefinedItems).where(eq(documentPredefinedItems.id, id));
     await recordActivity(user.id, "document_predefined_item.deleted", "document_predefined_item", id, `Deleted predefined item ${item.label}`);
     revalidatePath("/dashboard/settings");
+    revalidatePath("/dashboard/services/additional-items");
     revalidatePath("/dashboard/documents");
     return { ok: true };
   } catch (e) {

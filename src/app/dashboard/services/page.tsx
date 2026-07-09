@@ -20,6 +20,7 @@ import {
   Plus,
   Tag,
   Sliders,
+  FilePlus2,
 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -69,6 +70,13 @@ export default async function ServicesPage() {
           <h1 className="mt-2 text-3xl font-semibold tracking-[-0.035em]">Services</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href="/dashboard/services/additional-items"
+            className="flex h-10 items-center gap-1.5 rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted"
+          >
+            <FilePlus2 className="h-4 w-4" />
+            Additional Items
+          </Link>
           <Link
             href="/dashboard/services/categories"
             className="flex h-10 items-center gap-1.5 rounded-xl border border-border px-4 text-sm font-semibold transition-colors hover:bg-surface-muted"

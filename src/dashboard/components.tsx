@@ -13,6 +13,7 @@ import {
     CreditCard,
     ExternalLink,
     FileText,
+    FilePlus2,
     FolderTree,
     HeartPulse,
     History,
@@ -42,6 +43,7 @@ const iconMap: Record<string, typeof LayoutDashboard> = {
   "/dashboard/follow-ups": ListTodo,
   "/dashboard/clients": Users,
   "/dashboard/services": HeartPulse,
+  "/dashboard/services/additional-items": FilePlus2,
   "/dashboard/services/categories": FolderTree,
   "/dashboard/services/suitability": Activity,
   "/dashboard/faqs": CircleHelp,
@@ -102,6 +104,7 @@ const linkGroups: NavGroup[] = [
         href: "/dashboard/services",
         label: "Services",
         children: [
+          { href: "/dashboard/services/additional-items", label: "Additional Items" },
           { href: "/dashboard/services/categories", label: "Categories" },
           { href: "/dashboard/services/suitability", label: "Screening" },
         ],
