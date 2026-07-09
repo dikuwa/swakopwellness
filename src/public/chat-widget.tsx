@@ -18,6 +18,14 @@ const FAQ_ANSWERS: Record<string, string> = {
     "Yes. Share your contact details through the booking or contact form, and a team member will follow up directly.",
 };
 
+const FALLBACK_SERVICES: ChatService[] = [
+  { name: "Meridians", slug: "meridians", price: "N$250", duration: "30 minutes", shortDescription: "A focused meridian wellness scan." },
+  { name: "Basic Health Scan", slug: "basic-health-scan", price: "N$650", duration: "30 minutes", shortDescription: "A general complementary wellness scan." },
+  { name: "3D Scan", slug: "3d-scan", price: "N$350", duration: "30 minutes", shortDescription: "A quick 3D wellness scan option." },
+  { name: "Food Tolerance & Nutrition Testing", slug: "food-tolerance-and-nutrition-testing", price: "N$550", duration: "45 minutes", shortDescription: "Food tolerance and nutrition-focused wellness testing." },
+  { name: "Frequency Therapy", slug: "frequency-therapy", price: "N$500", duration: "45 minutes", shortDescription: "A complementary frequency therapy session." },
+];
+
 type FlowStep = "menu" | "question" | "service" | "datetime" | "contact" | "safety" | "notes" | "summary" | "done" | "stopped";
 
 type Message = {
@@ -30,6 +38,7 @@ type ChatService = {
   slug: string;
   price: string;
   duration: string;
+  shortDescription: string;
 };
 
 type BookingDraft = {
@@ -87,7 +96,7 @@ export function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<FlowStep>("menu");
   const [messages, setMessages] = useState<Message[]>([
-    { role: "assistant", content: "Hi there 👋, welcome to Swakop Wellness Centre! How can I help you today?" },
+    { role: "assistant", content: "Hi there 👋 Welcome to Swakop Wellness Centre. I can help you book an appointment or answer a quick question." },
   ]);
   const [draft, setDraft] = useState<BookingDraft>(emptyDraft);
   const [question, setQuestion] = useState("");
@@ -95,6 +104,9 @@ export function ChatWidget() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [services, setServices] = useState<ChatService[]>([]);
+  const [conversationId, setConversationId] = useState("");
+  const [conversationStatus, setConversationStatus] = useState("");
+  const [teamMessage, setTeamMessage] = useState("");
   const [servicesLoading, setServicesLoading] = useState(false);
   const [servicesError, setServicesError] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -122,15 +134,46 @@ export function ChatWidget() {
         const response = await fetch("/api/chat-widget");
         const data = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error("Could not load current services.");
-        setServices(Array.isArray(data.services) ? data.services : []);
+        setServices(Array.isArray(data.services) && data.services.length > 0 ? data.services : FALLBACK_SERVICES);
       } catch {
-        setServicesError("Current services could not be loaded. Please try again or ask our team for help.");
+        setServices(FALLBACK_SERVICES);
+        setServicesError("Current services could not be loaded, so fallback services are shown.");
       } finally {
         setServicesLoading(false);
       }
     }
     void loadServices();
   }, [open, services.length, servicesLoading, servicesError]);
+
+  useEffect(() => {
+    if (!open || !conversationId) return;
+
+    let cancelled = false;
+    async function loadConversation() {
+      try {
+        const response = await fetch(`/api/chat-widget?conversationId=${encodeURIComponent(conversationId)}`);
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || cancelled) return;
+        const nextMessages = Array.isArray(data.messages)
+          ? data.messages
+              .filter((message: { role?: string; content?: string }) => (message.role === "assistant" || message.role === "user") && message.content)
+              .map((message: { role: "assistant" | "user"; content: string }) => ({ role: message.role, content: message.content }))
+          : [];
+        if (nextMessages.length > 0) setMessages(nextMessages);
+        setConversationStatus(String(data.conversation?.status ?? ""));
+        if (data.conversation?.status === "human_active") setStep("question");
+      } catch {
+        // Keep the local chat usable if polling fails.
+      }
+    }
+
+    void loadConversation();
+    const interval = window.setInterval(loadConversation, 4500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [conversationId, open]);
 
   useEffect(() => {
     if (!open || !panelRef.current) return;
@@ -175,7 +218,10 @@ export function ChatWidget() {
     setDraft(emptyDraft);
     setQuestion("");
     setError("");
-    setMessages([{ role: "assistant", content: "Hi there 👋, welcome to Swakop Wellness Centre! How can I help you today?" }]);
+    setConversationId("");
+    setConversationStatus("");
+    setTeamMessage("");
+    setMessages([{ role: "assistant", content: "Hi there 👋 Welcome to Swakop Wellness Centre. I can help you book an appointment or answer a quick question." }]);
   };
 
   const beginBooking = () => {
@@ -281,9 +327,10 @@ export function ChatWidget() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? "Failed to save booking request.");
+      if (data.conversationId) setConversationId(String(data.conversationId));
       const statusMessage = data.status === "requires_review" ? "Your request is **under review** so staff can confirm suitability or scheduling." : "Your request has been saved.";
       addAssistant(
-        `Thank you. ${statusMessage}\n**Reference:** **${data.reference}**\n**Service:** **${draft.serviceName}**\n**Date:** **${draft.preferredDate}**\n**Time:** **${draft.preferredTime}**\n**Email:** **${draft.email}**\n**Phone:** **${draft.phone}**\nStaff will contact you to finalise the appointment.`,
+        `Thank you. Your appointment request has been submitted. Our team will review availability and contact you to confirm.\n${statusMessage}\n**Reference:** **${data.reference}**\n**Service:** **${draft.serviceName}**\n**Date:** **${draft.preferredDate}**\n**Time:** **${draft.preferredTime}**\n**Email:** **${draft.email}**\n**Phone:** **${draft.phone}**`,
         "done",
       );
     } catch (err) {
@@ -308,31 +355,93 @@ export function ChatWidget() {
     }
   };
 
-  const askQuestion = (value: string) => {
+  const askQuestion = async (value: string) => {
     const text = value.trim();
     if (!text) return;
     setQuestion("");
     addUser(text);
-    const key = text.toLowerCase();
-    const servicesAnswer = services.length
-      ? `Current bookable services are ${services.map((service) => `**${service.name}** (**${service.price}**, **${service.duration}**)`).join(", ")}. These services are complementary and non-invasive.`
-      : FAQ_ANSWERS["what services do you offer?"];
-    const direct = key === "what services do you offer?" ? servicesAnswer : FAQ_ANSWERS[key];
-    const answer =
-      direct ??
-      (key.includes("diagnos") || key.includes("medical")
-        ? FAQ_ANSWERS["is this medical treatment?"]
-        : key.includes("book")
-          ? FAQ_ANSWERS["how do i book an appointment?"]
-          : key.includes("staff") || key.includes("human") || key.includes("person")
-            ? FAQ_ANSWERS["can i speak to a staff member?"]
-            : "I do not have that exact answer from the website content. I can help you request an appointment, or our team can follow up with you directly.");
-    addAssistant(answer, "question");
+    if (conversationId && conversationStatus === "human_active") {
+      setTeamMessage("");
+      try {
+        const response = await fetch("/api/chat-widget", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ type: "client_message", conversationId, content: text }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error ?? "Could not send your message.");
+        setTeamMessage("Team is typing...");
+      } catch {
+        setError("Could not send your message to the team. Please try again.");
+      }
+      return;
+    }
+
+    setIsTyping(true);
+    try {
+      const response = await fetch("/api/chat-widget/answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: text }),
+      });
+      const data = await response.json().catch(() => ({}));
+      const answer = response.ok && typeof data.answer === "string" ? data.answer : fallbackQuestionAnswer(text);
+      window.setTimeout(() => {
+        setMessages((prev) => [...prev, { role: "assistant", content: answer }]);
+        setStep("question");
+        setIsTyping(false);
+      }, 450);
+    } catch {
+      window.setTimeout(() => {
+        setMessages((prev) => [...prev, { role: "assistant", content: fallbackQuestionAnswer(text) }]);
+        setStep("question");
+        setIsTyping(false);
+      }, 450);
+    }
   };
 
-  const requestHuman = () => {
-    addUser("I would like to speak to a team member");
-    addAssistant("A team member has **not joined this live chat yet**. I can keep helping here, or you can share a booking request/contact details and staff will follow up directly.", "question");
+  const fallbackQuestionAnswer = (text: string) => {
+    const key = text.toLowerCase();
+    const servicesAnswer = services.length
+      ? `Current bookable services are ${services.map((service) => `**${service.name}** (**${service.price}**, **${service.duration}**)`).join(", ")}. Swakop Wellness Centre provides complementary wellness services and does not replace conventional medical diagnosis or treatment.`
+      : FAQ_ANSWERS["what services do you offer?"];
+    return key === "what services do you offer?"
+      ? servicesAnswer
+      : FAQ_ANSWERS[key] ??
+          (key.includes("diagnos") || key.includes("medical")
+            ? FAQ_ANSWERS["is this medical treatment?"]
+            : key.includes("book")
+              ? FAQ_ANSWERS["how do i book an appointment?"]
+              : key.includes("staff") || key.includes("human") || key.includes("person")
+                ? FAQ_ANSWERS["can i speak to a staff member?"]
+                : "I’m not fully sure about that. I can connect you with our team for the correct answer.");
+  };
+
+  const requestHuman = async () => {
+    const requestMessage = "I would like to speak to a team member";
+    const transcript = [...messages, { role: "user" as const, content: requestMessage }];
+    addUser(requestMessage);
+    setSubmitting(true);
+    setError("");
+    try {
+      const response = await fetch("/api/chat-widget", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "staff_request",
+          transcript,
+          message: transcript.map((message) => `${message.role}: ${message.content}`).join("\n"),
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error ?? "Could not request staff help.");
+      if (data.conversationId) setConversationId(String(data.conversationId));
+      addAssistant("Thanks. Our team has received your request. If someone takes over this chat, you will see their replies here.", "question");
+    } catch {
+      addAssistant("Sorry, I had trouble connecting that request. You can still book here or call the centre.", "question");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -415,10 +524,13 @@ export function ChatWidget() {
               {step === "menu" ? (
                 <div className="grid gap-2">
                   <button type="button" onClick={beginBooking} className="h-11 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
-                    Book an appointment
+                    Book appointment
                   </button>
                   <button type="button" onClick={beginQuestion} className="h-11 rounded-xl border border-border px-4 text-sm font-semibold hover:bg-surface-muted">
                     Ask a question
+                  </button>
+                  <button type="button" onClick={requestHuman} className="h-11 rounded-xl border border-border px-4 text-sm font-semibold hover:bg-surface-muted">
+                    Talk to staff
                   </button>
                 </div>
               ) : null}
@@ -435,10 +547,11 @@ export function ChatWidget() {
                       key={service.slug}
                       type="button"
                       onClick={() => selectService(service)}
-                      className="flex w-full items-center justify-between gap-3 rounded-xl border border-border bg-background px-3 py-2 text-left text-sm transition-colors hover:border-primary hover:bg-surface-muted"
+                      className="grid w-full grid-cols-[1fr_auto] gap-x-3 gap-y-1 rounded-xl border border-border bg-background px-3 py-2 text-left text-sm transition-colors hover:border-primary hover:bg-surface-muted"
                     >
                       <span className="font-semibold">{service.name}</span>
-                      <span className="text-xs text-muted-foreground">{service.price} · {service.duration}</span>
+                      <span className="text-right text-xs text-muted-foreground">{service.price} · {service.duration}</span>
+                      <span className="col-span-2 text-xs text-muted-foreground">{service.shortDescription}</span>
                     </button>
                   ))}
                 </div>
@@ -488,18 +601,19 @@ export function ChatWidget() {
                 <div className="space-y-3">
                   <div className="flex flex-wrap gap-2">
                     {Object.keys(FAQ_ANSWERS).slice(0, 5).map((item) => (
-                      <button key={item} type="button" onClick={() => askQuestion(item)} className="rounded-xl border border-border px-3 py-1.5 text-xs font-medium hover:border-primary hover:text-primary">
+                      <button key={item} type="button" onClick={() => void askQuestion(item)} className="rounded-xl border border-border px-3 py-1.5 text-xs font-medium hover:border-primary hover:text-primary">
                         {item.replace(/^\w/, (char) => char.toUpperCase())}
                       </button>
                     ))}
                   </div>
                   <div className="flex gap-2">
-                    <input value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") askQuestion(question); }} placeholder="Type your question" className="h-10 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-sm" />
-                    <button type="button" onClick={() => askQuestion(question)} className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground" aria-label="Send question">
+                    <input value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void askQuestion(question); }} placeholder={conversationStatus === "human_active" ? "Message the team" : "Type your question"} className="h-10 min-w-0 flex-1 rounded-xl border border-border bg-background px-3 text-sm" />
+                    <button type="button" onClick={() => void askQuestion(question)} className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground" aria-label="Send question">
                       <Send className="h-4 w-4" />
                     </button>
                   </div>
-                  <button type="button" onClick={requestHuman} className="h-10 w-full rounded-xl border border-border text-sm font-semibold hover:bg-surface-muted">Connect me to the team</button>
+                  {teamMessage ? <p className="text-xs text-muted-foreground">{teamMessage}</p> : null}
+                  <button type="button" onClick={() => void requestHuman()} className="h-10 w-full rounded-xl border border-border text-sm font-semibold hover:bg-surface-muted">Connect me to the team</button>
                 </div>
               ) : null}
 

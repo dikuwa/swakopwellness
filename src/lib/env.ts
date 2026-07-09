@@ -17,6 +17,11 @@ export const envSchema = z.object({
   RESEND_FROM_EMAIL: optionalString,
   OPENAI_API_KEY: optionalString,
   OPENAI_MODEL: optionalString,
+  OPENROUTER_API_KEY: optionalString,
+  GROQ_API_KEY: optionalString,
+  CLOUDFLARE_ACCOUNT_ID: optionalString,
+  CLOUDFLARE_API_TOKEN: optionalString,
+  GEMINI_API_KEY: optionalString,
   SENTRY_DSN: optionalString,
   CRON_SECRET: optionalString,
 });

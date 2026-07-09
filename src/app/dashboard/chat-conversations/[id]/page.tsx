@@ -8,7 +8,7 @@ import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
 import { getDashboardChatConversationById } from "@/dashboard/data";
 import { PendingSubmitButton } from "@/app/dashboard/pending-submit-button";
-import { updateChatConversationStatus } from "../actions";
+import { sendChatConversationReply, updateChatConversationStatus } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -17,13 +17,30 @@ export const metadata: Metadata = {
 };
 
 const statusStyles: Record<string, string> = {
-  open: "bg-green-100 text-green-700",
+  new: "bg-amber-100 text-amber-800",
+  bot_active: "bg-green-100 text-green-700",
+  human_active: "bg-primary/10 text-primary",
   closed: "bg-gray-100 text-gray-700",
+  open: "bg-green-100 text-green-700",
+  booking_requested: "bg-amber-100 text-amber-800",
+  booking_failed: "bg-red-100 text-red-700",
+  booking_started: "bg-green-100 text-green-700",
+};
+
+const statusLabels: Record<string, string> = {
+  new: "New",
+  bot_active: "Bot active",
+  human_active: "Human active",
+  closed: "Closed",
+  open: "Bot active",
+  booking_requested: "New",
+  booking_failed: "New",
+  booking_started: "Bot active",
 };
 
 function StatusBadge({ status }: { status: string }) {
   const cls = statusStyles[status] ?? "bg-gray-100 text-gray-700";
-  return <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${cls}`}>{status.replaceAll("_", " ")}</span>;
+  return <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${cls}`}>{statusLabels[status] ?? status.replaceAll("_", " ")}</span>;
 }
 
 function DetailItem({ label, value }: { label: string; value: ReactNode }) {
@@ -114,7 +131,8 @@ export default async function ChatConversationDetailPage(props: { params: Promis
 
   if (!conversation) notFound();
 
-  const nextStatus = conversation.status === "closed" ? "open" : "closed";
+  const isClosed = conversation.status === "closed";
+  const isHumanActive = conversation.status === "human_active";
   const canUpdateStatus = hasPermission(user.permissions, "bookings:update");
 
   return (
@@ -130,16 +148,30 @@ export default async function ChatConversationDetailPage(props: { params: Promis
         <div className="flex flex-wrap items-center gap-2">
           <StatusBadge status={conversation.status} />
           {canUpdateStatus ? (
-            <form action={async (formData) => { "use server"; await updateChatConversationStatus(formData); }}>
-              <input type="hidden" name="conversationId" value={conversation.id} />
-              <input type="hidden" name="status" value={nextStatus} />
-              <PendingSubmitButton
-                pendingChildren={nextStatus === "closed" ? "Closing..." : "Reopening..."}
-                className="h-10 rounded-xl border border-border px-3 text-sm font-semibold capitalize hover:bg-surface-muted transition-colors"
-              >
-                {nextStatus === "closed" ? "Close" : "Reopen"}
-              </PendingSubmitButton>
-            </form>
+            <>
+              {!isClosed ? (
+                <form action={async (formData) => { "use server"; await updateChatConversationStatus(formData); }}>
+                  <input type="hidden" name="conversationId" value={conversation.id} />
+                  <input type="hidden" name="status" value={isHumanActive ? "bot_active" : "human_active"} />
+                  <PendingSubmitButton
+                    pendingChildren={isHumanActive ? "Returning..." : "Taking over..."}
+                    className="h-10 rounded-xl border border-border px-3 text-sm font-semibold hover:bg-surface-muted transition-colors"
+                  >
+                    {isHumanActive ? "Return to bot" : "Take over"}
+                  </PendingSubmitButton>
+                </form>
+              ) : null}
+              <form action={async (formData) => { "use server"; await updateChatConversationStatus(formData); }}>
+                <input type="hidden" name="conversationId" value={conversation.id} />
+                <input type="hidden" name="status" value={isClosed ? "bot_active" : "closed"} />
+                <PendingSubmitButton
+                  pendingChildren={isClosed ? "Reopening..." : "Closing..."}
+                  className="h-10 rounded-xl border border-border px-3 text-sm font-semibold hover:bg-surface-muted transition-colors"
+                >
+                  {isClosed ? "Reopen" : "Close"}
+                </PendingSubmitButton>
+              </form>
+            </>
           ) : null}
         </div>
       </div>
@@ -218,7 +250,10 @@ export default async function ChatConversationDetailPage(props: { params: Promis
 
       {/* Messages */}
       <section className="mt-6 rounded-xl border border-border bg-background p-5">
-        <h2 className="text-base font-semibold">Messages</h2>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-base font-semibold">Messages</h2>
+          {conversation.status === "human_active" ? <p className="text-xs text-muted-foreground">Human takeover is active. The bot will not reply automatically.</p> : null}
+        </div>
         {conversation.messages.length === 0 ? (
           <p className="mt-6 text-center text-sm text-muted-foreground">No messages recorded.</p>
         ) : (
@@ -230,9 +265,28 @@ export default async function ChatConversationDetailPage(props: { params: Promis
                   content={item.content}
                   createdAt={item.createdAt}
                 />
-              )))}
+            )))}
           </div>
         )}
+        {canUpdateStatus && !isClosed ? (
+          <form action={async (formData) => { "use server"; await sendChatConversationReply(formData); }} className="mt-6 border-t border-border pt-5">
+            <input type="hidden" name="conversationId" value={conversation.id} />
+            <label htmlFor="chat-reply" className="text-sm font-semibold">Reply to client</label>
+            <textarea
+              id="chat-reply"
+              name="content"
+              rows={4}
+              required
+              className="mt-2 w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm outline-none transition-colors focus:border-primary"
+              placeholder="Type a warm, clear reply..."
+            />
+            <div className="mt-3 flex justify-end">
+              <PendingSubmitButton pendingChildren="Sending..." className="h-10 rounded-xl bg-primary px-4 text-sm font-semibold text-primary-foreground hover:bg-primary/90">
+                Send reply
+              </PendingSubmitButton>
+            </div>
+          </form>
+        ) : null}
       </section>
     </DashboardShell>
   );

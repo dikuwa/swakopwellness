@@ -4,6 +4,7 @@ import { createBookingRequest, type CreateBookingResult } from "@/booking/create
 import { getDb } from "@/db/client";
 import { businessSettings, chatConversations, chatMessages, chatToolEvents, services } from "@/db/schema";
 import { approvedBookingSummary } from "@/chatbot/safety";
+import { notifyStaff } from "@/notifications/create";
 
 function validEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(value.trim());
@@ -141,15 +142,46 @@ function parseTranscript(body: Record<string, unknown>) {
   return messages.filter((message) => message.content.trim());
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const url = new URL(request.url);
     const db = getDb();
+    const conversationId = url.searchParams.get("conversationId");
+
+    if (conversationId) {
+      const [conversation] = await db
+        .select({
+          id: chatConversations.id,
+          status: chatConversations.status,
+          updatedAt: chatConversations.updatedAt,
+        })
+        .from(chatConversations)
+        .where(eq(chatConversations.id, conversationId))
+        .limit(1);
+
+      if (!conversation) return NextResponse.json({ error: "Conversation not found." }, { status: 404 });
+
+      const messages = await db
+        .select({
+          id: chatMessages.id,
+          role: chatMessages.role,
+          content: chatMessages.content,
+          createdAt: chatMessages.createdAt,
+        })
+        .from(chatMessages)
+        .where(eq(chatMessages.conversationId, conversationId))
+        .orderBy(asc(chatMessages.createdAt));
+
+      return NextResponse.json({ conversation, messages });
+    }
+
     const [business] = await db.select({ currencySymbol: businessSettings.currencySymbol }).from(businessSettings).limit(1);
     const currencySymbol = business?.currencySymbol ?? "N$";
     const bookableServices = await db
       .select({
         name: services.name,
         slug: services.slug,
+        shortDescription: services.shortDescription,
         priceCents: services.priceCents,
         durationMinutes: services.durationMinutes,
       })
@@ -161,6 +193,7 @@ export async function GET() {
       services: bookableServices.map((service) => ({
         name: service.name,
         slug: service.slug,
+        shortDescription: service.shortDescription,
         price: formatMoney(service.priceCents, currencySymbol),
         duration: `${service.durationMinutes ?? 30} minutes`,
       })),
@@ -182,7 +215,7 @@ export async function POST(request: Request) {
       const [conversation] = await db
         .insert(chatConversations)
         .values({
-          status: result.ok ? "booking_requested" : "booking_failed",
+          status: "new",
           bookingId: result.ok ? result.bookingId : null,
           clientId: result.ok ? result.clientId : null,
         })
@@ -219,6 +252,58 @@ export async function POST(request: Request) {
       }
 
       return NextResponse.json({ ok: true, conversationId: conversation.id, reference: result.reference, status: result.status });
+    }
+
+    if (body?.type === "staff_request") {
+      const submittedMessages = parseTranscript(body);
+      const db = getDb();
+      const [conversation] = await db.insert(chatConversations).values({ status: "new" }).returning({ id: chatConversations.id });
+
+      await db.insert(chatMessages).values([
+        ...(submittedMessages.length > 0
+          ? submittedMessages.map((message) => ({
+              conversationId: conversation.id,
+              role: message.role,
+              content: message.content,
+            }))
+          : [{
+              conversationId: conversation.id,
+              role: "user",
+              content: "Visitor asked to speak with staff from the chat widget.",
+            }]),
+        {
+          conversationId: conversation.id,
+          role: "assistant",
+          content: "Thanks. Our team has received your request. If someone takes over this chat, you will see their replies here.",
+        },
+      ]);
+
+      await notifyStaff("chat.new", "New chat request", "A website visitor asked to speak with staff from the chatbot.", "chat_conversation", conversation.id);
+
+      return NextResponse.json({ ok: true, conversationId: conversation.id });
+    }
+
+    if (body?.type === "client_message") {
+      const conversationId = String(body.conversationId ?? "");
+      const content = String(body.content ?? "").trim();
+      if (!conversationId || !content || content.length > 2000) {
+        return NextResponse.json({ error: "Please enter a valid message." }, { status: 400 });
+      }
+
+      const db = getDb();
+      const [conversation] = await db
+        .select({ id: chatConversations.id, status: chatConversations.status })
+        .from(chatConversations)
+        .where(eq(chatConversations.id, conversationId))
+        .limit(1);
+
+      if (!conversation) return NextResponse.json({ error: "Conversation not found." }, { status: 404 });
+      if (conversation.status === "closed") return NextResponse.json({ error: "This conversation is closed." }, { status: 400 });
+
+      await db.insert(chatMessages).values({ conversationId, role: "user", content });
+      await db.update(chatConversations).set({ updatedAt: new Date() }).where(eq(chatConversations.id, conversationId));
+
+      return NextResponse.json({ ok: true });
     }
 
     const { name, contact, contactType, message } = body;

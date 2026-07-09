@@ -9,13 +9,30 @@ import { Pagination } from "@/ui/pagination";
 export const dynamic = "force-dynamic";
 
 const statusStyles: Record<string, string> = {
-  open: "bg-green-100 text-green-700",
+  new: "bg-amber-100 text-amber-800",
+  bot_active: "bg-green-100 text-green-700",
+  human_active: "bg-primary/10 text-primary",
   closed: "bg-gray-100 text-gray-700",
+  open: "bg-green-100 text-green-700",
+  booking_requested: "bg-amber-100 text-amber-800",
+  booking_failed: "bg-red-100 text-red-700",
+  booking_started: "bg-green-100 text-green-700",
+};
+
+const statusLabels: Record<string, string> = {
+  new: "New",
+  bot_active: "Bot active",
+  human_active: "Human active",
+  closed: "Closed",
+  open: "Bot active",
+  booking_requested: "New",
+  booking_failed: "New",
+  booking_started: "Bot active",
 };
 
 function StatusBadge({ status }: { status: string }) {
   const cls = statusStyles[status] ?? "bg-gray-100 text-gray-700";
-  return <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold capitalize ${cls}`}>{status.replaceAll("_", " ")}</span>;
+  return <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${cls}`}>{statusLabels[status] ?? status.replaceAll("_", " ")}</span>;
 }
 
 export default async function ChatConversationsPage(props: { searchParams: Promise<{ page?: string }> }) {
