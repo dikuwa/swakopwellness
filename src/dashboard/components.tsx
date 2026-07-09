@@ -447,21 +447,24 @@ function initialsFromName(name: string) {
     .slice(0, 2);
 }
 
-function UserAvatar({ name, avatarUrl }: { name: string; avatarUrl?: string }) {
-  const initials = name
-    ? initialsFromName(name)
-    : "SW";
+function DashboardAvatar({ name, avatarUrl, className }: { name: string; avatarUrl?: string; className: string }) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const initials = name ? initialsFromName(name) : "SW";
 
   return (
-    <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-sm font-bold text-primary">
-      {avatarUrl ? (
+    <div className={`flex items-center justify-center overflow-hidden rounded-full bg-primary/10 font-bold text-primary ${className}`}>
+      {avatarUrl && !imageFailed ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+        <img src={avatarUrl} alt="" className="h-full w-full object-cover" onError={() => setImageFailed(true)} />
       ) : (
         initials
       )}
     </div>
   );
+}
+
+function UserAvatar({ name, avatarUrl }: { name: string; avatarUrl?: string }) {
+  return <DashboardAvatar name={name} avatarUrl={avatarUrl} className="h-10 w-10 text-sm" />;
 }
 
 function UserDropdown({
@@ -498,8 +501,6 @@ function UserDropdown({
     return () => document.removeEventListener("keydown", handler);
   }, [open]);
 
-  const initials = initialsFromName(name);
-
   return (
     <div ref={ref} className="relative">
       <button
@@ -509,14 +510,7 @@ function UserDropdown({
         aria-haspopup="true"
         aria-expanded={open}
       >
-        <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-primary/10 text-xs font-bold text-primary">
-          {avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
-          ) : (
-            initials
-          )}
-        </div>
+        <DashboardAvatar name={name} avatarUrl={avatarUrl} className="h-8 w-8 text-xs" />
         <div className="hidden text-left md:block">
           <p className="text-sm font-semibold leading-tight text-foreground">{name}</p>
           <p className="text-xs text-muted-foreground">{email}</p>

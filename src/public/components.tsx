@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { CalendarDays, Mail, MapPin, Phone } from "lucide-react";
+import { CalendarDays, Copyright, FileText, Heart, Mail, MapPin, Phone, UserRound } from "lucide-react";
 import { getPublicServices } from "@/public/data";
 import { MobileNavDrawer, PrimaryNavLinks, type NavLink } from "@/public/nav";
 import { ChatWidget } from "./chat-widget";
@@ -141,13 +141,36 @@ export function PublicFooter({ business, communication, services }: { business: 
             </div>
           </div>
         </div>
-        <div className="mt-10 grid gap-4 border-t border-primary-foreground/20 pt-6 text-sm leading-6 text-primary-foreground/70 md:grid-cols-[1fr_auto_1fr]">
-          <p>&copy; {new Date().getFullYear()} {business.businessName}. All rights reserved.</p>
-          <p className="text-center">Services are complementary wellness support and do not replace medical diagnosis or treatment.</p>
-          <div className="flex gap-4 md:text-right">
-            <Link href="/login" className="hover:text-primary-foreground">Staff Login</Link>
-            <Link href="/policies" className="hover:text-primary-foreground">Policies &amp; Disclaimers</Link>
-            <a href="https://www.flextech-media.com" target="_blank" rel="noreferrer" className="hover:text-primary-foreground">Flextech Media</a>
+        <div className="mt-10 text-primary-foreground/65">
+          <div className="grid gap-5 border-y border-primary-foreground/15 py-5 text-sm leading-5 md:grid-cols-[1.15fr_1.8fr_0.75fr_1fr] md:items-center md:gap-0">
+            <div className="flex items-center gap-3 md:border-r md:border-primary-foreground/15 md:pr-6">
+              <Copyright className="h-7 w-7 shrink-0 text-primary-foreground/55 md:h-8 md:w-8" strokeWidth={1.5} aria-hidden="true" />
+              <p>
+                {new Date().getFullYear()} {business.businessName}.<br />
+                All rights reserved.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 md:border-r md:border-primary-foreground/15 md:px-6">
+              <Heart className="h-7 w-7 shrink-0 text-primary-foreground/55 md:h-8 md:w-8" strokeWidth={1.5} aria-hidden="true" />
+              <p>
+                Services are complementary wellness support<br className="hidden lg:block" />
+                <span className="lg:ml-1"> and do not replace medical diagnosis or treatment.</span>
+              </p>
+            </div>
+            <div className="flex items-center gap-3 sm:inline-flex md:border-r md:border-primary-foreground/15 md:px-6">
+              <UserRound className="h-7 w-7 shrink-0 text-primary-foreground/55 md:h-8 md:w-8" strokeWidth={1.5} aria-hidden="true" />
+              <Link href="/login" className="font-medium transition-colors hover:text-primary-foreground">Staff Login</Link>
+            </div>
+            <div className="flex items-center gap-3 md:pl-6">
+              <FileText className="h-7 w-7 shrink-0 text-primary-foreground/55 md:h-8 md:w-8" strokeWidth={1.5} aria-hidden="true" />
+              <Link href="/policies" className="font-medium transition-colors hover:text-primary-foreground">Policies &amp; Disclaimers</Link>
+            </div>
+          </div>
+          <div className="pt-5 text-center text-sm">
+            <a href="https://www.flextech-media.com/" target="_blank" rel="noreferrer" className="inline-flex flex-wrap justify-center gap-x-1 transition-colors hover:text-primary-foreground">
+              <span>Designed by&nbsp;</span>
+              <span className="whitespace-nowrap font-semibold text-primary-foreground/80">FlexTech Media</span>
+            </a>
           </div>
         </div>
       </div>

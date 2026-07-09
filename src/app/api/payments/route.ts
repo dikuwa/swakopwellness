@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getCurrentUser, hasPermission } from "@/auth/session";
 import { recordWorkflowPayment } from "@/lib/models/payment";
 
@@ -38,5 +39,10 @@ export async function POST(request: Request) {
   });
 
   if (!result.ok) return NextResponse.json({ error: result.message }, { status: 400 });
+  revalidatePath("/dashboard");
+  revalidatePath("/dashboard/documents");
+  revalidatePath("/dashboard/payments");
+  if (body.invoiceId) revalidatePath(`/dashboard/invoices/${body.invoiceId}`);
+  if (result.receiptId) revalidatePath(`/dashboard/receipts/${result.receiptId}`);
   return NextResponse.json({ payment: result }, { status: 201 });
 }

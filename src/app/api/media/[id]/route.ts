@@ -14,6 +14,7 @@ export async function GET(_request: Request, props: { params: Promise<{ id: stri
     .select({
       id: mediaAssets.id,
       storageKey: mediaAssets.storageKey,
+      publicUrl: mediaAssets.publicUrl,
       mimeType: mediaAssets.mimeType,
       byteSize: mediaAssets.byteSize,
     })
@@ -39,6 +40,15 @@ export async function GET(_request: Request, props: { params: Promise<{ id: stri
       },
     });
   } catch {
-    return NextResponse.json({ error: "Media file unavailable" }, { status: 404 });
+    return new NextResponse(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160" viewBox="0 0 160 160" role="img" aria-label="Image unavailable"><rect width="160" height="160" rx="80" fill="#e8eddf"/><path d="M80 40c12 0 22 10 22 22S92 84 80 84 58 74 58 62s10-22 22-22Zm0 54c20 0 38 10 48 26H32c10-16 28-26 48-26Z" fill="#2f5b45"/></svg>',
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "image/svg+xml; charset=utf-8",
+          "Cache-Control": "public, max-age=300",
+        },
+      },
+    );
   }
 }

@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { clients, invoices, payments, receipts } from "@/db/schema";
+import { clients, invoiceLineItems, invoices, payments, receiptLineItems, receipts } from "@/db/schema";
 import { recordActivity } from "@/activity-log/record";
 import { notifyStaff } from "@/notifications/create";
 
@@ -27,6 +27,10 @@ export type PaymentResult = {
   message?: string;
 } | { ok: false; message: string };
 
+export function invoicePaymentReceiptDescription(invoiceNumber: string) {
+  return `Payment toward invoice ${invoiceNumber}`;
+}
+
 export async function recordPayment(input: RecordPaymentInput): Promise<PaymentResult> {
   const db = getDb();
   const result = await db.transaction(async (tx) => {
@@ -49,6 +53,7 @@ export async function recordPayment(input: RecordPaymentInput): Promise<PaymentR
       .returning();
 
     let newInvoiceStatus: string | undefined;
+    let invoiceReceiptDescription: string | undefined;
     if (input.invoiceId) {
       const [inv] = await tx.select().from(invoices).where(eq(invoices.id, input.invoiceId)).limit(1);
       if (inv) {
@@ -63,6 +68,7 @@ export async function recordPayment(input: RecordPaymentInput): Promise<PaymentR
           .set({ amountPaidCents: newPaid, balanceCents: newBalance, status, updatedAt: new Date() })
           .where(eq(invoices.id, input.invoiceId));
         newInvoiceStatus = status;
+        invoiceReceiptDescription = invoicePaymentReceiptDescription(inv.invoiceNumber);
       }
     }
 
@@ -98,13 +104,31 @@ export async function recordPayment(input: RecordPaymentInput): Promise<PaymentR
           paymentDate: input.paymentDate,
           paymentMethod: input.method,
           paymentReference: input.reference ?? null,
-          description: input.description ?? null,
+          description: input.description ?? invoiceReceiptDescription ?? null,
           notes: input.notes ?? null,
           receivedByUserId: input.recordedByUserId,
         })
         .returning();
 
       receiptId = receipt.id;
+
+      if (input.invoiceId && invoiceReceiptDescription) {
+        const items = await tx
+          .select({ sortOrder: invoiceLineItems.sortOrder })
+          .from(invoiceLineItems)
+          .where(eq(invoiceLineItems.invoiceId, input.invoiceId))
+          .orderBy(asc(invoiceLineItems.sortOrder))
+          .limit(1);
+
+        await tx.insert(receiptLineItems).values({
+          receiptId: receipt.id,
+          description: invoiceReceiptDescription,
+          quantity: 1,
+          unitPriceCents: input.amountCents,
+          discountCents: 0,
+          sortOrder: items[0]?.sortOrder ?? 0,
+        });
+      }
 
       await recordActivity(
         input.recordedByUserId,

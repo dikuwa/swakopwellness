@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { calculateUnifiedTotals, canApplyPayment } from "./document";
+import { resolveInvoicePaymentBookingId } from "./payment";
+import { invoicePaymentReceiptDescription } from "@/payments/record";
 
 describe("unified document calculations", () => {
   it("calculates totals from booking line items", () => {
@@ -23,5 +25,14 @@ describe("unified document calculations", () => {
   it("allows exact balance payment for automatic receipt generation", () => {
     const result = canApplyPayment(65000, 65000);
     assert.equal(result.ok, true);
+  });
+
+  it("uses the linked invoice booking over conflicting payment form state", () => {
+    assert.equal(resolveInvoicePaymentBookingId("stale-booking", "invoice-booking"), "invoice-booking");
+    assert.equal(resolveInvoicePaymentBookingId("stale-booking", null), null);
+  });
+
+  it("labels invoice payment receipt lines with the source invoice", () => {
+    assert.equal(invoicePaymentReceiptDescription("SWC-INV-00006"), "Payment toward invoice SWC-INV-00006");
   });
 });

@@ -101,7 +101,13 @@ const MARGIN = 45;
 const PAGE_WIDTH = 595;
 const PAGE_HEIGHT = 842;
 const USABLE_WIDTH = PAGE_WIDTH - 2 * MARGIN;
-const USABLE_HEIGHT = PAGE_HEIGHT - 2 * MARGIN;
+const FOOTER_TOP_Y = PAGE_HEIGHT - MARGIN - 58;
+const BRAND_GREEN = "#01641f";
+const DEEP_GREEN = "#1c3024";
+const MUTED_GREEN = "#5b6c61";
+const SOFT_GREEN = "#edf1ed";
+const BORDER_GREEN = "#c8d7cd";
+const PALE_SURFACE = "#fafbfa";
 
 function fmt(cents: number): string {
   return `N$${(cents / 100).toFixed(2)}`;
@@ -112,6 +118,10 @@ function fmtDate(d: Date): string {
 }
 
 const documentLogoPath = join(process.cwd(), "public", "brand", "logo-document.png");
+const DOCUMENT_LOGO_WIDTH = 112;
+const DOCUMENT_LOGO_ASPECT_RATIO = 500 / 768;
+const DOCUMENT_LOGO_HEIGHT = DOCUMENT_LOGO_WIDTH * DOCUMENT_LOGO_ASPECT_RATIO;
+const DOCUMENT_HEADER_LOGO_GAP = 5;
 
 function createDocument(): PDFKit.PDFDocument {
   const doc = new PDFDocument({ margin: MARGIN, size: "A4" });
@@ -167,7 +177,7 @@ function drawIcon(
   x: number,
   y: number,
   size: number = 10,
-  color: string = "#01641f",
+  color: string = BRAND_GREEN,
 ) {
   doc.save();
   const scale = size / 24;
@@ -181,13 +191,13 @@ function drawIcon(
 
 function drawFadedLeaf(doc: PDFKit.PDFDocument) {
   doc.save();
-  const scale = 2.8;
-  const dx = 420;
-  const dy = -10;
+  const scale = 3;
+  const dx = 58;
+  const dy = -34;
   doc.translate(dx, dy);
   doc.scale(scale);
-  doc.fillColor("#01641f");
-  doc.fillOpacity(0.035);
+  doc.fillColor(BRAND_GREEN);
+  doc.fillOpacity(0.08);
   for (const pathData of BRAND_LEAF_PATHS) {
     doc.path(pathData).fill();
   }
@@ -201,7 +211,7 @@ function drawFooterLeaf(doc: PDFKit.PDFDocument, x: number, y: number) {
   const dy = y - 137 * scale;
   doc.translate(dx, dy);
   doc.scale(scale);
-  doc.fillColor("#01641f");
+  doc.fillColor(BRAND_GREEN);
   doc.fillOpacity(1);
   doc.path(FOOTER_LEAF_PATH).fill();
   doc.restore();
@@ -232,34 +242,34 @@ function addHeaderAndBusinessInfo(
 
   if (existsSync(documentLogoPath)) {
     try {
-      doc.image(documentLogoPath, MARGIN, startY, { width: 100 });
-      detailsY = startY + 55;
+      doc.image(documentLogoPath, MARGIN, startY, { width: DOCUMENT_LOGO_WIDTH });
+      detailsY = startY + DOCUMENT_LOGO_HEIGHT + DOCUMENT_HEADER_LOGO_GAP;
     } catch {
       doc
         .font("Onest-Bold")
-        .fontSize(16)
-        .fillColor("#1c3024")
+        .fontSize(15)
+        .fillColor(DEEP_GREEN)
         .text(business.businessName, MARGIN, startY);
       detailsY = doc.y + 4;
     }
   } else {
     doc
       .font("Onest-Bold")
-      .fontSize(16)
-      .fillColor("#1c3024")
+      .fontSize(15)
+      .fillColor(DEEP_GREEN)
       .text(business.businessName, MARGIN, startY);
     detailsY = doc.y + 4;
   }
 
   let currentY = detailsY;
   const drawHeaderLine = (iconPath: string, text: string) => {
-    drawIcon(doc, iconPath, MARGIN, currentY + 1, 8);
+    drawIcon(doc, iconPath, MARGIN, currentY + 1.5, 7, BRAND_GREEN);
     doc
       .font("Onest")
-      .fontSize(7.5)
-      .fillColor("#5b6c61")
-      .text(text, 56, currentY, { width: 250 });
-    currentY += Math.max(doc.heightOfString(text, { width: 250 }), 8) + 2;
+      .fontSize(7.2)
+      .fillColor(MUTED_GREEN)
+      .text(text, MARGIN + 13, currentY, { width: 250 });
+    currentY += Math.max(doc.heightOfString(text, { width: 250 }), 7.5) + 1.5;
   };
 
   drawHeaderLine(SVG_ICONS.mapPin, business.address);
@@ -275,28 +285,28 @@ function addHeaderAndBusinessInfo(
     drawHeaderLine(SVG_ICONS.document, `Tax: ${business.taxNumber}`);
   }
 
-  const titleY = startY + 30;
+  const titleY = startY + 36;
   doc
     .font("Onest-Bold")
-    .fontSize(16)
-    .fillColor("#1c3024")
+    .fontSize(21)
+    .fillColor(BRAND_GREEN)
     .text(docType, 320, titleY, { align: "right", width: 230 });
   const numY = doc.y + 2;
   doc
     .font("Onest")
-    .fontSize(9)
-    .fillColor("#5b6c61")
+    .fontSize(9.5)
+    .fillColor(MUTED_GREEN)
     .text(docNumber, 320, numY, { align: "right", width: 230 });
 
-  const numLineY = doc.y + 4;
+  const numLineY = doc.y + 2;
 
-  doc.y = Math.max(currentY, numLineY + 8);
+  doc.y = Math.max(currentY, numLineY + 6);
 
   const dividerY = doc.y + 4;
   doc.save();
-  doc.strokeColor("#01641f");
+  doc.strokeColor(BRAND_GREEN);
   doc.lineWidth(0.6);
-  doc.opacity(0.8);
+  doc.opacity(0.7);
   doc.moveTo(MARGIN, dividerY).lineTo(PAGE_WIDTH - MARGIN, dividerY).stroke();
   doc.restore();
 
@@ -314,16 +324,25 @@ function addDatesAndClientSection(
 ) {
   const startY = doc.y;
   const leftColX = MARGIN;
-  const rightColX = 290;
+  const rightColX = 318;
+  const rightW = PAGE_WIDTH - MARGIN - rightColX;
 
-  let leftY = startY;
+  const leftPanelW = 250;
+  let leftY = startY + 8;
+  doc.save();
+  doc.fillColor(PALE_SURFACE);
+  doc.strokeColor("#e5ece7");
+  doc.lineWidth(0.6);
+  doc.roundedRect(leftColX, startY, leftPanelW, 42 + dates.length * 4, 5).fillAndStroke();
+  doc.restore();
+
   dates.forEach((d) => {
-    drawIcon(doc, SVG_ICONS.calendar, leftColX, leftY + 1.5, 8);
+    drawIcon(doc, SVG_ICONS.calendar, leftColX + 10, leftY + 1.5, 7, BRAND_GREEN);
     doc
       .font("Onest-Bold")
-      .fontSize(8.5)
-      .fillColor("#1c3024")
-      .text(`${d.label}:  `, leftColX + 11, leftY, { continued: true });
+      .fontSize(7.8)
+      .fillColor(DEEP_GREEN)
+      .text(`${d.label}:`, leftColX + 23, leftY, { width: 86 });
 
     let dateStr = "";
     if (d.value instanceof Date) {
@@ -333,56 +352,61 @@ function addDatesAndClientSection(
     }
     doc
       .font("Onest")
+      .fontSize(7.8)
       .fillColor("#2c3e35")
-      .text(dateStr, { continued: false });
-    leftY += doc.currentLineHeight() + 3;
+      .text(dateStr, leftColX + 108, leftY, { width: leftPanelW - 118 });
+    leftY += Math.max(doc.heightOfString(dateStr, { width: leftPanelW - 118 }), 8) + 2;
   });
 
-  let rightY = startY;
-  drawIcon(doc, SVG_ICONS.user, rightColX, rightY + 1.5, 8);
-  doc
-    .font("Onest-Bold")
-    .fontSize(8.5)
-    .fillColor("#1c3024")
-    .text("Bill To:", rightColX + 11, rightY);
-  rightY += doc.currentLineHeight() + 2;
-
-  doc
-    .font("Onest-Bold")
-    .fontSize(8.5)
-    .fillColor("#1c3024")
-    .text(clientName, rightColX + 11, rightY);
-  rightY += doc.currentLineHeight() + 2;
-
-  if (clientPhone) {
-    drawIcon(doc, SVG_ICONS.phone, rightColX, rightY + 2, 7, "#5b6c61");
-    doc
-      .font("Onest")
-      .fontSize(8)
-      .fillColor("#5b6c61")
-      .text(clientPhone, rightColX + 11, rightY);
-    rightY += doc.currentLineHeight();
-  }
-  if (clientEmail) {
-    drawIcon(doc, SVG_ICONS.mail, rightColX, rightY + 2, 7, "#5b6c61");
-    doc
-      .font("Onest")
-      .fontSize(8)
-      .fillColor("#5b6c61")
-      .text(clientEmail, rightColX + 11, rightY);
-    rightY += doc.currentLineHeight();
-  }
-
+  const clientLines = [clientName, clientPhone, clientEmail].filter(Boolean) as string[];
+  const clientBodyHeight = clientLines.reduce((height, line) => {
+    doc.font(line === clientName ? "Onest-Bold" : "Onest").fontSize(line === clientName ? 8.5 : 7.8);
+    return height + Math.max(doc.heightOfString(line, { width: rightW - 34 }), 8) + 2;
+  }, 0);
+  const cardH = Math.max(50, 24 + clientBodyHeight);
   doc.save();
-  doc.strokeColor("#e2e8f0");
-  doc.lineWidth(0.5);
-  doc
-    .moveTo(270, startY)
-    .lineTo(270, Math.max(leftY, rightY))
-    .stroke();
+  doc.fillColor("#ffffff");
+  doc.strokeColor(BORDER_GREEN);
+  doc.lineWidth(0.7);
+  doc.roundedRect(rightColX, startY, rightW, cardH, 6).fillAndStroke();
   doc.restore();
 
-  doc.y = Math.max(leftY, rightY) + 8;
+  let rightY = startY + 8;
+  drawIcon(doc, SVG_ICONS.user, rightColX + 10, rightY + 1.5, 7, BRAND_GREEN);
+  doc
+    .font("Onest-Bold")
+    .fontSize(7.8)
+    .fillColor(DEEP_GREEN)
+    .text("Bill To", rightColX + 22, rightY);
+  rightY += doc.currentLineHeight() + 3;
+
+  doc
+    .font("Onest-Bold")
+    .fontSize(8.5)
+    .fillColor(DEEP_GREEN)
+    .text(clientName, rightColX + 22, rightY, { width: rightW - 34 });
+  rightY += Math.max(doc.heightOfString(clientName, { width: rightW - 34 }), 8) + 2;
+
+  if (clientPhone) {
+    drawIcon(doc, SVG_ICONS.phone, rightColX + 10, rightY + 2, 6.5, MUTED_GREEN);
+    doc
+      .font("Onest")
+      .fontSize(7.8)
+      .fillColor(MUTED_GREEN)
+      .text(clientPhone, rightColX + 22, rightY, { width: rightW - 34 });
+    rightY += Math.max(doc.heightOfString(clientPhone, { width: rightW - 34 }), 8);
+  }
+  if (clientEmail) {
+    drawIcon(doc, SVG_ICONS.mail, rightColX + 10, rightY + 2, 6.5, MUTED_GREEN);
+    doc
+      .font("Onest")
+      .fontSize(7.8)
+      .fillColor(MUTED_GREEN)
+      .text(clientEmail, rightColX + 22, rightY, { width: rightW - 34 });
+    rightY += Math.max(doc.heightOfString(clientEmail, { width: rightW - 34 }), 8);
+  }
+
+  doc.y = Math.max(leftY, startY + cardH) + 9;
 }
 
 // ─── Line Items Table ────────────────────────────────────────────────
@@ -415,40 +439,23 @@ function addLineItemTable(
     ? ["Description", "Qty", "Price", "Total"]
     : ["Description", "Qty", "Unit Price", "Discount", "Total"];
 
-  // Table header background
-  doc.save();
-  doc.fillColor("#edf1ed");
-  doc
-    .rect(leftMargin, tableTop - 3, tableWidth, 16)
-    .fill();
-  doc.restore();
+  const drawHeader = (y: number) => {
+    doc.save();
+    doc.fillColor(BRAND_GREEN);
+    doc.roundedRect(leftMargin, y - 3, tableWidth, 18, 4).fill();
+    doc.restore();
 
-  doc.font("Onest-Bold").fontSize(8).fillColor("#1c3024");
-  for (let i = 0; i < headers.length; i++) {
-    doc.text(headers[i], colStarts[i] + 3, tableTop, {
-      width: colWidths[i] - 6,
-      align: i === 0 ? "left" : "right",
-    });
-  }
+    doc.font("Onest-Bold").fontSize(7.8).fillColor("#ffffff");
+    for (let i = 0; i < headers.length; i++) {
+      doc.text(headers[i], colStarts[i] + 5, y + 1, {
+        width: colWidths[i] - 10,
+        align: i === 0 ? "left" : "right",
+      });
+    }
+    return y + 17;
+  };
 
-  const headerBottom = tableTop + 13;
-  doc.save();
-  doc.strokeColor("#d1dcd4");
-  doc.lineWidth(0.5);
-  doc
-    .moveTo(leftMargin, headerBottom)
-    .lineTo(leftMargin + tableWidth, headerBottom)
-    .stroke();
-  doc.restore();
-
-  const rowHeight = 15;
-  const maxRows = Math.max(
-    Math.floor(
-      (PAGE_HEIGHT - MARGIN - headerBottom - 140) / (rowHeight + 1),
-    ),
-    2,
-  );
-  let rowY = headerBottom + 2;
+  let rowY = drawHeader(tableTop) + 3;
 
   for (let index = 0; index < items.length; index++) {
     const item = items[index];
@@ -467,35 +474,44 @@ function addLineItemTable(
           fmt(item.totalCents),
         ];
 
-    // Page overflow handling
-    if (index > 0 && index % maxRows === 0) {
+    doc.font("Onest").fontSize(7.8);
+    const descriptionHeight = doc.heightOfString(row[0], { width: colWidths[0] - 10 });
+    const rowHeight = Math.max(14, descriptionHeight + 6);
+
+    if (rowY + rowHeight > FOOTER_TOP_Y - 48) {
       doc.addPage();
       drawFadedLeaf(doc);
-      rowY = MARGIN;
+      rowY = drawHeader(MARGIN) + 3;
     }
 
-    doc.font("Onest").fontSize(8).fillColor("#2c3e35");
+    if (index % 2 === 1) {
+      doc.save();
+      doc.fillColor("#fbfcfb");
+      doc.rect(leftMargin, rowY - 2, tableWidth, rowHeight).fill();
+      doc.restore();
+    }
+
+    doc.font("Onest").fontSize(7.8).fillColor("#2c3e35");
     for (let i = 0; i < row.length; i++) {
-      doc.text(row[i], colStarts[i] + 3, rowY, {
-        width: colWidths[i] - 6,
+      doc.text(row[i], colStarts[i] + 5, rowY + 2, {
+        width: colWidths[i] - 10,
         align: i === 0 ? "left" : "right",
-        lineBreak: i === 0,
       });
     }
 
     doc.save();
-    doc.strokeColor("#edf2ee");
+    doc.strokeColor("#e4ece6");
     doc.lineWidth(0.5);
     doc
-      .moveTo(leftMargin, rowY + rowHeight)
+      .moveTo(leftMargin, rowY + rowHeight - 1)
       .lineTo(leftMargin + tableWidth, rowY + rowHeight)
       .stroke();
     doc.restore();
 
-    rowY += rowHeight + 1;
+    rowY += rowHeight;
   }
 
-  doc.y = rowY + 4;
+  doc.y = rowY + 6;
 }
 
 // ─── Totals Section ──────────────────────────────────────────────────
@@ -510,13 +526,27 @@ function addTotalsSection(
   balanceCents: number,
 ) {
   const totalsX = PAGE_WIDTH - MARGIN - 220;
+  const totalsW = 220;
   let y = doc.y;
+
+  if (y > FOOTER_TOP_Y - 84) {
+    doc.addPage();
+    drawFadedLeaf(doc);
+    y = MARGIN;
+  }
+
+  doc.save();
+  doc.strokeColor(BORDER_GREEN);
+  doc.lineWidth(0.6);
+  doc.moveTo(totalsX, y).lineTo(totalsX + totalsW, y).stroke();
+  doc.restore();
+  y += 6;
 
   const drawRow = (
     label: string,
     val: string,
     bold: boolean = false,
-    color: string = "#1c3024",
+    color: string = DEEP_GREEN,
     size: number = 8.5,
   ) => {
     doc
@@ -525,7 +555,7 @@ function addTotalsSection(
       .fillColor(color);
     doc.text(label, totalsX, y, { width: 110, align: "left" });
     doc.text(val, totalsX + 110, y, { width: 110, align: "right" });
-    y += bold ? 13 : 11;
+    y += bold ? 14 : 10;
   };
 
   drawRow("Subtotal", fmt(subtotalCents));
@@ -539,35 +569,40 @@ function addTotalsSection(
   }
 
   doc.save();
-  doc.strokeColor("#d1dcd4");
+  doc.strokeColor(BORDER_GREEN);
   doc.lineWidth(0.5);
-  doc.moveTo(totalsX, y).lineTo(totalsX + 220, y).stroke();
+  doc.moveTo(totalsX, y).lineTo(totalsX + totalsW, y).stroke();
   doc.restore();
-  y += 5;
+  y += 4;
 
-  drawRow("Total", fmt(totalCents), true, "#01641f", 9);
+  doc.save();
+  doc.fillColor(SOFT_GREEN);
+  doc.roundedRect(totalsX - 4, y - 3, totalsW + 8, 18, 4).fill();
+  doc.restore();
+
+  drawRow("Total", fmt(totalCents), true, BRAND_GREEN, 9.3);
 
   if (paidCents > 0) {
-    drawRow("Amount Paid", `-${fmt(paidCents)}`, false, "#01641f");
+    drawRow("Amount Paid", `-${fmt(paidCents)}`, false, BRAND_GREEN);
   }
 
   if (balanceCents > 0) {
     doc.save();
-    doc.strokeColor("#d1dcd4");
+    doc.strokeColor(BORDER_GREEN);
     doc.lineWidth(0.5);
-    doc.moveTo(totalsX, y).lineTo(totalsX + 220, y).stroke();
+    doc.moveTo(totalsX, y).lineTo(totalsX + totalsW, y).stroke();
     doc.restore();
-    y += 5;
+    y += 4;
 
     doc.save();
-    doc.fillColor("#edf1ed");
-    doc.rect(totalsX - 2, y - 2, 224, 16).fill();
+    doc.fillColor("#f4f7f4");
+    doc.roundedRect(totalsX - 4, y - 3, totalsW + 8, 18, 4).fill();
     doc.restore();
 
     doc
       .font("Onest-Bold")
       .fontSize(9)
-      .fillColor("#1c3024");
+      .fillColor(DEEP_GREEN);
     doc.text("Balance Due", totalsX, y, { width: 110, align: "left" });
     doc.text(fmt(balanceCents), totalsX + 110, y, {
       width: 110,
@@ -592,34 +627,27 @@ function drawBlockCard(
   content: string,
 ) {
   doc.save();
-  doc.fillColor("#fafbfa");
-  doc.strokeColor("#edf2ee");
-  doc.lineWidth(1);
+  doc.fillColor(PALE_SURFACE);
+  doc.strokeColor(BORDER_GREEN);
+  doc.lineWidth(0.7);
   doc.roundedRect(x, y, w, h, 6).fillAndStroke();
+  doc.restore();
 
-  const circleCenterX = x + w / 2;
-  const circleCenterY = y + 14;
-  doc.fillColor("#edf2ee");
-  doc.circle(circleCenterX, circleCenterY, 8).fill();
-  drawIcon(doc, iconPath, circleCenterX - 3.5, circleCenterY - 3.5, 7, "#01641f");
-
+  drawIcon(doc, iconPath, x + 9, y + 9, 7, BRAND_GREEN);
   doc
     .font("Onest-Bold")
-    .fontSize(7.5)
-    .fillColor("#1c3024")
-    .text(title, x + 6, y + 26, { align: "center", width: w - 12 });
+    .fontSize(7.7)
+    .fillColor(DEEP_GREEN)
+    .text(title, x + 21, y + 8, { width: w - 30 });
 
   doc
     .font("Onest")
-    .fontSize(7)
-    .fillColor("#5b6c61")
-    .text(content, x + 8, y + 36, {
-      align: "center",
-      width: w - 16,
+    .fontSize(7.2)
+    .fillColor(MUTED_GREEN)
+    .text(content, x + 10, y + 22, {
+      width: w - 20,
       lineBreak: true,
     });
-
-  doc.restore();
 }
 
 // ─── Notes / Terms / Banking Section ─────────────────────────────────
@@ -698,10 +726,10 @@ function addNotesTermsBankingSection(
     maxContentH = doc.heightOfString(cleanTerms, { width: w2 - 14 });
   }
 
-  const cardH = 42 + maxContentH + 10;
+  const cardH = 30 + maxContentH;
 
   // Check if we can fit on current page
-  const footerThreshold = PAGE_HEIGHT - MARGIN - 60;
+  const footerThreshold = FOOTER_TOP_Y - 8;
   if (doc.y + cardH > footerThreshold) {
     doc.addPage();
     drawFadedLeaf(doc);
@@ -724,26 +752,21 @@ function addNotesTermsBankingSection(
 
 // ─── Footer ──────────────────────────────────────────────────────────
 
-function addDocumentFooter(doc: PDFKit.PDFDocument, _business: BusinessData) {
-  const footerY = PAGE_HEIGHT - MARGIN - 55;
-
-  // If we're too close to the footer area, add a page break
-  // But be more lenient — only add a page if we're past the footer
-  if (doc.y > footerY + 10) {
+function addDocumentFooter(doc: PDFKit.PDFDocument) {
+  if (doc.y > FOOTER_TOP_Y + 10) {
     doc.addPage();
     drawFadedLeaf(doc);
     doc.y = MARGIN;
   }
 
-  // Always place footer at the bottom of the page
   const finalY = PAGE_HEIGHT - MARGIN - 50;
   const centerX = PAGE_WIDTH / 2;
   const leafY = finalY;
 
   doc.save();
-  doc.strokeColor("#01641f");
+  doc.strokeColor(BRAND_GREEN);
   doc.lineWidth(0.5);
-  doc.opacity(0.3);
+  doc.opacity(0.28);
   doc.moveTo(MARGIN, leafY).lineTo(centerX - 25, leafY).stroke();
   doc.moveTo(centerX + 25, leafY).lineTo(PAGE_WIDTH - MARGIN, leafY).stroke();
   doc.restore();
@@ -752,8 +775,8 @@ function addDocumentFooter(doc: PDFKit.PDFDocument, _business: BusinessData) {
 
   doc
     .font("Allura")
-    .fontSize(12)
-    .fillColor("#01641f")
+    .fontSize(13)
+    .fillColor(BRAND_GREEN)
     .fillOpacity(1);
   doc.text("Thank you for choosing Swakop Wellness Centre.", MARGIN, leafY + 12, {
     align: "center",
@@ -762,8 +785,8 @@ function addDocumentFooter(doc: PDFKit.PDFDocument, _business: BusinessData) {
 
   doc
     .font("Onest")
-    .fontSize(7.5)
-    .fillColor("#666");
+    .fontSize(7.2)
+    .fillColor(MUTED_GREEN);
   doc.text("Your wellness. Our priority.", MARGIN, leafY + 27, {
     align: "center",
     width: USABLE_WIDTH,
@@ -808,7 +831,7 @@ export async function generateInvoicePdf(
 
   addNotesTermsBankingSection(doc, invoice.notes, invoice.terms, business.bankingDetails ?? "");
 
-  addDocumentFooter(doc, business);
+  addDocumentFooter(doc);
 
   doc.end();
   return done;
@@ -863,7 +886,7 @@ export async function generateReceiptPdf(
 
   addNotesTermsBankingSection(doc, receipt.notes, "", "");
 
-  addDocumentFooter(doc, business);
+  addDocumentFooter(doc);
 
   doc.end();
   return done;
@@ -894,7 +917,7 @@ export async function generateQuotationPdf(
 
   addNotesTermsBankingSection(doc, quotation.notes, quotation.terms, business.bankingDetails ?? "");
 
-  addDocumentFooter(doc, business);
+  addDocumentFooter(doc);
 
   doc.end();
   return done;

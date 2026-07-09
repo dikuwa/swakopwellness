@@ -14,6 +14,10 @@ export interface ApiRecordPaymentInput {
   recordedByUserId: string;
 }
 
+export function resolveInvoicePaymentBookingId(inputBookingId: string | null | undefined, invoiceBookingId: string | null) {
+  return invoiceBookingId ?? null;
+}
+
 export async function recordWorkflowPayment(input: ApiRecordPaymentInput) {
   const db = getDb();
   let clientId = input.clientId ?? null;
@@ -35,7 +39,7 @@ export async function recordWorkflowPayment(input: ApiRecordPaymentInput) {
     if (!invoice) return { ok: false as const, message: "Invoice not found." };
     if (invoice.status === "voided") return { ok: false as const, message: "Cannot record payment against a voided invoice." };
     clientId = invoice.clientId;
-    bookingId = bookingId ?? invoice.bookingId;
+    bookingId = resolveInvoicePaymentBookingId(input.bookingId, invoice.bookingId);
     outstandingCents = invoice.balanceCents;
   }
 

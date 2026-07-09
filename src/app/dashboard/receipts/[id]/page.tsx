@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { asc, eq } from "drizzle-orm";
 import { getDb } from "@/db/client";
-import { receiptLineItems, receipts, clients, users } from "@/db/schema";
+import { receiptLineItems, receipts, clients, invoices, users } from "@/db/schema";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
 import { DocumentPreview } from "@/components/document-preview";
@@ -42,10 +42,12 @@ export default async function ReceiptDetailPage(props: { params: Promise<{ id: s
       clientName: clients.fullName,
       clientPhone: clients.phone,
       clientEmail: clients.email,
+      invoiceNumber: invoices.invoiceNumber,
       receivedByName: users.name,
     })
     .from(receipts)
     .innerJoin(clients, eq(receipts.clientId, clients.id))
+    .leftJoin(invoices, eq(receipts.invoiceId, invoices.id))
     .leftJoin(users, eq(receipts.receivedByUserId, users.id))
     .where(eq(receipts.id, id))
     .limit(1);
@@ -105,6 +107,7 @@ export default async function ReceiptDetailPage(props: { params: Promise<{ id: s
             bankingDetails=""
             dates={[
               { label: "Payment Date", value: formatDate(receipt.paymentDate) },
+              ...(receipt.invoiceNumber ? [{ label: "Invoice", value: receipt.invoiceNumber }] : []),
               { label: "Method", value: receipt.paymentMethod.replaceAll("_", " ") },
               ...(receipt.paymentReference ? [{ label: "Reference", value: receipt.paymentReference }] : []),
             ]}

@@ -30,7 +30,8 @@ export function PaymentPanel({ bookingId, invoiceId, clientId }: PaymentPanelPro
   const [loadingBookings, setLoadingBookings] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
-  const hasContext = !!selectedBookingId || !!invoiceId || !!clientId;
+  const effectiveSelectedBookingId = invoiceId ? "" : selectedBookingId;
+  const hasContext = !!effectiveSelectedBookingId || !!invoiceId || !!clientId;
 
   useEffect(() => {
     let cancelled = false;
@@ -56,7 +57,7 @@ export function PaymentPanel({ bookingId, invoiceId, clientId }: PaymentPanelPro
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          bookingId: selectedBookingId || null,
+          bookingId: effectiveSelectedBookingId || null,
           invoiceId,
           clientId,
           method,
@@ -71,6 +72,9 @@ export function PaymentPanel({ bookingId, invoiceId, clientId }: PaymentPanelPro
       setAmount("");
       setReference("");
       toast.success("Payment recorded");
+      if (invoiceId) {
+        router.replace("/dashboard/documents");
+      }
       router.refresh();
     } catch (err) {
       const error = err instanceof Error ? err.message : "Could not record payment.";
@@ -96,7 +100,7 @@ export function PaymentPanel({ bookingId, invoiceId, clientId }: PaymentPanelPro
           <Label htmlFor="paymentBooking" className="mb-2">Booking</Label>
           <Select
             id="paymentBooking"
-            value={selectedBookingId}
+            value={effectiveSelectedBookingId}
             onChange={setSelectedBookingId}
             searchable
             showClear
@@ -112,7 +116,7 @@ export function PaymentPanel({ bookingId, invoiceId, clientId }: PaymentPanelPro
             className="h-16 py-2"
             renderValue={(option) => <BookingSelectedDisplay booking={option} />}
             renderOption={(option) => (
-              <BookingOptionDisplay booking={option} selected={option.value === selectedBookingId} />
+              <BookingOptionDisplay booking={option} selected={option.value === effectiveSelectedBookingId} />
             )}
           />
         </div>

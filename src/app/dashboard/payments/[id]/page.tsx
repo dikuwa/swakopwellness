@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
 import { getDb } from "@/db/client";
@@ -38,7 +38,13 @@ export default async function PaymentDetailPage(props: { params: Promise<{ id: s
     })
     .from(payments)
     .leftJoin(clients, eq(payments.clientId, clients.id))
-    .leftJoin(invoices, eq(payments.invoiceId, invoices.id))
+    .leftJoin(
+      invoices,
+      and(
+        eq(payments.invoiceId, invoices.id),
+        or(isNull(payments.bookingId), isNull(invoices.bookingId), eq(payments.bookingId, invoices.bookingId)),
+      ),
+    )
     .leftJoin(bookings, eq(payments.bookingId, bookings.id))
     .leftJoin(users, eq(payments.recordedByUserId, users.id))
     .where(eq(payments.id, id))
