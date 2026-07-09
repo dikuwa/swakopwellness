@@ -356,35 +356,35 @@ export function NotificationList({ items }: { items: Notification[] }) {
                       openNotification(notification);
                     }
                   }}
-                  className={`border-t border-border px-4 py-3 outline-none first:border-t-0 transition-colors focus-visible:ring-3 focus-visible:ring-primary/10 sm:px-5 ${
+                  className={`border-t border-border px-4 py-2.5 outline-none first:border-t-0 transition-colors focus-visible:ring-3 focus-visible:ring-primary/10 sm:px-5 ${
                     hasTarget ? "cursor-pointer hover:bg-surface-muted/60" : ""
                   } ${unread ? "bg-primary/[0.035]" : "bg-surface"}`}
                 >
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                     <div className="min-w-0 flex-1">
-                      <div className="flex min-w-0 items-start gap-2">
-                        {unread ? <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" aria-label="Unread" /> : null}
+                      <div className="flex min-w-0 items-start gap-1.5">
+                        {unread ? <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" aria-label="Unread" /> : null}
                         <div className="min-w-0">
-                          <p className={`text-[14px] leading-5 text-foreground ${unread ? "font-semibold" : "font-medium"}`}>{notification.title}</p>
-                          <p className="mt-0.5 line-clamp-1 text-[13px] leading-5 text-muted-foreground">{notification.summary}</p>
+                          <p className={`text-[14px] leading-4 text-foreground ${unread ? "font-semibold" : "font-medium"}`}>{notification.title}</p>
+                          <p className="mt-0.5 line-clamp-1 text-[13px] leading-4 text-muted-foreground">{notification.summary}</p>
                         </div>
                       </div>
 
-                      <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 pl-4 text-[12px] text-muted-foreground">
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 pl-3 text-[12px] leading-4 text-muted-foreground">
                         <span className="capitalize">{entityLabel(notification)}</span>
                         <span aria-hidden="true">•</span>
                         <time dateTime={new Date(notification.createdAt).toISOString()}>{formattedDate(notification.createdAt)}</time>
                       </div>
                     </div>
 
-                    <div className="flex flex-col gap-2 lg:items-end">
-                      <div className="flex flex-wrap items-center gap-1.5 lg:justify-end">
+                    <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         {amount ? <Badge variant="muted">{amount}</Badge> : null}
                         {status ? <Badge variant={status.variant}>{status.label}</Badge> : null}
                         <span className="text-[12px] text-muted-foreground">{relativeTime(notification.createdAt)}</span>
                       </div>
 
-                      <div className="flex flex-wrap items-center gap-3 lg:justify-end">
+                      <div className="flex flex-wrap items-center gap-2 lg:justify-end">
                         <Button
                           type="button"
                           variant="secondary"
@@ -394,9 +394,9 @@ export function NotificationList({ items }: { items: Notification[] }) {
                             event.stopPropagation();
                             openNotification(notification);
                           }}
-                          className="h-8 min-w-0 gap-1.5 px-3 text-[12px]"
+                          className="h-7 min-w-0 gap-1 px-2.5 text-[12px]"
                         >
-                          {navigatingId === notification.id ? <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" aria-hidden="true" /> : null}
+                          {navigatingId === notification.id ? <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" aria-hidden="true" /> : null}
                           {viewLabel(notification)}
                         </Button>
                         <Button
@@ -408,9 +408,9 @@ export function NotificationList({ items }: { items: Notification[] }) {
                             event.stopPropagation();
                             handleMarkReadToggle(notification);
                           }}
-                          className="h-8 px-1.5 text-[12px] text-muted-foreground"
+                          className="h-7 px-1 text-[12px] text-muted-foreground"
                         >
-                          {rowActionId === notification.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
+                          {rowActionId === notification.id ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" /> : null}
                           {notification.readAt ? "Unread" : "Read"}
                         </Button>
                         <Button
@@ -422,7 +422,7 @@ export function NotificationList({ items }: { items: Notification[] }) {
                             event.stopPropagation();
                             handleRemove(notification);
                           }}
-                          className="h-8 px-1.5 text-[12px] text-destructive hover:bg-destructive/5"
+                          className="h-7 px-1 text-[12px] text-destructive hover:bg-destructive/5"
                         >
                           Remove
                         </Button>
