@@ -234,7 +234,16 @@ export async function getFollowUpBookingOptions() {
 
 export async function getBookableServicesForManualUse() {
   const db = getDb();
-  return db.select({ id: services.id, name: services.name, priceCents: services.priceCents }).from(services).where(eq(services.active, true)).orderBy(asc(services.sortOrder));
+  return db
+    .select({
+      id: services.id,
+      name: services.name,
+      priceCents: services.priceCents,
+      durationMinutes: services.durationMinutes,
+    })
+    .from(services)
+    .where(eq(services.active, true))
+    .orderBy(asc(services.sortOrder));
 }
 
 export async function getActiveSuitabilityQuestionsForDashboard() {
@@ -372,5 +381,4 @@ export async function getReceipts(page: number = 1, pageSize: number = 25) {
   ]);
   return { rows, total };
 }
-
 

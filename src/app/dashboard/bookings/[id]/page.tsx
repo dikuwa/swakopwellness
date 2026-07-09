@@ -5,8 +5,9 @@ import { notFound } from "next/navigation";
 import { requirePermission, hasPermission } from "@/auth/session";
 import { getAvailableActions } from "@/booking/status";
 import { DashboardShell } from "@/dashboard/shell";
-import { getDashboardBookingById } from "@/dashboard/data";
+import { getBookableServicesForManualUse, getDashboardBookingById } from "@/dashboard/data";
 import { StatusActionsPanel } from "../status-actions-panel";
+import { BookingDetailsForm } from "../booking-details-form";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,10 @@ export default async function BookingDetailPage(props: { params: Promise<{ id: s
   const user = await requirePermission("bookings:view");
   const { id } = await props.params;
   const canViewSuitability = hasPermission(user.permissions, "suitability:view");
-  const booking = await getDashboardBookingById(id, canViewSuitability);
+  const [booking, services] = await Promise.all([
+    getDashboardBookingById(id, canViewSuitability),
+    getBookableServicesForManualUse(),
+  ]);
 
   if (!booking) notFound();
 
@@ -96,6 +100,14 @@ export default async function BookingDetailPage(props: { params: Promise<{ id: s
             />
           </section>
         </div>
+
+        <section className="mt-6 rounded-2xl border border-border bg-background p-5">
+          <div className="mb-5">
+            <h2 className="text-lg font-semibold">Booking Details</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Update the appointment time, service assignment, contact preference, and internal notes.</p>
+          </div>
+          <BookingDetailsForm booking={booking} services={services} />
+        </section>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_1fr]">
           <section className="rounded-2xl border border-border bg-background p-5">
