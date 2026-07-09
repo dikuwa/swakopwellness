@@ -177,6 +177,7 @@ async function callChatProvider(question: string, context: ChatContext) {
 
   const openRouterKey = process.env.OPENROUTER_API_KEY;
   if (openRouterKey) {
+    const model = process.env.OPENROUTER_MODEL || process.env.AI_MODEL || "openai/gpt-oss-20b:free";
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -186,13 +187,13 @@ async function callChatProvider(question: string, context: ChatContext) {
         "X-OpenRouter-Title": "Swakop Wellness Centre",
       },
       body: JSON.stringify({
-        model: "meta-llama/llama-3.1-8b-instruct:free",
+        model,
         messages,
         temperature: 0.3,
         max_tokens: 500,
       }),
     });
-    if (!response.ok) throw new Error("OpenRouter request failed.");
+    if (!response.ok) throw new Error(`OpenRouter request failed with status ${response.status}.`);
     const data = await response.json();
     return cleanText(String(data?.choices?.[0]?.message?.content ?? ""));
   }
