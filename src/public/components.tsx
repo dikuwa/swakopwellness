@@ -147,6 +147,7 @@ export function PublicFooter({ business, communication, services }: { business: 
           <div className="flex gap-4 md:text-right">
             <Link href="/login" className="hover:text-primary-foreground">Staff Login</Link>
             <Link href="/policies" className="hover:text-primary-foreground">Policies &amp; Disclaimers</Link>
+            <a href="https://www.flextech-media.com" target="_blank" rel="noreferrer" className="hover:text-primary-foreground">Flextech Media</a>
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Select } from "@/ui/components";
 
@@ -30,6 +30,7 @@ interface Props {
 export function UserForm({ roles, action, initialData }: Props) {
   const router = useRouter();
   const isEdit = !!initialData;
+  const [roleValue, setRoleValue] = useState(initialData?.roleName ?? "");
 
   const [state, formAction, isPending] = useActionState(
     async (_prev: unknown, formData: FormData) => action(formData),
@@ -119,6 +120,8 @@ export function UserForm({ roles, action, initialData }: Props) {
                 id="role"
                 name="role"
                 required
+                value={roleValue}
+                onChange={setRoleValue}
                 options={roles.map((r) => ({ value: r.name, label: r.name }))}
                 placeholder="Select role"
               />
