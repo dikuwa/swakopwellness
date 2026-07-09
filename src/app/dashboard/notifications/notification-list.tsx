@@ -9,6 +9,7 @@ import {
   CheckCheck,
   FileText,
   Loader2,
+  MoreHorizontal,
   ReceiptText,
   Trash2,
   WalletCards,
@@ -144,6 +145,7 @@ export function NotificationList({ items }: { items: Notification[] }) {
   const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const [rowActionId, setRowActionId] = useState<string | null>(null);
   const [navigatingId, setNavigatingId] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const counts = useMemo(() => {
     return notifications.reduce(
@@ -186,6 +188,7 @@ export function NotificationList({ items }: { items: Notification[] }) {
       return;
     }
 
+    setOpenMenuId(null);
     setNavigatingId(notification.id);
     try {
       const result = await resolveNotificationTarget(notification.id);
@@ -203,6 +206,7 @@ export function NotificationList({ items }: { items: Notification[] }) {
   };
 
   const handleMarkReadToggle = async (notification: Notification) => {
+    setOpenMenuId(null);
     setRowActionId(notification.id);
     const previous = notifications;
     const nextReadAt = notification.readAt ? null : new Date();
@@ -225,6 +229,7 @@ export function NotificationList({ items }: { items: Notification[] }) {
   };
 
   const handleRemove = async (notification: Notification) => {
+    setOpenMenuId(null);
     setRowActionId(notification.id);
     const previous = notifications;
     setNotifications((current) => current.filter((item) => item.id !== notification.id));
@@ -335,7 +340,7 @@ export function NotificationList({ items }: { items: Notification[] }) {
             <div className="h-px flex-1 bg-border" />
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-border bg-surface">
+          <div className="overflow-visible rounded-2xl border border-border bg-surface">
             {group.items.map((notification) => {
               const unread = !notification.readAt;
               const amount = amountFrom(notification);
@@ -356,76 +361,101 @@ export function NotificationList({ items }: { items: Notification[] }) {
                       openNotification(notification);
                     }
                   }}
-                  className={`border-t border-border px-4 py-4 outline-none first:border-t-0 transition-colors focus-visible:ring-3 focus-visible:ring-primary/10 sm:px-5 ${
+                  className={`relative border-t border-border px-3 py-3 outline-none first:border-t-0 transition-colors focus-visible:ring-3 focus-visible:ring-primary/10 sm:px-4 ${
                     hasTarget ? "cursor-pointer hover:bg-surface-muted/60" : ""
                   } ${unread ? "bg-primary/[0.035]" : "bg-surface"}`}
                 >
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                     <div className="min-w-0 flex-1">
-                      <div className="flex min-w-0 items-start gap-2">
-                        {unread ? <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" aria-label="Unread" /> : null}
-                        <div className="min-w-0">
-                          <p className={`text-sm leading-5 text-foreground ${unread ? "font-semibold" : "font-medium"}`}>{notification.title}</p>
-                          <p className="mt-1 line-clamp-2 text-sm leading-6 text-muted-foreground">{notification.summary}</p>
+                      <div className="grid min-w-0 gap-1">
+                        <div className="flex min-w-0 items-center gap-2">
+                          {unread ? <span className="h-2 w-2 shrink-0 rounded-full bg-primary" aria-label="Unread" /> : null}
+                          <p className={`min-w-0 truncate text-sm leading-5 text-foreground ${unread ? "font-semibold" : "font-medium"}`}>{notification.title}</p>
                         </div>
+                        <p className="line-clamp-1 text-sm leading-5 text-muted-foreground">{notification.summary}</p>
                       </div>
 
-                      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 pl-4 text-xs text-muted-foreground">
+                      <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                         <span className="capitalize">{entityLabel(notification)}</span>
                         <span aria-hidden="true">•</span>
                         <time dateTime={new Date(notification.createdAt).toISOString()}>{formattedDate(notification.createdAt)}</time>
+                        <span aria-hidden="true">•</span>
+                        <span>{relativeTime(notification.createdAt)}</span>
                       </div>
                     </div>
 
-                    <div className="flex flex-col gap-3 lg:items-end">
-                      <div className="flex flex-wrap items-center gap-2 lg:justify-end">
+                    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                      <div className="flex flex-wrap items-center gap-2">
                         {amount ? <Badge variant="muted">{amount}</Badge> : null}
                         {status ? <Badge variant={status.variant}>{status.label}</Badge> : null}
-                        <span className="text-xs text-muted-foreground">{relativeTime(notification.createdAt)}</span>
                       </div>
 
-                      <div className="flex flex-wrap gap-2 lg:justify-end">
-                        <Button
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        disabled={!hasTarget || actionDisabled}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          openNotification(notification);
+                        }}
+                        className="h-8 min-w-[72px] gap-2 px-3"
+                      >
+                        {navigatingId === notification.id ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-hidden="true" /> : null}
+                        View
+                      </Button>
+
+                      <div className="relative">
+                        <button
                           type="button"
-                          variant="secondary"
-                          size="sm"
-                          disabled={!hasTarget || actionDisabled}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            openNotification(notification);
-                          }}
-                          className="min-w-[116px] gap-2"
-                        >
-                          {navigatingId === notification.id ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-hidden="true" /> : null}
-                          {viewLabel(notification)}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
                           disabled={actionDisabled}
                           onClick={(event) => {
                             event.stopPropagation();
-                            handleMarkReadToggle(notification);
+                            setOpenMenuId((current) => (current === notification.id ? null : notification.id));
                           }}
-                          className="gap-2 text-muted-foreground"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground disabled:opacity-50"
+                          aria-haspopup="menu"
+                          aria-expanded={openMenuId === notification.id}
+                          aria-label={`More actions for ${notification.title}`}
                         >
-                          {rowActionId === notification.id ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
-                          {notification.readAt ? "Unread" : "Read"}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          disabled={actionDisabled}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleRemove(notification);
-                          }}
-                          className="gap-2 text-destructive hover:bg-destructive/5"
-                        >
-                          Remove
-                        </Button>
+                          {rowActionId === notification.id ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <MoreHorizontal className="h-4 w-4" aria-hidden="true" />}
+                        </button>
+
+                        {openMenuId === notification.id ? (
+                          <div
+                            role="menu"
+                            className="absolute right-0 top-9 z-20 w-44 overflow-hidden rounded-xl border border-border bg-surface p-1 shadow-[0_12px_30px_oklch(0.235_0.025_158_/_0.14)]"
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <button
+                              type="button"
+                              role="menuitem"
+                              disabled={!hasTarget || actionDisabled}
+                              onClick={() => openNotification(notification)}
+                              className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              {viewLabel(notification)}
+                            </button>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              disabled={actionDisabled}
+                              onClick={() => handleMarkReadToggle(notification)}
+                              className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-medium hover:bg-surface-muted disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Mark as {notification.readAt ? "unread" : "read"}
+                            </button>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              disabled={actionDisabled}
+                              onClick={() => handleRemove(notification)}
+                              className="flex w-full items-center rounded-lg px-3 py-2 text-left text-sm font-medium text-destructive hover:bg-destructive/5 disabled:cursor-not-allowed disabled:opacity-50"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   </div>
