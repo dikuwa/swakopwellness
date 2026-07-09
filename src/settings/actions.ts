@@ -33,12 +33,16 @@ export async function updateBusinessSettings(formData: FormData) {
     const taxNumber = formData.get("taxNumber") as string;
     const bankingDetails = formData.get("bankingDetails") as string;
     const footerMessage = formData.get("footerMessage") as string;
+    const signatureName = formData.get("signatureName") as string;
+    const signatureRole = formData.get("signatureRole") as string;
 
     const documentDetails: Record<string, unknown> = {
       registrationNumber,
       taxNumber,
       bankingDetails,
       footerMessage,
+      signatureName,
+      signatureRole,
     };
 
     const [existing] = await db.select({ id: businessSettings.id }).from(businessSettings).limit(1);

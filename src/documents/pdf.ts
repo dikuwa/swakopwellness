@@ -95,6 +95,8 @@ export interface BusinessData {
   taxNumber?: string;
   bankingDetails?: string;
   footerMessage?: string;
+  signatureName?: string;
+  signatureRole?: string;
 }
 
 const MARGIN = 45;
@@ -750,6 +752,62 @@ function addNotesTermsBankingSection(
   doc.y = cardY + cardH + 8;
 }
 
+// ─── Signature ────────────────────────────────────────────────────────
+
+function addDocumentSignature(doc: PDFKit.PDFDocument, business: BusinessData) {
+  const signatureName = (business.signatureName ?? "").trim();
+  const signatureRole = (business.signatureRole ?? "").trim();
+
+  if (!signatureName) return;
+
+  const signatureW = 240;
+  const signatureX = PAGE_WIDTH - MARGIN - signatureW;
+  const signatureY = FOOTER_TOP_Y - 96;
+  const signatureH = signatureRole ? 66 : 52;
+
+  if (doc.y > signatureY - 8) {
+    doc.addPage();
+    drawFadedLeaf(doc);
+    doc.y = MARGIN;
+  }
+
+  doc.save();
+  doc.rotate(-6, { origin: [signatureX + signatureW / 2, signatureY + 22] });
+  doc
+    .font("Allura")
+    .fontSize(30)
+    .fillColor(BRAND_GREEN)
+    .fillOpacity(1)
+    .text(signatureName, signatureX, signatureY, {
+      align: "center",
+      width: signatureW,
+      lineBreak: false,
+    });
+  doc.restore();
+
+  doc
+    .font("Onest-Bold")
+    .fontSize(9.5)
+    .fillColor(DEEP_GREEN)
+    .text(signatureName, signatureX, signatureY + 32, {
+      align: "center",
+      width: signatureW,
+    });
+
+  if (signatureRole) {
+    doc
+      .font("Onest")
+      .fontSize(7.5)
+      .fillColor(MUTED_GREEN)
+      .text(signatureRole, signatureX, signatureY + 45, {
+        align: "center",
+        width: signatureW,
+      });
+  }
+
+  doc.y = Math.max(doc.y, signatureY + signatureH);
+}
+
 // ─── Footer ──────────────────────────────────────────────────────────
 
 function addDocumentFooter(doc: PDFKit.PDFDocument) {
@@ -831,6 +889,8 @@ export async function generateInvoicePdf(
 
   addNotesTermsBankingSection(doc, invoice.notes, invoice.terms, business.bankingDetails ?? "");
 
+  addDocumentSignature(doc, business);
+
   addDocumentFooter(doc);
 
   doc.end();
@@ -886,6 +946,8 @@ export async function generateReceiptPdf(
 
   addNotesTermsBankingSection(doc, receipt.notes, "", "");
 
+  addDocumentSignature(doc, business);
+
   addDocumentFooter(doc);
 
   doc.end();
@@ -916,6 +978,8 @@ export async function generateQuotationPdf(
   addTotalsSection(doc, quotation.subtotalCents, quotation.discountCents, 0, quotation.totalCents, 0, 0);
 
   addNotesTermsBankingSection(doc, quotation.notes, quotation.terms, business.bankingDetails ?? "");
+
+  addDocumentSignature(doc, business);
 
   addDocumentFooter(doc);
 

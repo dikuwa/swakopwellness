@@ -21,6 +21,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const [business] = await db.select().from(businessSettings).limit(1);
   if (!business) notFound();
 
+  const docDetails = (business.documentDetails ?? {}) as Record<string, unknown>;
+
   const pdfData = {
     quotationNumber: quotation.quotationNumber,
     issueDate: quotation.issueDate,
@@ -47,10 +49,12 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     address: business.address,
     phone: business.telephone,
     email: business.email,
-    registrationNumber: (business.documentDetails as Record<string, unknown>)?.registrationNumber as string | undefined,
-    taxNumber: (business.documentDetails as Record<string, unknown>)?.taxNumber as string | undefined,
-    bankingDetails: (business.documentDetails as Record<string, unknown>)?.bankingDetails as string | undefined,
-    footerMessage: (business.documentDetails as Record<string, unknown>)?.footerMessage as string | undefined,
+    registrationNumber: docDetails.registrationNumber as string | undefined,
+    taxNumber: docDetails.taxNumber as string | undefined,
+    bankingDetails: docDetails.bankingDetails as string | undefined,
+    footerMessage: docDetails.footerMessage as string | undefined,
+    signatureName: docDetails.signatureName as string | undefined,
+    signatureRole: docDetails.signatureRole as string | undefined,
   };
 
   const pdfBuffer = await generateQuotationPdf(pdfData, businessData);

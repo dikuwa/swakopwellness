@@ -186,6 +186,28 @@ export function SettingsTabs({
                 <label htmlFor="bs-bank" className="mb-1.5 block text-sm font-medium">Banking Details</label>
                 <textarea id="bs-bank" name="bankingDetails" defaultValue={(bs.documentDetails?.bankingDetails as string) ?? ""} rows={3} className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-foreground" />
               </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor="bs-signature-name" className="mb-1.5 block text-sm font-medium">Document Signature Name</label>
+                  <input
+                    id="bs-signature-name"
+                    name="signatureName"
+                    defaultValue={(bs.documentDetails?.signatureName as string) ?? ""}
+                    placeholder="Martin Mukoya"
+                    className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-foreground"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="bs-signature-role" className="mb-1.5 block text-sm font-medium">Document Signature Role</label>
+                  <input
+                    id="bs-signature-role"
+                    name="signatureRole"
+                    defaultValue={(bs.documentDetails?.signatureRole as string) ?? ""}
+                    placeholder="Managing Director"
+                    className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-foreground"
+                  />
+                </div>
+              </div>
               <div>
                 <label htmlFor="bs-footer" className="mb-1.5 block text-sm font-medium">Footer Message</label>
                 <textarea id="bs-footer" name="footerMessage" defaultValue={(bs.documentDetails?.footerMessage as string) ?? ""} rows={2} className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-foreground" />

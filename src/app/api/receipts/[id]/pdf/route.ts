@@ -65,6 +65,8 @@ export async function GET(_request: Request, props: { params: Promise<{ id: stri
     taxNumber: (docDetails.taxNumber as string) ?? undefined,
     bankingDetails: (docDetails.bankingDetails as string) ?? undefined,
     footerMessage: (docDetails.footerMessage as string) ?? undefined,
+    signatureName: (docDetails.signatureName as string) ?? undefined,
+    signatureRole: (docDetails.signatureRole as string) ?? undefined,
   };
 
   const receiptLineItemsData = await db
