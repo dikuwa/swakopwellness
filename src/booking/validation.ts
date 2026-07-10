@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { parseBusinessDateTime } from "@/lib/business-time";
 
 export const contactMethods = ["phone", "email", "whatsapp"] as const;
 export const clientTypes = ["new", "returning"] as const;
@@ -22,8 +23,7 @@ export const bookingRequestSchema = z.object({
 export type BookingRequestInput = z.infer<typeof bookingRequestSchema>;
 
 export function parseDateTime(date: string, time: string) {
-  const parsed = new Date(`${date}T${time}:00`);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
+  return parseBusinessDateTime(date, time);
 }
 
 export function hasAtLeastOneContact(input: Pick<BookingRequestInput, "phone" | "email" | "whatsappNumber">) {

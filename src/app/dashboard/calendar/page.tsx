@@ -14,6 +14,7 @@ import { requirePermission } from "@/auth/session";
 import { DashboardShell } from "@/dashboard/shell";
 import { getDb } from "@/db/client";
 import { bookings, clients } from "@/db/schema";
+import { businessEndOfDay, businessStartOfDay, formatBusinessDate, formatBusinessTime, toBusinessDateValue } from "@/lib/business-time";
 import { Badge, Card } from "@/ui/components";
 
 export const dynamic = "force-dynamic";
@@ -54,7 +55,7 @@ function getStatusDotColor(status: string): string {
 }
 
 function formatDateHeader(date: Date) {
-  return date.toLocaleDateString("en-GB", {
+  return formatBusinessDate(date, {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -62,26 +63,19 @@ function formatDateHeader(date: Date) {
 }
 
 function formatTime(date: Date) {
-  return date.toLocaleTimeString("en-GB", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return formatBusinessTime(date);
 }
 
 function toISODate(date: Date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+  return toBusinessDateValue(date) ?? "";
 }
 
-// Fixed timezone issues by parsing correctly
 function startOfDay(dateStr: string) {
-  return new Date(`${dateStr}T00:00:00`);
+  return businessStartOfDay(dateStr) ?? new Date(`${dateStr}T00:00:00Z`);
 }
 
 function endOfDay(dateStr: string) {
-  return new Date(`${dateStr}T23:59:59`);
+  return businessEndOfDay(dateStr) ?? new Date(`${dateStr}T23:59:59Z`);
 }
 
 function getMonday(d: Date) {

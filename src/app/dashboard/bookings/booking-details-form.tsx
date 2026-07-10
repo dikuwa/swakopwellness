@@ -4,21 +4,17 @@ import { useActionState, useEffect, useState } from "react";
 import { Loader2, Save } from "lucide-react";
 import toast from "react-hot-toast";
 import { updateBookingDetails } from "@/booking/actions";
+import { toBusinessDateValue, toBusinessTimeValue } from "@/lib/business-time";
 import { Button, DatePicker, Input, Label, Select, Textarea, TimePicker } from "@/ui/components";
 
 type ActionState = { ok: boolean; error?: string } | null;
 
 function dateValue(date: Date | null) {
-  if (!date) return undefined;
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return toBusinessDateValue(date);
 }
 
 function timeValue(date: Date | null) {
-  if (!date) return undefined;
-  return date.toTimeString().slice(0, 5);
+  return toBusinessTimeValue(date);
 }
 
 export function BookingDetailsForm({

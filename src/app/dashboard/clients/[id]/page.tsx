@@ -7,6 +7,7 @@ import { DashboardShell } from "@/dashboard/shell";
 import { getClientById } from "@/dashboard/data";
 import { getDb } from "@/db/client";
 import { bookings, invoices, payments } from "@/db/schema";
+import { formatBusinessDate } from "@/lib/business-time";
 import { CalendarCheck, FileText, CreditCard } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -166,7 +167,7 @@ export default async function DashboardClientDetailPage(props: { params: Promise
                         </Link>
                       </td>
                       <td>{b.serviceName}</td>
-                      <td className="whitespace-nowrap">{b.preferredAt.toLocaleDateString("en-GB")}</td>
+                      <td className="whitespace-nowrap">{formatBusinessDate(b.preferredAt)}</td>
                       <td>
                         <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${badge.cls}`}>
                           {badge.label}

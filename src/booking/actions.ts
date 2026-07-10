@@ -7,13 +7,13 @@ import { and, eq, lt, ne, or, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { recordActivity } from "@/activity-log/record";
 import { notifyStaff } from "@/notifications/create";
+import { formatBusinessDateTime, parseBusinessDateTime } from "@/lib/business-time";
 import { validTransitions } from "./status";
 
 export type TxResult = { ok: false; error: string } | { ok: true };
 
 function parseDateTimeFields(dateValue: string, timeValue: string) {
-  const value = new Date(`${dateValue}T${timeValue}`);
-  return Number.isNaN(value.getTime()) ? null : value;
+  return parseBusinessDateTime(dateValue, timeValue);
 }
 
 const editableBookingStatuses = ["new_request", "requires_review", "contacting_client", "awaiting_client_response", "confirmed", "rescheduled"];
@@ -199,7 +199,7 @@ export async function rescheduleBooking(formData: FormData): Promise<void> {
       fromStatus: booking.status,
       toStatus: "rescheduled",
       actorUserId: user.id,
-      note: `Rescheduled to ${newPreferredAt.toLocaleString("en-GB")}. Reason: ${reason || "Not specified"}`,
+      note: `Rescheduled to ${formatBusinessDateTime(newPreferredAt)}. Reason: ${reason || "Not specified"}`,
     });
 
     fromStatus = booking.status;
@@ -331,7 +331,7 @@ export async function updateBookingDetails(formData: FormData): Promise<void> {
     nextStatus = timeChanged ? "rescheduled" : booking.status;
 
     const changes = [
-      timeChanged ? `Time: ${booking.preferredAt.toLocaleString("en-GB")} -> ${preferredAt.toLocaleString("en-GB")}` : null,
+      timeChanged ? `Time: ${formatBusinessDateTime(booking.preferredAt)} -> ${formatBusinessDateTime(preferredAt)}` : null,
       serviceChanged ? `Service: ${booking.serviceName} -> ${service.name}` : null,
       booking.preferredContactMethod !== preferredContactMethod ? `Contact: ${booking.preferredContactMethod} -> ${preferredContactMethod}` : null,
       booking.clientType !== clientType ? `Client type: ${booking.clientType} -> ${clientType}` : null,

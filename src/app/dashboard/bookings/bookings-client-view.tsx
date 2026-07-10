@@ -6,6 +6,7 @@ import { Pagination } from "@/ui/pagination";
 import { Badge, Card, LinkButton } from "@/ui/components";
 import { Calendar as CalendarIcon } from "lucide-react";
 import type { getDashboardBookings } from "@/dashboard/data";
+import { formatBusinessDateTime } from "@/lib/business-time";
 
 type Booking = Awaited<ReturnType<typeof getDashboardBookings>>["rows"][0];
 
@@ -80,7 +81,7 @@ export function BookingsClientView({ initialBookings, totalPages, page }: Bookin
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <CalendarIcon size={14} />
                       <span>
-                        {booking.preferredAt.toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" })}
+                        {formatBusinessDateTime(booking.preferredAt, { hour: "numeric" })}
                       </span>
                     </div>
                   </td>
@@ -123,7 +124,7 @@ export function BookingsClientView({ initialBookings, totalPages, page }: Bookin
                 <div className="flex items-center gap-2">
                   <CalendarIcon size={14} />
                   <span className="text-muted-foreground">
-                    {booking.preferredAt.toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" })}
+                    {formatBusinessDateTime(booking.preferredAt, { hour: "numeric" })}
                   </span>
                 </div>
               </div>

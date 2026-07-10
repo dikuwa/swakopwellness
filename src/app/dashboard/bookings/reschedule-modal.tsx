@@ -6,6 +6,7 @@ import { Modal } from "@/ui/modal";
 import { Button, Label, Textarea, DatePicker, TimePicker } from "@/ui/components";
 import toast from "react-hot-toast";
 import type { getDashboardBookings } from "@/dashboard/data";
+import { formatBusinessDateTime, toBusinessDateValue, toBusinessTimeValue } from "@/lib/business-time";
 import { Loader2 } from "lucide-react";
 
 type Booking = Awaited<ReturnType<typeof getDashboardBookings>>["rows"][0];
@@ -19,8 +20,8 @@ interface RescheduleBookingModalProps {
 
 export function RescheduleBookingModal({ booking, isOpen, onClose, onSuccess }: RescheduleBookingModalProps) {
   const [isPending, startTransition] = useTransition();
-  const [date, setDate] = useState<string | undefined>(booking?.preferredAt.toISOString().split('T')[0]);
-  const [time, setTime] = useState<string>(booking?.preferredAt.toTimeString().substring(0, 5) ?? "09:00");
+  const [date, setDate] = useState<string | undefined>(toBusinessDateValue(booking?.preferredAt));
+  const [time, setTime] = useState<string>(toBusinessTimeValue(booking?.preferredAt) ?? "09:00");
   const [reason, setReason] = useState("");
 
   const handleSubmit = (formData: FormData) => {
@@ -48,7 +49,7 @@ export function RescheduleBookingModal({ booking, isOpen, onClose, onSuccess }: 
           <p className="font-medium">{booking.clientName}</p>
           <p className="text-sm text-muted-foreground">{booking.serviceName}</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Current: {booking.preferredAt.toLocaleString("en-GB", { dateStyle: "full", timeStyle: "short" })}
+            Current: {formatBusinessDateTime(booking.preferredAt, { dateStyle: "full", timeStyle: "short" })}
           </p>
         </div>
 

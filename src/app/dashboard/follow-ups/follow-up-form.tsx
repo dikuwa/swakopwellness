@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { DatePicker, Select, Textarea, TimePicker } from "@/ui/components";
 import type { SelectOption } from "@/ui/select";
 import { createFollowUp } from "@/followups/actions";
+import { formatBusinessDateTime } from "@/lib/business-time";
 import { Loader2 } from "lucide-react";
 
 type ClientOption = { value: string; label: string };
@@ -69,7 +70,7 @@ export function FollowUpForm({ clients, bookingOptions }: FollowUpFormProps) {
     <div>
       <p className="font-semibold">{option.reference as string}</p>
       <p className="text-xs text-muted-foreground">{option.serviceName as string}</p>
-      <p className="text-xs text-muted-foreground">{new Date(option.preferredAt as Date).toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
+      <p className="text-xs text-muted-foreground">{formatBusinessDateTime(new Date(option.preferredAt as Date))}</p>
     </div>
   );
 

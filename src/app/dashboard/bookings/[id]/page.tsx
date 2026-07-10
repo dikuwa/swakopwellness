@@ -6,6 +6,7 @@ import { requirePermission, hasPermission } from "@/auth/session";
 import { getAvailableActions } from "@/booking/status";
 import { DashboardShell } from "@/dashboard/shell";
 import { getBookableServicesForManualUse, getDashboardBookingById } from "@/dashboard/data";
+import { formatBusinessDateTime } from "@/lib/business-time";
 import { StatusActionsPanel } from "../status-actions-panel";
 import { BookingDetailsForm } from "../booking-details-form";
 
@@ -68,8 +69,8 @@ export default async function BookingDetailPage(props: { params: Promise<{ id: s
         </div>
 
         <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-          <DetailItem label="Preferred time" value={booking.preferredAt.toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })} />
-          <DetailItem label="Alternative time" value={booking.alternativeAt ? booking.alternativeAt.toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "None provided"} />
+          <DetailItem label="Preferred time" value={formatBusinessDateTime(booking.preferredAt)} />
+          <DetailItem label="Alternative time" value={booking.alternativeAt ? formatBusinessDateTime(booking.alternativeAt) : "None provided"} />
           <DetailItem label="Service price" value={`N$${(booking.servicePriceCents / 100).toFixed(2)}`} />
           <DetailItem label="Duration" value={booking.serviceDurationMinutes ? `${booking.serviceDurationMinutes} minutes` : "Not set"} />
           <DetailItem label="Source" value={<span className="capitalize">{booking.source.replaceAll("_", " ")}</span>} />

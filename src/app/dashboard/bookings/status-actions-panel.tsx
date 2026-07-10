@@ -11,6 +11,7 @@ import {
   changeBookingStatus,
 } from "@/booking/actions";
 import { Button, Label, Textarea, DatePicker, TimePicker } from "@/ui/components";
+import { toBusinessDateValue, toBusinessTimeValue } from "@/lib/business-time";
 import { Loader2 } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -48,8 +49,8 @@ export function StatusActionsPanel({ bookingId, currentStatus, currentDate, avai
   const [isPending, startTransition] = useTransition();
   const [selectedAction, setSelectedAction] = useState<StatusAction>(null);
   const [reason, setReason] = useState("");
-  const [newDate, setNewDate] = useState<string | undefined>(currentDate.toISOString().split("T")[0]);
-  const [newTime, setNewTime] = useState<string>(currentDate.toTimeString().substring(0, 5));
+  const [newDate, setNewDate] = useState<string | undefined>(toBusinessDateValue(currentDate));
+  const [newTime, setNewTime] = useState<string>(toBusinessTimeValue(currentDate) ?? "09:00");
   const [validationError, setValidationError] = useState<string | null>(null);
 
   const handleActionSelect = (action: string) => {

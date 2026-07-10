@@ -7,6 +7,7 @@ import {
   bookings, clients, followUps, invoices, notifications, payments,
   activityLog, users, quotations,
 } from "@/db/schema";
+import { businessStartOfDay, formatBusinessDate, formatBusinessTime, toBusinessDateValue, toBusinessTimeValue } from "@/lib/business-time";
 import Link from "next/link";
 
 
@@ -27,7 +28,7 @@ function timeAgo(date: Date): string {
 }
 
 function formatTime(date: Date): string {
-  return date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+  return formatBusinessTime(date);
 }
 
 function bookingBadge(status: string): { label: string; variant: "default" | "primary" | "success" | "warning" | "danger" | "muted" } {
@@ -69,13 +70,14 @@ export default async function DashboardPage() {
   const db = getDb();
 
   const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const todayDateValue = toBusinessDateValue(now) ?? now.toISOString().slice(0, 10);
+  const todayStart = businessStartOfDay(todayDateValue) ?? new Date(`${todayDateValue}T00:00:00Z`);
   const todayEnd = new Date(todayStart.getTime() + 86400000);
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400000);
 
-  const hour = now.getHours();
+  const hour = Number(toBusinessTimeValue(now)?.slice(0, 2) ?? now.getHours());
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-  const todayDateStr = now.toLocaleDateString("en-GB", {
+  const todayDateStr = formatBusinessDate(now, {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
 
@@ -229,7 +231,7 @@ export default async function DashboardPage() {
                         <div className="flex min-w-0 items-center gap-4">
                           <div className="whitespace-nowrap text-right">
                             <p className="text-sm font-semibold text-primary">{formatTime(b.preferredAt)}</p>
-                            <p className="text-xs text-muted-foreground">{b.preferredAt.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}</p>
+                            <p className="text-xs text-muted-foreground">{formatBusinessDate(b.preferredAt, { weekday: "short", day: "numeric", month: "short" })}</p>
                           </div>
                           <div className="min-w-0">
                             <Link href={`/dashboard/clients/${b.clientId}`} className="text-sm font-semibold text-foreground transition-colors hover:text-primary">

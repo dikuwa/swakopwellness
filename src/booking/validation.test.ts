@@ -16,4 +16,8 @@ describe("booking validation", () => {
     assert.equal(parseDateTime("2026-06-29", "08:30") instanceof Date, true);
     assert.equal(parseDateTime("not-a-date", "08:30"), null);
   });
+
+  it("treats submitted appointment times as Africa/Windhoek local time", () => {
+    assert.equal(parseDateTime("2026-07-23", "13:30")?.toISOString(), "2026-07-23T11:30:00.000Z");
+  });
 });
