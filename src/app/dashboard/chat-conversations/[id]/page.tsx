@@ -55,9 +55,9 @@ function DetailItem({ label, value }: { label: string; value: ReactNode }) {
 function renderMessageContent(content: string) {
   return content.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
     if (part.startsWith("**") && part.endsWith("**")) {
-      return <strong key={index}>{part.slice(2, -2)}</strong>;
+      return <strong key={index} className="break-words [overflow-wrap:anywhere]">{part.slice(2, -2)}</strong>;
     }
-    return <span key={index}>{part}</span>;
+    return <span key={index} className="break-words [overflow-wrap:anywhere]">{part}</span>;
   });
 }
 
@@ -98,13 +98,13 @@ function ChatMessage({ role, content, createdAt }: { role: string; content: stri
       </div>
 
       {/* Bubble */}
-      <div className={`flex max-w-[75%] flex-col gap-1 ${
+      <div className={`flex min-w-0 max-w-[75%] flex-col gap-1 ${
         isUser ? "items-end" : "items-start"
       }`}>
         <span className="text-[11px] font-medium text-muted-foreground">
           {roleLabel}
         </span>
-        <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+        <div className={`min-w-0 break-words rounded-2xl px-4 py-2.5 text-sm leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere] ${
           isUser
             ? "bg-primary/10 text-foreground rounded-tr-md"
             : "bg-surface-muted text-foreground rounded-tl-md"

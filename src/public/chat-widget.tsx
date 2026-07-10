@@ -88,9 +88,9 @@ function parsePreferredDateTime(date: string, time: string) {
 function renderMessage(content: string) {
   return content.split(/(\*\*[^*]+\*\*)/g).map((part, index) => {
     if (part.startsWith("**") && part.endsWith("**")) {
-      return <strong key={index}>{part.slice(2, -2)}</strong>;
+      return <strong key={index} className="break-words [overflow-wrap:anywhere]">{part.slice(2, -2)}</strong>;
     }
-    return <span key={index}>{part}</span>;
+    return <span key={index} className="break-words [overflow-wrap:anywhere]">{part}</span>;
   });
 }
 
@@ -104,9 +104,9 @@ function renderFormattedMessage(content: string) {
     const group = bulletItems;
     bulletItems = [];
     nodes.push(
-      <ul key={`list-${nodes.length}`} className="my-1.5 list-disc space-y-1 pl-4">
+      <ul key={`list-${nodes.length}`} className="my-1.5 min-w-0 list-disc space-y-1 pl-4">
         {group.map((item, index) => (
-          <li key={index}>{renderMessage(item)}</li>
+          <li key={index} className="break-words [overflow-wrap:anywhere]">{renderMessage(item)}</li>
         ))}
       </ul>,
     );
@@ -124,7 +124,7 @@ function renderFormattedMessage(content: string) {
       nodes.push(<div key={`space-${index}`} className="h-2" />);
       return;
     }
-    nodes.push(<p key={`line-${index}`}>{renderMessage(line)}</p>);
+    nodes.push(<p key={`line-${index}`} className="min-w-0 break-words [overflow-wrap:anywhere]">{renderMessage(line)}</p>);
   });
 
   flushBullets();
@@ -607,7 +607,7 @@ export function ChatWidget() {
               {messages.map((message, index) => (
                 <div key={index} className={`flex ${message.role === "assistant" ? "justify-start" : "justify-end"}`}>
                   <div
-                    className={`max-w-[88%] whitespace-pre-line rounded-2xl px-4 py-2.5 text-sm leading-6 ${
+                    className={`min-w-0 max-w-[88%] whitespace-pre-line break-words rounded-2xl px-4 py-2.5 text-sm leading-6 [overflow-wrap:anywhere] ${
                       message.role === "assistant" ? "rounded-bl-sm bg-surface-muted text-foreground" : "rounded-br-sm bg-primary/10 text-foreground"
                     }`}
                   >
@@ -645,11 +645,11 @@ export function ChatWidget() {
                       key={service.slug}
                       type="button"
                       onClick={() => selectService(service)}
-                      className="grid w-full grid-cols-[1fr_auto] gap-x-3 gap-y-1 rounded-xl border border-border bg-background px-3 py-2 text-left text-sm transition-colors hover:border-primary hover:bg-surface-muted"
+                      className="grid w-full min-w-0 grid-cols-1 gap-x-3 gap-y-1 rounded-xl border border-border bg-background px-3 py-2 text-left text-sm transition-colors hover:border-primary hover:bg-surface-muted sm:grid-cols-[minmax(0,1fr)_auto]"
                     >
-                      <span className="font-semibold">{service.name}</span>
-                      <span className="text-right text-xs text-muted-foreground">{service.price} · {service.duration}</span>
-                      <span className="col-span-2 text-xs text-muted-foreground">{service.shortDescription}</span>
+                      <span className="min-w-0 break-words font-semibold [overflow-wrap:anywhere]">{service.name}</span>
+                      <span className="min-w-0 break-words text-xs text-muted-foreground [overflow-wrap:anywhere] sm:text-right">{service.price} · {service.duration}</span>
+                      <span className="min-w-0 break-words text-xs text-muted-foreground [overflow-wrap:anywhere] sm:col-span-2">{service.shortDescription}</span>
                     </button>
                   ))}
                 </div>
