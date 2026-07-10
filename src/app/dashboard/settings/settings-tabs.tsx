@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
+import toast from "react-hot-toast";
 import {
-  ArrowRight, CheckCircle2, Store, MessageSquare, CalendarRange, FileText,
+  ArrowRight, CheckCircle2, Loader2, Store, MessageSquare, CalendarRange, FileText,
 } from "lucide-react";
 import { Select, TimePicker, Checkbox } from "@/ui/components";
 import { updateBusinessSettings, updateCommunicationSettings, updateBookingRules, updateDocumentSequence } from "@/settings/actions";
@@ -16,6 +17,7 @@ const TABS = [
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
+type SaveAction = (fd: FormData) => Promise<{ ok: boolean; error?: string }>;
 
 interface MediaAsset {
   id: string;
@@ -58,28 +60,93 @@ export function SettingsTabs({
 }) {
   const [activeTab, setActiveTab] = useState<TabId>("general");
   const [saving, setSaving] = useState<string | null>(null);
+  const [savedLabel, setSavedLabel] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [openingTime, setOpeningTime] = useState(br?.openingTime ?? "08:00");
   const [closingTime, setClosingTime] = useState(br?.closingTime ?? "17:00");
+  const [requestMode, setRequestMode] = useState(br?.requestMode ?? "booking_request");
+  const [technologyImageId, setTechnologyImageId] = useState(bs?.technologyImageId ?? "");
+
+  const isSaving = (label: string) => saving === label;
 
   const handleAction = async (
-    action: (fd: FormData) => Promise<{ ok: boolean; error?: string }>,
+    action: SaveAction,
     formData: FormData,
     label: string,
     successMessage?: string,
   ) => {
-    setSaving(label);
-    setError(null);
-    setSuccess(null);
-    const result = await action(formData);
-    if (!result.ok) {
-      setError(result.error ?? "Save failed");
-    } else {
-      setSuccess(successMessage ?? "Changes saved.");
+    const message = successMessage ?? "Changes saved.";
+    const toastId = `settings-${label}`;
+    try {
+      setSaving(label);
+      setSavedLabel(null);
+      setError(null);
+      setSuccess(null);
+      toast.loading("Saving settings...", { id: toastId });
+      const result = await action(formData);
+      if (!result.ok) {
+        const actionError = result.error ?? "Save failed. Please try again.";
+        setError(actionError);
+        toast.error(actionError, { id: toastId });
+      } else {
+        setSavedLabel(label);
+        setSuccess(message);
+        toast.success(message, { id: toastId });
+      }
+    } catch {
+      const fallback = "Something went wrong while saving. Please try again.";
+      setError(fallback);
+      toast.error(fallback, { id: toastId });
+    } finally {
+      setSaving(null);
     }
-    setSaving(null);
   };
+
+  const handleSubmit = (
+    event: FormEvent<HTMLFormElement>,
+    action: SaveAction,
+    label: string,
+    successMessage?: string,
+  ) => {
+    event.preventDefault();
+    void handleAction(action, new FormData(event.currentTarget), label, successMessage);
+  };
+
+  const saveButtonClass = "inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-wait disabled:opacity-60";
+  const saveRowClass = "flex flex-wrap items-center gap-4";
+
+  const renderSaveStatus = (label: string, pendingText = "Saving changes...") => (
+    <div className="min-h-5 text-sm" aria-live="polite">
+      {isSaving(label) ? (
+        <span className="inline-flex items-center gap-2 font-medium text-muted-foreground" role="status">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          {pendingText}
+        </span>
+      ) : success && savedLabel === label ? (
+        <span className="inline-flex items-center gap-2 font-medium text-success" role="status">
+          <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
+          {success}
+        </span>
+      ) : null}
+    </div>
+  );
+
+  const renderSubmitButton = (label: string, idleText: string) => (
+    <button
+      type="submit"
+      disabled={isSaving(label)}
+      aria-busy={isSaving(label)}
+      className={saveButtonClass}
+    >
+      {isSaving(label) ? (
+        <>
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          Saving...
+        </>
+      ) : idleText}
+    </button>
+  );
 
   return (
     <div className="mt-8">
@@ -126,9 +193,10 @@ export function SettingsTabs({
         {/* ─── General ─── */}
         {activeTab === "general" && bs && (
           <form
-            action={async (fd) => handleAction(updateBusinessSettings, fd, "general")}
+            onSubmit={(event) => handleSubmit(event, updateBusinessSettings, "general")}
             className="space-y-5"
           >
+            <fieldset disabled={isSaving("general")} className="space-y-5 disabled:opacity-70">
             <div className="rounded-xl border border-border p-5 space-y-4">
               <h2 className="text-lg font-semibold">Business Details</h2>
               <div>
@@ -221,6 +289,9 @@ export function SettingsTabs({
                 <p className="text-sm text-muted-foreground">Image shown in the Diacom Technology section on the homepage.</p>
                 <Select
                   name="technologyImageId"
+                  disabled={isSaving("general")}
+                  value={technologyImageId}
+                  onChange={setTechnologyImageId}
                   options={[
                     { value: "", label: "None" },
                     ...mediaAssets.map((a) => ({
@@ -233,24 +304,21 @@ export function SettingsTabs({
               </div>
             )}
 
-            <div className="flex items-center gap-4 pt-2">
-              <button
-                type="submit"
-                disabled={saving === "general"}
-                className="h-11 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
-              >
-                {saving === "general" ? "Saving..." : "Save Changes"}
-              </button>
+            <div className={`${saveRowClass} pt-2`}>
+              {renderSubmitButton("general", "Save Changes")}
+              {renderSaveStatus("general")}
             </div>
+            </fieldset>
           </form>
         )}
 
         {/* ─── Communication ─── */}
         {activeTab === "communication" && cs && (
           <form
-            action={async (fd) => handleAction(updateCommunicationSettings, fd, "comm")}
+            onSubmit={(event) => handleSubmit(event, updateCommunicationSettings, "comm")}
             className="space-y-6"
           >
+            <fieldset disabled={isSaving("comm")} className="space-y-6 disabled:opacity-70">
             <fieldset className="space-y-4 rounded-xl border border-border p-5">
               <legend className="text-sm font-semibold tracking-[0.08em] text-muted-foreground uppercase">Phone</legend>
               <Checkbox
@@ -306,24 +374,21 @@ export function SettingsTabs({
               </div>
             </fieldset>
 
-            <div className="flex items-center gap-4 pt-2">
-              <button
-                type="submit"
-                disabled={saving === "comm"}
-                className="h-11 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
-              >
-                {saving === "comm" ? "Saving..." : "Save Changes"}
-              </button>
+            <div className={`${saveRowClass} pt-2`}>
+              {renderSubmitButton("comm", "Save Changes")}
+              {renderSaveStatus("comm")}
             </div>
+            </fieldset>
           </form>
         )}
 
         {/* ─── Booking ─── */}
         {activeTab === "booking" && br && (
           <form
-            action={async (fd) => handleAction(updateBookingRules, fd, "booking")}
+            onSubmit={(event) => handleSubmit(event, updateBookingRules, "booking")}
             className="space-y-5"
           >
+            <fieldset disabled={isSaving("booking")} className="space-y-5 disabled:opacity-70">
             <div className="flex gap-4">
               <div className="flex-1">
                 <label htmlFor="br-open" className="mb-1.5 block text-sm font-medium">Opening Time</label>
@@ -342,10 +407,12 @@ export function SettingsTabs({
             <div>
               <label htmlFor="br-mode" className="mb-1.5 block text-sm font-medium">Request Mode</label>
               <Select
-                id="br-mode"
-                name="requestMode"
-                required
-                value={br.requestMode}
+                  id="br-mode"
+                  name="requestMode"
+                  required
+                  disabled={isSaving("booking")}
+                  value={requestMode}
+                  onChange={setRequestMode}
                 options={[
                   { value: "booking_request", label: "Booking Request (requires confirmation)" },
                   { value: "confirmed", label: "Auto-confirmed" },
@@ -357,15 +424,11 @@ export function SettingsTabs({
               <label htmlFor="br-dup" className="mb-1.5 block text-sm font-medium">Duplicate Window (minutes)</label>
               <input id="br-dup" name="duplicateWindowMinutes" type="number" min="0" defaultValue={br.duplicateWindowMinutes} required className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-foreground" />
             </div>
-            <div className="flex items-center gap-4 pt-2">
-              <button
-                type="submit"
-                disabled={saving === "booking"}
-                className="h-11 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
-              >
-                {saving === "booking" ? "Saving..." : "Save Changes"}
-              </button>
+            <div className={`${saveRowClass} pt-2`}>
+              {renderSubmitButton("booking", "Save Changes")}
+              {renderSaveStatus("booking")}
             </div>
+            </fieldset>
           </form>
         )}
 
@@ -379,15 +442,16 @@ export function SettingsTabs({
               return (
                 <form
                   key={seq.id}
-                  action={async (fd) => handleAction(updateDocumentSequence, fd, `doc-${seq.documentType}`)}
+                  onSubmit={(event) => handleSubmit(event, updateDocumentSequence, `doc-${seq.documentType}`)}
                   className="rounded-xl border border-border p-5"
                 >
+                  <fieldset disabled={isSaving(`doc-${seq.documentType}`)} className="disabled:opacity-70">
                   <input type="hidden" name="documentType" value={seq.documentType} />
                   <h2 className="text-lg font-semibold capitalize">{label}</h2>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Preview: <span className="font-mono text-foreground">{seq.prefix}{String(seq.nextNumber).padStart(seq.padding, "0")}</span>
                   </p>
-                  <div className="mt-4 grid grid-cols-3 gap-4">
+                  <div className="mt-4 grid gap-4 sm:grid-cols-3">
                     <div>
                       <label htmlFor={`pre-${seq.documentType}`} className="mb-1.5 block text-sm font-medium">Prefix</label>
                       <input id={`pre-${seq.documentType}`} name="prefix" defaultValue={seq.prefix} required className="h-11 w-full rounded-xl border border-border bg-surface px-4 text-foreground" />
@@ -402,14 +466,12 @@ export function SettingsTabs({
                     </div>
                   </div>
                   <div className="mt-4">
-                    <button
-                      type="submit"
-                      disabled={saving === `doc-${seq.documentType}`}
-                      className="h-11 rounded-xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50"
-                    >
-                      {saving === `doc-${seq.documentType}` ? "Saving..." : "Save"}
-                    </button>
+                    <div className={saveRowClass}>
+                      {renderSubmitButton(`doc-${seq.documentType}`, "Save")}
+                      {renderSaveStatus(`doc-${seq.documentType}`, `Saving ${label.toLowerCase()} numbering...`)}
+                    </div>
                   </div>
+                  </fieldset>
                 </form>
               );
             })}
