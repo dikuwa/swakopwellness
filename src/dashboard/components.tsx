@@ -58,6 +58,7 @@ const iconMap: Record<string, typeof LayoutDashboard> = {
   "/dashboard/users": UserRoundCog,
   "/dashboard/settings": Settings,
   "/dashboard/settings/data-management": SlidersHorizontal,
+  "/dashboard/settings/activity-cleanup": SlidersHorizontal,
 };
 
 function NavIcon({ href, className }: { href: string; className?: string }) {
@@ -131,7 +132,8 @@ const linkGroups: NavGroup[] = [
       {
         href: "/dashboard/settings",
         label: "Settings",
-        children: [{ href: "/dashboard/settings/data-management", label: "Data Management", ownerOnly: true }],
+        children: [      { href: "/dashboard/settings/data-management", label: "Data Management", ownerOnly: true },
+          { href: "/dashboard/settings/activity-cleanup", label: "Activity Cleanup", ownerOnly: true }],
       },
     ],
   },

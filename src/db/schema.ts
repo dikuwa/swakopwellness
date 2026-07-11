@@ -772,6 +772,26 @@ export const notifications = pgTable(
   ],
 );
 
+export const cleanupRuns = pgTable(
+  "cleanup_runs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    status: text("status").notNull().default("pending"),
+    cutoffAt: timestamp("cutoff_at", { withTimezone: true }).notNull(),
+    exportedCounts: jsonb("exported_counts").$type<Record<string, number>>().notNull().default({}),
+    deletedCounts: jsonb("deleted_counts").$type<Record<string, number>>().notNull().default({}),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [index("cleanup_runs_user_idx").on(table.userId), index("cleanup_runs_status_idx").on(table.status)],
+);
+
+export const cleanupRunsRelations = relations(cleanupRuns, ({ one }) => ({
+  user: one(users, { fields: [cleanupRuns.userId], references: [users.id] }),
+}));
+
 export const notificationsRelations = relations(notifications, ({ one }) => ({
   user: one(users, { fields: [notifications.userId], references: [users.id] }),
 }));
