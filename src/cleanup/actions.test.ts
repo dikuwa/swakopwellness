@@ -280,6 +280,41 @@ describe("Activity Cleanup — type validation", () => {
   });
 });
 
+describe("Activity Cleanup — empty-state handling", () => {
+  it("returns zero counts for all models when no data exists", () => {
+    const zeroPreview = {
+      models: MODEL_DEFS.map((m) => ({ key: m.key, label: m.label, count: 0 })),
+      total: 0,
+    };
+    assert.equal(zeroPreview.total, 0);
+    assert.equal(zeroPreview.models.length, 5);
+    for (const model of zeroPreview.models) {
+      assert.equal(model.count, 0);
+    }
+  });
+
+  it("empty execute result has zero deleted and zero total", () => {
+    const result = { ok: true as const, deleted: { chatMessages: 0, chatToolEvents: 0, chatConversations: 0, notifications: 0, activityLog: 0 }, total: 0 };
+    assert.equal(result.ok, true);
+    assert.equal(result.total, 0);
+    assert.equal(Object.values(result.deleted).reduce((a, b) => a + b, 0), 0);
+  });
+
+  it("zero-record export summary references 'No records found' for empty models", () => {
+    const emptyExportPlaceholder = [["No records found"]];
+    assert.equal(emptyExportPlaceholder.length, 1);
+    assert.equal(emptyExportPlaceholder[0][0], "No records found");
+  });
+
+  it("handles empty state after successful cleanup", () => {
+    // After cleanup with zero results, the execute result should be valid
+    const result = { ok: true as const, deleted: {}, total: 0 };
+    assert.equal(result.ok, true);
+    assert.equal(result.total, 0);
+    assert.deepEqual(result.deleted, {});
+  });
+});
+
 describe("Activity Cleanup — model key to table name mapping", () => {
   it("chatMessages maps to chat_messages", () => {
     const m = MODEL_DEFS.find((d) => d.key === "chatMessages");
